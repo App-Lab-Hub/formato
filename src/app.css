@@ -112,7 +112,7 @@
 }
 
 @theme inline {
-  --font-sans: "Inter Variable", sans-serif;
+  /* --font-sans: "Inter Variable", sans-serif; */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -153,7 +153,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-@layer base {
+/* @layer base {
   * {
     @apply border-border outline-ring/50;
   }
@@ -163,7 +163,7 @@
   html {
     @apply font-sans;
   }
-}
+} */
 
 /* === OverlayScrollbars (глобальный + диалог) === */
 .os-theme-dark {
@@ -294,64 +294,129 @@
 .preview-page .monaco-editor .monaco-scrollable-element {
   scroll-behavior: smooth;
 }
-/* Таргетируемся на контейнер виджета поиска */
-.monaco-editor .find-widget {
-  /* Сдвигаем виджет вниз на нужный отступ */
-  margin-top: 12px !important;
 
-  /* Делаем правый отступ, как в VSCode (по желанию) */
+/* ========== ПОЛНЫЙ И ИДЕАЛЬНЫЙ ФИКС ВИДЖЕТА ПОИСКА MONACO ========== */
+
+/* 1. Главный контейнер: равномерный padding со всех сторон, скругление и тень */
+.preview-page .monaco-editor .find-widget {
+  margin-top: 12px !important;
   margin-right: 12px !important;
 
-  /* Плавность появления (опционально, как в VSCode) */
-  transition:
-    transform 0.2s ease-out,
-    opacity 0.2s ease-out;
-}
-
-/* Виджет поиска Monaco — отступ от верха 
-.monaco-editor .find-widget {
-  top: 12px !important;
-  background: #252526 !important;
-  border: 1px solid #454545 !important;
-  border-radius: 8px !important;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+  /* Идеальный равномерный отступ со всех сторон (исправляет нехватку места снизу) */
   padding: 6px 8px !important;
-  transition: top 0.15s ease !important;
+
+  border-radius: 6px !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+  position: absolute !important;
 }
 
-.monaco-editor .find-widget .monaco-inputbox {
-  background: #3c3c3c !important;
-  border: 1px solid #5a5a5a !important;
-  border-radius: 4px !important;
-  color: #ffffff !important;
+/* 2. Увеличиваем отступы между иконками во всех трех группах */
+.preview-page .monaco-editor .find-widget .controls,       /* Иконки внутри инпутов (Aa, W, .*) */
+.preview-page .monaco-editor .find-widget .find-actions,   /* Кнопки Назад/Вперед и Выделение */
+.preview-page .monaco-editor .find-widget .replace-actions {
+  /* Кнопки Заменить/Заменить все */
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 4px !important; /* Расстояние между иконками (сделайте 6px, если нужно еще шире) */
 }
 
-.monaco-editor .find-widget .monaco-inputbox:focus-within {
-  border-color: #007fd4 !important;
+/* Дополнительный отступ между счетчиком "27 of 55" и первой стрелочкой */
+.preview-page .monaco-editor .find-widget .matchesCount {
+  margin-right: 4px !important;
 }
 
-.monaco-editor .find-widget .button {
-  border-radius: 4px !important;
-  color: #cccccc !important;
+/* 3. Убираем рамки от Tailwind (*) и центрируем глифы внутри кнопок */
+.preview-page .monaco-editor .find-widget .button,
+.preview-page .monaco-editor .find-widget .monaco-custom-toggle {
+  border: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
-.monaco-editor .find-widget .button:hover {
-  background: #3c3c3c !important;
-  color: #ffffff !important;
+/* 4. ТОЧНЫЙ ВЫРАВНЕННЫЙ КРЕСТИК: Сдвигаем с учетом нового бокового padding */
+.preview-page .monaco-editor .find-widget .codicon-widget-close {
+  position: absolute !important;
+  top: 10px !important;
+  right: 8px !important;
+  width: 20px !important;
+  height: 20px !important;
+  z-index: 10 !important;
 }
 
-.monaco-editor .find-widget .button.checked {
-  background: #094771 !important;
-  color: #ffffff !important;
+/* 5. Восстанавливаем высоту строки для иконочного шрифта */
+.preview-page .monaco-editor .find-widget .codicon {
+  font-family: "codicon" !important;
+  line-height: 1 !important;
 }
 
-.monaco-editor .find-widget .find-part,
-.monaco-editor .find-widget .replace-part {
-  gap: 4px !important;
+/* ==========================================================================
+   ИСПРАВЛЕННЫЙ ВИДЖЕТ ПОИСКА И ЗАМЕНЫ (MONACO EDITOR)
+   ========================================================================= */
+
+/* 1. Главный контейнер: отступ сверху/справа, равномерный padding, скругление и тень */
+.preview-page .monaco-editor .find-widget {
+  margin-top: 12px !important;
+  margin-right: 12px !important;
+  padding: 6px 8px !important; /* Одинаковый аккуратный воздух со всех сторон */
+  border-radius: 6px !important; /* Красивое скругление углов */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35) !important;
+  position: absolute !important;
 }
 
-.monaco-editor .find-widget .matchesCount {
-  color: #888888 !important;
-  font-size: 12px !important;
+/* 2. Жесткий сброс рамок от Tailwind (*), чтобы кнопки не косило */
+.preview-page .monaco-editor .find-widget,
+.preview-page .monaco-editor .find-widget * {
+  border-width: 0 !important;
+  box-sizing: border-box !important;
 }
-*/
+
+/* 3. Восстановление высоты строки и шрифта для иконок */
+.preview-page .monaco-editor .find-widget .codicon {
+  font-family: "codicon" !important;
+  line-height: 1 !important;
+}
+
+/* 4. Идельное флекс-центрирование глифов внутри кнопок */
+.preview-page .monaco-editor .find-widget .button,
+.preview-page .monaco-editor .find-widget .monaco-custom-toggle {
+  border: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* 5. Увеличение отступов (gap) между иконками в группах */
+.preview-page .monaco-editor .find-widget .controls,
+.preview-page .monaco-editor .find-widget .find-actions,
+.preview-page .monaco-editor .find-widget .replace-actions {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important; /* Отступы между кнопками "Заменить" и "Заменить все" */
+}
+
+/* Счетчик совпадений ("27 of 55") слегка отодвигаем от стрелочек */
+.preview-page .monaco-editor .find-widget .matchesCount {
+  margin-right: 6px !important;
+}
+
+/* 6. РАЗДВИГАЕМ ТРИ ЭЛЕМЕНТА СТРОКИ ЗАМЕНЫ (Инпут - Контролы - Действия) */
+.preview-page .monaco-editor .find-widget .replace-part {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important; /* Расстояние между полем ввода, иконкой регистра и кнопками замены */
+}
+
+/* 7. АБСОЛЮТНОЕ ВЫРАВНИВАНИЕ КРЕСТИКА */
+.preview-page .monaco-editor .find-widget .codicon-widget-close {
+  position: absolute !important;
+  top: 12px !important; /* Ровно на уровне первой строчки */
+  right: 8px !important; /* Аккуратный отступ справа */
+  width: 20px !important;
+  height: 20px !important;
+  z-index: 10 !important;
+}
