@@ -1,0 +1,32 @@
+/* src/lib/styles/splide.css */
+
+.splide__track {
+  padding-top: 1rem;
+  padding-bottom: 3rem;
+}
+
+.splide__pagination {
+  bottom: 0.5rem;
+  gap: 0.5rem;
+  display: flex;
+}
+
+.splide__pagination__page {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: oklch(0.3 0.04 285);
+  border: none;
+  border-radius: 9999px;
+  transition: all 0.3s ease;
+  opacity: 1;
+  margin: 0;
+}
+
+.splide__pagination__page.is-active {
+  width: 1.5rem;
+  background: oklch(0.58 0.22 300);
+}
+
+.splide__pagination__page:hover:not(.is-active) {
+  background: oklch(0.65 0.05 280);
+}

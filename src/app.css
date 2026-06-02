@@ -1,0 +1,296 @@
+@import "tailwindcss";
+
+@import "tw-animate-css";
+@import "shadcn-svelte/tailwind.css";
+@import "@fontsource-variable/inter";
+
+@custom-variant dark (&:is(.dark *));
+@custom-variant purple (&:is(.purple *));
+
+:root {
+  --background: oklch(0.15 0.03 285);
+  --foreground: oklch(0.93 0.02 280);
+  --card: oklch(0.18 0.04 285);
+  --card-foreground: oklch(0.93 0.02 280);
+  --popover: oklch(0.18 0.04 285);
+  --popover-foreground: oklch(0.93 0.02 280);
+  --primary: oklch(0.58 0.22 300);
+  --primary-foreground: oklch(0.98 0.01 280);
+  --secondary: oklch(0.24 0.04 285);
+  --secondary-foreground: oklch(0.93 0.02 280);
+  --muted: oklch(0.24 0.03 285);
+  --muted-foreground: oklch(0.65 0.05 280);
+  --accent: oklch(0.58 0.22 300);
+  --accent-foreground: oklch(0.98 0.01 280);
+  --destructive: oklch(0.55 0.2 10);
+  --border: oklch(0.3 0.04 285);
+  --input: oklch(0.24 0.04 285);
+  --ring: oklch(0.58 0.22 300);
+  --chart-1: oklch(0.58 0.22 300);
+  --chart-2: oklch(0.48 0.17 300);
+  --chart-3: oklch(0.68 0.22 300);
+  --chart-4: oklch(0.38 0.12 300);
+  --chart-5: oklch(0.78 0.22 300);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.15 0.03 285);
+  --sidebar-foreground: oklch(0.93 0.02 280);
+  --sidebar-primary: oklch(0.58 0.22 300);
+  --sidebar-primary-foreground: oklch(0.98 0.01 280);
+  --sidebar-accent: oklch(0.24 0.04 285);
+  --sidebar-accent-foreground: oklch(0.93 0.02 280);
+  --sidebar-border: oklch(0.3 0.04 285);
+  --sidebar-ring: oklch(0.58 0.22 300);
+}
+
+.dark {
+  --background: oklch(0.13 0.03 285);
+  --foreground: oklch(0.93 0.02 280);
+  --card: oklch(0.16 0.04 285);
+  --card-foreground: oklch(0.93 0.02 280);
+  --popover: oklch(0.16 0.04 285);
+  --popover-foreground: oklch(0.93 0.02 280);
+  --primary: oklch(0.55 0.22 300);
+  --primary-foreground: oklch(0.98 0.01 280);
+  --secondary: oklch(0.22 0.04 285);
+  --secondary-foreground: oklch(0.93 0.02 280);
+  --muted: oklch(0.22 0.03 285);
+  --muted-foreground: oklch(0.62 0.05 280);
+  --accent: oklch(0.55 0.22 300);
+  --accent-foreground: oklch(0.98 0.01 280);
+  --destructive: oklch(0.5 0.18 10);
+  --border: oklch(0.28 0.04 285);
+  --input: oklch(0.22 0.04 285);
+  --ring: oklch(0.55 0.22 300);
+  --chart-1: oklch(0.55 0.22 300);
+  --chart-2: oklch(0.45 0.17 300);
+  --chart-3: oklch(0.65 0.22 300);
+  --chart-4: oklch(0.35 0.12 300);
+  --chart-5: oklch(0.75 0.22 300);
+  --sidebar: oklch(0.13 0.03 285);
+  --sidebar-foreground: oklch(0.93 0.02 280);
+  --sidebar-primary: oklch(0.55 0.22 300);
+  --sidebar-primary-foreground: oklch(0.98 0.01 280);
+  --sidebar-accent: oklch(0.22 0.04 285);
+  --sidebar-accent-foreground: oklch(0.93 0.02 280);
+  --sidebar-border: oklch(0.28 0.04 285);
+  --sidebar-ring: oklch(0.55 0.22 300);
+}
+
+.purple {
+  --background: oklch(0.18 0.06 295);
+  --foreground: oklch(0.96 0.03 285);
+  --card: oklch(0.22 0.07 295);
+  --card-foreground: oklch(0.96 0.03 285);
+  --popover: oklch(0.22 0.07 295);
+  --popover-foreground: oklch(0.96 0.03 285);
+  --primary: oklch(0.68 0.28 315);
+  --primary-foreground: oklch(0.99 0.01 290);
+  --secondary: oklch(0.3 0.07 295);
+  --secondary-foreground: oklch(0.96 0.03 285);
+  --muted: oklch(0.3 0.05 295);
+  --muted-foreground: oklch(0.72 0.08 290);
+  --accent: oklch(0.68 0.28 315);
+  --accent-foreground: oklch(0.99 0.01 290);
+  --destructive: oklch(0.55 0.2 10);
+  --border: oklch(0.36 0.07 295);
+  --input: oklch(0.3 0.07 295);
+  --ring: oklch(0.68 0.28 315);
+  --chart-1: oklch(0.68 0.28 315);
+  --chart-2: oklch(0.58 0.23 315);
+  --chart-3: oklch(0.78 0.28 315);
+  --chart-4: oklch(0.48 0.18 315);
+  --chart-5: oklch(0.88 0.28 315);
+  --radius: 0.75rem;
+  --sidebar: oklch(0.18 0.06 295);
+  --sidebar-foreground: oklch(0.96 0.03 285);
+  --sidebar-primary: oklch(0.68 0.28 315);
+  --sidebar-primary-foreground: oklch(0.99 0.01 290);
+  --sidebar-accent: oklch(0.3 0.07 295);
+  --sidebar-accent-foreground: oklch(0.96 0.03 285);
+  --sidebar-border: oklch(0.36 0.07 295);
+  --sidebar-ring: oklch(0.68 0.28 315);
+}
+
+@theme inline {
+  --font-sans: "Inter Variable", sans-serif;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+
+/* === OverlayScrollbars (глобальный + диалог) === */
+.os-theme-dark {
+  --os-handle-bg: oklch(0.58 0.22 300 / 0.5) !important;
+  --os-handle-bg-hover: oklch(0.58 0.22 300 / 0.7) !important;
+  --os-handle-bg-active: oklch(0.58 0.22 300 / 0.9) !important;
+  --os-handle-border-radius: 9999px !important;
+  --os-size: 8px !important;
+  --os-track-bg: oklch(0.58 0.22 300 / 0.1) !important;
+  --os-track-bg-hover: oklch(0.58 0.22 300 / 0.2) !important;
+  --os-track-bg-active: oklch(0.58 0.22 300 / 0.25) !important;
+}
+
+.os-theme-dark:hover {
+  --os-size: 10px !important;
+}
+
+/* Shiki pre внутри диалога */
+[data-slot="dialog-content"] pre {
+  border: none;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+[data-slot="dialog-content"] pre code {
+  font-size: 0.8125rem;
+  line-height: 1.7;
+}
+
+[data-overlayscrollbars-viewport] {
+  padding: 0px 35px !important;
+}
+
+/* ========== ОКНО ПРЕВЬЮ ========== */
+
+.preview-page {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  background: #1e1e1e;
+  overflow: hidden;
+}
+
+/* ========== СКРОЛЛБАР MONACO В ПРЕВЬЮ ========== */
+
+.preview-page .monaco-editor .monaco-scrollable-element > .scrollbar.vertical {
+  background: rgba(100, 100, 100, 0.08) !important;
+  width: 8px !important;
+}
+
+.preview-page
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.horizontal {
+  background: rgba(100, 100, 100, 0.08) !important;
+  height: 6px !important;
+}
+
+.preview-page
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.vertical
+  > .slider {
+  border-radius: 4px !important;
+  background: rgba(180, 180, 180, 0.35) !important;
+  width: 6px !important;
+  left: auto !important;
+  right: 1px !important;
+}
+
+.preview-page
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.vertical
+  > .slider:hover {
+  background: rgba(180, 180, 180, 0.6) !important;
+}
+
+.preview-page
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.vertical
+  > .slider:active {
+  background: rgba(180, 180, 180, 0.85) !important;
+}
+
+.preview-page
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.horizontal
+  > .slider {
+  border-radius: 4px !important;
+  background: rgba(180, 180, 180, 0.35) !important;
+  height: 4px !important;
+  bottom: 1px !important;
+}
+
+.preview-page
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.horizontal
+  > .slider:hover {
+  background: rgba(180, 180, 180, 0.6) !important;
+}
+
+.preview-page
+  .monaco-editor
+  .monaco-scrollable-element
+  > .scrollbar.horizontal
+  > .slider:active {
+  background: rgba(180, 180, 180, 0.85) !important;
+}
+
+.preview-page .monaco-editor .monaco-scrollable-element > .scrollbar > .arrow {
+  display: none !important;
+}
+
+.preview-page .monaco-editor .monaco-scrollable-element > .scrollbar.corner {
+  background: rgba(100, 100, 100, 0.08) !important;
+}
+
+.preview-page .monaco-editor .monaco-scrollable-element > .shadow {
+  display: none !important;
+}
+
+.preview-page .monaco-editor .monaco-scrollable-element {
+  scroll-behavior: smooth;
+}

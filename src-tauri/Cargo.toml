@@ -1,0 +1,36 @@
+[package]
+name = "formato"
+version = "0.1.0"
+description = "A Tauri App"
+authors = ["you"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "formato_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-dialog = "2.7.1"
+serde_ini = "0.2.0"
+quick-xml = "0.40.1"
+toml = "1.1.2"
+csv = "1.4.0"
+serde_yaml = "0.9.34"
+dirs = "6.0.0"
+opener = "0.8.4"
+syntect = { version = "5.3.0", features = ["default-fancy", "default-syntaxes", "default-themes"] }
+lazy_static = "1.5.0"
+tokio = "1.52.3"
+
