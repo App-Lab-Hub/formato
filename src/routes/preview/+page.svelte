@@ -5,6 +5,20 @@
 
   let monacoContainer = $state<HTMLElement>();
 
+  function fixFindWidgetHeight() {
+    const findWidget = document.querySelector('.monaco-editor .find-widget') as HTMLElement;
+    if (!findWidget) return;
+    
+    const isReplaceToggled = findWidget.classList.contains('replaceToggled');
+    const currentHeight = parseInt(findWidget.style.height);
+    
+    if (isReplaceToggled) {
+      if (currentHeight <= 70) findWidget.style.height = '67px';
+    } else {
+      if (currentHeight <= 41) findWidget.style.height = '41px';
+    }
+  }
+
   onMount(async () => {
     console.log('[Preview Page] Mounted');
     
@@ -20,19 +34,17 @@
       return;
     }
 
-    // Получаем инстанс текущего открытого окна превью
     const currentWindow = WebviewWindow.getCurrent();
 
     console.log('[Preview Page] Registering once listener for preview-data...');
     
-    // Подписываемся на событие на уровне текущего окна ровно один раз
     await currentWindow.once<{ content: string; lang: string; title: string }>('preview-data', (event) => {
       console.log('[Preview Page] Data package arrived! Length:', event.payload.content?.length);
       const { content, lang } = event.payload;
 
       if (monacoContainer && content) {
         console.log('[Preview Page] Initializing Monaco editor...');
-        monaco.editor.create(monacoContainer, {
+        const editor = monaco.editor.create(monacoContainer, {
           value: content,
           language: lang,
           readOnly: false,
@@ -102,13 +114,36 @@
           },
           links: true,
         });
+
+        // Ctrl+F — открыть поиск + исправить высоту
+        editor.addAction({
+          id: 'find-with-fix',
+          label: 'Find',
+          keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF],
+          run: () => {
+            editor.getAction('actions.find')?.run();
+            setTimeout(fixFindWidgetHeight, 10);
+          }
+        });
+
+        // MutationObserver — авто-коррекция при toggle Replace
+        const findContainer = document.querySelector('.monaco-editor .overlayWidgets');
+        if (findContainer) {
+          const observer = new MutationObserver(() => {
+            fixFindWidgetHeight();
+          });
+          observer.observe(findContainer, {
+            attributes: true,
+            attributeFilter: ['class', 'style'],
+            subtree: true
+          });
+        }
+
         console.log('[Preview Page] Monaco editor rendered successfully');
       }
     });
 
     console.log('[Preview Page] Signaling parent window...');
-    // Отправляем сигнал наверх текущему объекту окна. 
-    // Поскольку родитель слушает именно этот инстанс, событие мгновенно поймается
     await currentWindow.emit('preview-ready');
     console.log('[Preview Page] Signal preview-ready fired!');
   });
