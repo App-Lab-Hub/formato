@@ -299,11 +299,11 @@
 
 /* 1. Главный контейнер: равномерный padding со всех сторон, скругление и тень */
 .preview-page .monaco-editor .find-widget {
-  margin-top: 12px !important;
-  margin-right: 12px !important;
+  /* margin-top: 12px !important; */
+  /* margin-right: 12px !important; */
 
   /* Идеальный равномерный отступ со всех сторон (исправляет нехватку места снизу) */
-  padding: 6px 8px !important;
+  /* padding: 6px 8px !important; */
 
   border-radius: 6px !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
