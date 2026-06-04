@@ -197,7 +197,6 @@
 [data-overlayscrollbars-viewport] {
   padding: 0px 35px !important;
 }
-
 /* ========== ОКНО ПРЕВЬЮ ========== */
 
 .preview-page {
@@ -373,4 +372,65 @@
 
 .preview-page .monaco-editor .find-widget .replace-part .replace-actions {
   width: 184px !important;
+}
+
+/* ========== БЛОКИРОВКА СИНЕЙ ОБВОДКИ И ЭФФЕКТ СВЕЧЕНИЯ ПО КЛИКУ ========== */
+
+/* 1. Полностью глушим стандартный синий аутлайн фокуса на кнопках и кастомных таглах */
+.preview-page .monaco-editor .find-widget .button:focus,
+.preview-page .monaco-editor .find-widget .button:focus-visible,
+.preview-page .monaco-editor .find-widget .monaco-custom-toggle:focus,
+.preview-page .monaco-editor .find-widget .monaco-custom-toggle:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* 2. ЗАЩИТА: Полностью отключаем любые эффекты hover/active, если кнопка задизейблена */
+.preview-page .monaco-editor .find-widget .button.disabled,
+.preview-page .monaco-editor .find-widget .button[aria-disabled="true"],
+.preview-page .monaco-editor .find-widget .monaco-custom-toggle.disabled,
+.preview-page
+  .monaco-editor
+  .find-widget
+  .monaco-custom-toggle[aria-disabled="true"] {
+  pointer-events: none !important; /* Отсекает hover, active и клики на уровне браузера */
+  background-color: transparent !important;
+  box-shadow: none !important;
+  opacity: 0.4 !important; /* Визуальный стандарт задизейбленой кнопки */
+}
+
+/* 3. Правильный ховер для активного (выделенного синим) состояния find-selection */
+/* Оставляем родной синий цвет базовым, делая подложку чуть ярче при наведении */
+.preview-page
+  .monaco-editor
+  .find-widget
+  .codicon-find-selection.checked:hover {
+  background-color: var(
+    --vscode-inputOption-activeBackground,
+    #007acc
+  ) !important;
+  filter: brightness(
+    1.2
+  ) !important; /* Мягко подсвечивает синий, не уходя в серый */
+}
+
+/* 4. Нативный монохромный эффект зажатия (:active) в тон темы редактора */
+.preview-page .monaco-editor .find-widget .codicon-find-replace:active,
+.preview-page .monaco-editor .find-widget .codicon-find-replace-all:active,
+.preview-page .monaco-editor .find-widget .codicon-find-next-match:active,
+.preview-page .monaco-editor .find-widget .codicon-find-previous-match:active,
+.preview-page .monaco-editor .find-widget .codicon-widget-close:active {
+  /* Плотный полупрозрачный серый бэкграунд, который хорошо виден на #1e1e1e */
+  background-color: rgba(65, 63, 63, 0.25) !important;
+
+  /* Аккуратная внутренняя серая тень: создает благородный и неброский эффект прожатия */
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.6) !important;
+
+  border-radius: 4px !important;
+  outline: none !important;
+
+  /* Мгновенный отклик на клик без анимационных задержек */
+  transition:
+    background-color 0s,
+    box-shadow 0s !important;
 }
