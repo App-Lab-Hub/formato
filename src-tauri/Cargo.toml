@@ -33,4 +33,5 @@ opener = "0.8.4"
 syntect = { version = "5.3.0", features = ["default-fancy", "default-syntaxes", "default-themes"] }
 lazy_static = "1.5.0"
 tokio = "1.52.3"
+tauri-plugin-fs = "2.5.1"
 

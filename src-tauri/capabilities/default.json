@@ -9,6 +9,10 @@
     "dialog:default",
     "core:webview:allow-create-webview-window",
     "core:event:allow-listen",
-    "core:event:allow-emit"
+    "core:event:allow-emit",
+    "dialog:allow-save",
+    "dialog:allow-open",
+    "fs:allow-write-text-file",
+    "fs:allow-read-text-file"
   ]
 }

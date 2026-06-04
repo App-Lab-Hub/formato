@@ -11,6 +11,9 @@
   import SourceFormatHeader from '$lib/components/convert/SourceFormatHeader.svelte';
   import TargetFormatGrid from '$lib/components/convert/TargetFormatGrid.svelte';
   import FileDropZone from '$lib/components/convert/FileDropZone.svelte';
+import { save } from '@tauri-apps/plugin-dialog';
+import { writeTextFile } from '@tauri-apps/plugin-fs';
+
 
   const sourceFormatId: string = page.params.format!;
   const sourceFormat: Format | undefined = formats.find(f => f.id === sourceFormatId);
@@ -44,9 +47,37 @@
 
   async function downloadFile(fileId: string) {
     const savedPath = convertedFiles.get(fileId);
-    if (!savedPath) return;
-    try { await invoke('open_file', { path: savedPath }); } catch (e) { console.error('Open failed:', e); }
+    
+    if (!savedPath) {
+      console.error('[Download] No path found for fileId:', fileId);
+      return;
+    }
+
+    // Читаем содержимое
+    const content = await invoke<string>('read_file_content', { path: savedPath });
+
+    // Берём имя файла из сохранённого пути (сконвертированного)
+    const convertedFileName = savedPath.split('/').pop() || 'file.txt';
+
+    try {
+      const filePath = await save({
+        defaultPath: convertedFileName,
+        title: 'Сохранить файл',
+        filters: [{
+          name: 'Все файлы',
+          extensions: ['*']
+        }]
+      });
+
+      if (filePath) {
+        await writeTextFile(filePath, content);
+        console.log('[Download] File saved to:', filePath);
+      }
+    } catch (e) {
+      console.error('[Download] Failed:', e);
+    }
   }
+
 
   function getMonacoLang(format: string): string {
     const map: Record<string, string> = {
