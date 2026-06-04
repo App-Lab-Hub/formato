@@ -366,3 +366,11 @@
 .preview-page .monaco-editor .find-widget .replace-part {
   padding-left: 10px !important;
 }
+
+.preview-page .monaco-editor .find-widget .replace-part {
+  flex: auto auto !important;
+}
+
+.preview-page .monaco-editor .find-widget .replace-part .replace-actions {
+  width: 184px !important;
+}
