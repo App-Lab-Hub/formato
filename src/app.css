@@ -212,7 +212,6 @@
 
 .preview-page .monaco-editor .monaco-scrollable-element > .scrollbar.vertical {
   background: rgba(100, 100, 100, 0.08) !important;
-  width: 8px !important;
 }
 
 .preview-page
@@ -230,7 +229,6 @@
   > .slider {
   border-radius: 4px !important;
   background: rgba(180, 180, 180, 0.35) !important;
-  width: 6px !important;
   left: auto !important;
   right: 1px !important;
 }
@@ -364,10 +362,6 @@
 
 .preview-page .monaco-editor .find-widget .replace-part {
   padding-left: 10px !important;
-}
-
-.preview-page .monaco-editor .find-widget .replace-part {
-  flex: auto auto !important;
 }
 
 .preview-page .monaco-editor .find-widget .replace-part .replace-actions {

@@ -15,11 +15,8 @@ function fixFindWidgetHeight() {
   if (isReplaceToggled) {
     // Replace открыт
     if (currentHeight <= 70) findWidget.style.height = '67px';
-    // Ширина по содержимому
-    findWidget.style.width = 'auto';
   } else {
     if (currentHeight <= 41) findWidget.style.height = '40px';
-    findWidget.style.width = 'auto';
   }
 }
 
@@ -142,6 +139,87 @@ function fixFindWidgetHeight() {
             subtree: true
           });
         }
+
+        // ==========================================================================
+        // УЛУЧШЕННЫЙ АВТОСКРОЛЛ ПО ВСЕМ ОСЯМ (ВВЕРХ/ВНИЗ/ВЛЕВО/ВПРАВО) ПРИ ВЫДЕЛЕНИИ
+        // ==========================================================================
+        let isMouseDown = false;
+        let activeTextarea: HTMLTextAreaElement | null = null;
+        let scrollInterval: number | null = null;
+        let scrollXDirection = 0; // -1 = влево, 1 = вправо, 0 = стоп
+        let scrollYDirection = 0; // -1 = вверх, 1 = вниз, 0 = стоп
+
+        const startAutoscroll = () => {
+          if (scrollInterval) return;
+          scrollInterval = window.setInterval(() => {
+            if (!activeTextarea) return;
+            // Двигаем горизонтальную и вертикальную оси независимо
+            if (scrollXDirection !== 0) activeTextarea.scrollLeft += scrollXDirection * 8;
+            if (scrollYDirection !== 0) activeTextarea.scrollTop += scrollYDirection * 6;
+          }, 16); // ~60 FPS
+        };
+
+        const stopAutoscroll = () => {
+          if (scrollInterval) {
+            clearInterval(scrollInterval);
+            scrollInterval = null;
+          }
+          scrollXDirection = 0;
+          scrollYDirection = 0;
+        };
+
+        if (findContainer) {
+          findContainer.addEventListener('mousedown', (e) => {
+            const target = e.target as HTMLElement;
+            if (target && target.classList.contains('input') && target.tagName === 'TEXTAREA') {
+              isMouseDown = true;
+              activeTextarea = target as HTMLTextAreaElement;
+            }
+          });
+
+          window.addEventListener('mousemove', (e) => {
+            if (!isMouseDown || !activeTextarea) return;
+
+            const rect = activeTextarea.getBoundingClientRect();
+            let needsScroll = false;
+
+            // 1. Проверяем горизонтальные границы (Влево / Вправо)
+            if (e.clientX > rect.right) {
+              scrollXDirection = 1;
+              needsScroll = true;
+            } else if (e.clientX < rect.left) {
+              scrollXDirection = -1;
+              needsScroll = true;
+            } else {
+              scrollXDirection = 0;
+            }
+
+            // 2. Проверяем вертикальные границы (Вверх / Вниз)
+            if (e.clientY > rect.bottom) {
+              scrollYDirection = 1;
+              needsScroll = true;
+            } else if (e.clientY < rect.top) {
+              scrollYDirection = -1;
+              needsScroll = true;
+            } else {
+              scrollYDirection = 0;
+            }
+
+            // Запускаем или останавливаем таймер в зависимости от координат мыши
+            if (needsScroll) {
+              startAutoscroll();
+            } else {
+              stopAutoscroll();
+            }
+          });
+
+          window.addEventListener('mouseup', () => {
+            isMouseDown = false;
+            activeTextarea = null;
+            stopAutoscroll();
+          });
+        }
+        // ==========================================================================
 
         console.log('[Preview Page] Monaco editor rendered successfully');
       }
