@@ -327,10 +327,6 @@
 .preview-page .monaco-editor .find-widget .replace-part {
   gap: 8px !important;
 }
-.monaco-editor .find-part .find-actions {
-  display: flex !important;
-  gap: 2px !important;
-}
 
 .preview-page .monaco-editor .find-widget .codicon-widget-close {
   top: 7px !important;
@@ -347,7 +343,7 @@
 }
 
 .monaco-editor .find-actions .codicon-find-selection {
-  margin-right: 6px !important;
+  margin-right: 8px !important;
 }
 .preview-page .monaco-editor .find-widget .button.toggle {
   top: 6px !important;
