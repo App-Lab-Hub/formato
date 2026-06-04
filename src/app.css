@@ -327,22 +327,12 @@
 .preview-page .monaco-editor .find-widget .replace-part {
   gap: 8px !important;
 }
-body
-  > div:nth-child(1)
-  > div.bg-background.text-foreground
-  > div
-  > div.monaco-editor.no-minimap-shadow.enable-user-select.showUnused.showDeprecated.vs-dark
-  > div.overflow-guard
-  > div.overlayWidgets
-  > div.editor-widget.find-widget.visible.replaceToggled
-  > div.find-part
-  > div.find-actions {
+.monaco-editor .find-part .find-actions {
   display: flex !important;
   gap: 2px !important;
 }
 
 .preview-page .monaco-editor .find-widget .codicon-widget-close {
-  /* position: absolute !important; */
   top: 7px !important;
   right: 6px !important;
 }
@@ -359,7 +349,6 @@ body
 .monaco-editor .find-actions .codicon-find-selection {
   margin-right: 6px !important;
 }
-/* NEW */
 .preview-page .monaco-editor .find-widget .button.toggle {
   top: 6px !important;
   left: 6px !important;
