@@ -96,7 +96,7 @@ function fixFindWidgetHeight() {
             loop: true,
             cursorMoveOnType: true,
           },
-          fixedOverflowWidgets: false,
+          fixedOverflowWidgets: true,
           largeFileOptimizations: true,
           maxTokenizationLineLength: 100000,
           smoothScrolling: true,

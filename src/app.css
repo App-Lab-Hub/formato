@@ -295,16 +295,14 @@
   scroll-behavior: smooth;
 }
 
-/* ==========================================================================
-   ИСПРАВЛЕННЫЙ ВИДЖЕТ ПОИСКА И ЗАМЕНЫ (MONACO EDITOR)
-   ========================================================================= */
-
 .preview-page .monaco-editor .find-widget {
+  position: absolute !important;
+  right: 20px !important;
   padding: 4px !important;
   border-radius: 7px;
 }
 .monaco-editor .find-widget.visible {
-  transform: translateY(15px) !important;
+  transform: translateY(10px) !important;
 }
 
 .preview-page .monaco-editor .find-widget .button,
