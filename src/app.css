@@ -307,32 +307,16 @@
   transform: translateY(15px) !important;
 }
 
-.preview-page .monaco-editor .find-widget,
-.preview-page .monaco-editor .find-widget * {
-  /* border-width: 0 !important; */
-  /* box-sizing: border-box !important; */
-}
-
-.preview-page .monaco-editor .find-widget .codicon {
-  /* font-family: "codicon" !important; */
-  /* line-height: 1 !important; */
-}
-
 .preview-page .monaco-editor .find-widget .button,
 .preview-page .monaco-editor .find-widget .monaco-custom-toggle {
-  /* border: none !important; */
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  /* padding: 0 !important; */
-  /* margin: 0 !important; */
 }
 
 .preview-page .monaco-editor .find-widget .controls,
 .preview-page .monaco-editor .find-widget .find-actions,
 .preview-page .monaco-editor .find-widget .replace-actions {
-  /* display: inline-flex !important; */
-  /* align-items: center !important; */
   gap: 6px !important;
 }
 
@@ -341,18 +325,61 @@
 }
 
 .preview-page .monaco-editor .find-widget .replace-part {
-  /* display: flex !important; */
-  /* align-items: center !important; */
   gap: 8px !important;
+}
+body
+  > div:nth-child(1)
+  > div.bg-background.text-foreground
+  > div
+  > div.monaco-editor.no-minimap-shadow.enable-user-select.showUnused.showDeprecated.vs-dark
+  > div.overflow-guard
+  > div.overlayWidgets
+  > div.editor-widget.find-widget.visible.replaceToggled
+  > div.find-part
+  > div.find-actions {
+  display: flex !important;
+  gap: 2px !important;
 }
 
 .preview-page .monaco-editor .find-widget .codicon-widget-close {
   /* position: absolute !important; */
-  /* top: 13px !important; */
-  padding: 3px;
-  margin: 3px;
-  /* right: 8px !important; */
-  width: 16px !important;
-  height: 16px !important;
-  /* z-index: 10 !important; */
+  top: 7px !important;
+  right: 6px !important;
+}
+
+.monaco-editor .find-actions .codicon-find-next-match,
+.monaco-editor .find-actions .codicon-find-previous-match,
+.monaco-editor .find-actions .codicon-find-selection,
+.preview-page .monaco-editor .find-widget .codicon-widget-close,
+.monaco-editor .replace-actions .codicon-find-replace,
+.monaco-editor .replace-actions .codicon-find-replace-all {
+  padding: 13px !important;
+}
+
+.monaco-editor .find-actions .codicon-find-selection {
+  margin-right: 6px !important;
+}
+/* NEW */
+.preview-page .monaco-editor .find-widget .button.toggle {
+  top: 6px !important;
+  left: 6px !important;
+  padding: 0px !important;
+  height: 25px !important;
+  border-radius: 4px !important;
+  margin: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.preview-page .monaco-editor .find-widget.replaceToggled .button.toggle {
+  height: 54px !important;
+}
+
+.preview-page .monaco-editor .find-widget .find-part {
+  padding-left: 10px !important;
+}
+
+.preview-page .monaco-editor .find-widget .replace-part {
+  padding-left: 10px !important;
 }

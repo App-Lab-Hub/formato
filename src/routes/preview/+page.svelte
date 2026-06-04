@@ -5,19 +5,23 @@
 
   let monacoContainer = $state<HTMLElement>();
 
-  function fixFindWidgetHeight() {
-    const findWidget = document.querySelector('.monaco-editor .find-widget') as HTMLElement;
-    if (!findWidget) return;
-    
-    const isReplaceToggled = findWidget.classList.contains('replaceToggled');
-    const currentHeight = parseInt(findWidget.style.height);
-    
-    if (isReplaceToggled) {
-      if (currentHeight <= 70) findWidget.style.height = '67px';
-    } else {
-      if (currentHeight <= 41) findWidget.style.height = '41px';
-    }
+function fixFindWidgetHeight() {
+  const findWidget = document.querySelector('.monaco-editor .find-widget') as HTMLElement;
+  if (!findWidget) return;
+  
+  const isReplaceToggled = findWidget.classList.contains('replaceToggled');
+  const currentHeight = parseInt(findWidget.style.height);
+  
+  if (isReplaceToggled) {
+    // Replace открыт
+    if (currentHeight <= 70) findWidget.style.height = '67px';
+    // Ширина по содержимому
+    findWidget.style.width = 'auto';
+  } else {
+    if (currentHeight <= 41) findWidget.style.height = '40px';
+    findWidget.style.width = 'auto';
   }
+}
 
   onMount(async () => {
     console.log('[Preview Page] Mounted');
