@@ -7,7 +7,7 @@ use json_to_table::json_to_table;
 use json2csv::write_json_to_csv;
 use flatten_json_object::Flattener;
 use xml2json_rs::XmlBuilder;
-
+use std::io::BufReader;
     
 #[derive(Debug, Serialize)]
 pub struct ConvertResult {
@@ -170,16 +170,21 @@ fn parse_xml(input: &str) -> Result<AnyValue, String> {
 fn stringify_csv(value: &AnyValue) -> Result<String, String> {
     let json_str = serde_json::to_string(value).map_err(|e| format!("JSON: {e}"))?;
     let mut output = Vec::new();
+    
+    // BOM для Excel UTF-8
+    output.extend_from_slice(&[0xEF, 0xBB, 0xBF]);
+    
     write_json_to_csv(
-        json_str.as_bytes(),
+        BufReader::new(json_str.as_bytes()),
         &mut output,
-        None,           // fields - все поля
-        None,           // delimiter - запятая по умолчанию
-        false,          // flatten - не разворачивать вложенные объекты
-        None,           // unwind_on - не разворачивать массивы
-        None,           // samples - все строки
-        true,           // double_quote - экранировать кавычки
+        None,
+        Some(",".into()),  // точка с запятой
+        true,
+        None,
+        None,
+        true,
     ).map_err(|e| format!("CSV: {e}"))?;
+    
     String::from_utf8(output).map_err(|e| format!("CSV: {e}"))
 }
 // ============================================================
