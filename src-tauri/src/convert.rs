@@ -215,6 +215,13 @@ use serde_json::Value as Json;
 
 const CSS: &str = r#"
 <style>
+/* ========== RESET ========== */
+body {
+    margin: 0;
+    padding: 0;
+    background: #1e1e1e;
+}
+
 /* ========== CONTAINER ========== */
 .json-table-wrap {
     display: inline-block;
@@ -241,7 +248,7 @@ const CSS: &str = r#"
 .json-table td {
     padding: 8px 14px;
     text-align: left;
-    vertical-align: top;
+    vertical-align: middle;
     border-bottom: 1px solid #2d2d2d;
     transition: background 0.15s ease, color 0.15s ease;
 }
@@ -260,16 +267,17 @@ const CSS: &str = r#"
 }
 
 .json-table .index-cell {
-    color: #6a6a6a;
+    color: #888;
     font-weight: 400;
     white-space: nowrap;
-    width: 60px;
-    min-width: 60px;
-    max-width: 60px;
+    width: 64px;
+    min-width: 64px;
+    max-width: 64px;
     text-align: right;
-    padding-right: 10px;
+    padding: 8px 16px 8px 18px;
     user-select: none;
     font-variant-numeric: tabular-nums;
+    text-align: center;
 }
 
 /* ========== VALUE ========== */
@@ -442,7 +450,6 @@ fn json_to_html(reg: &Handlebars, value: &Json) -> String {
         .render_template(template, value)
         .unwrap_or_else(|e| format!("Render error: {}", e));
 
-    // Оборачиваем только верхний уровень
     format!("<div class=\"json-table-wrap\">{}</div>", inner)
 }
 
