@@ -8,7 +8,8 @@ use json2csv::write_json_to_csv;
 use flatten_json_object::{ArrayFormatting, Flattener};
 use xml2json_rs::XmlBuilder;
 use std::io::BufReader;
-    
+
+
 #[derive(Debug, Serialize)]
 pub struct ConvertResult {
     pub success: bool,
@@ -201,10 +202,115 @@ fn stringify(value: &AnyValue, format: &str) -> Result<String, String> {
         "xml" => stringify_xml(value).map_err(|e| format!("XML: {e}")),
         "csv" => stringify_csv(value),
         "ini" => stringify_ini(value), // Лаконичный вызов внешней функции
+        "html" => stringify_html(value),
         "markdown" | "md" => Ok(json_to_table(value).to_string()),
         _ => Err(format!("Unsupported: {format}")),
     }
 }
+
+
+use handlebars::{
+    Context, Handlebars, Helper, HelperDef, Output, RenderContext, RenderError, RenderErrorReason,
+};
+use serde_json::Value as Json;
+
+/// Хелпер для рекурсивного рендеринга значений
+#[derive(Clone, Copy)]
+struct RenderValueHelper;
+
+impl HelperDef for RenderValueHelper {
+    fn call<'reg: 'rc, 'rc>(
+        &self,
+        h: &Helper<'rc>,
+        r: &'reg Handlebars<'reg>,
+        _: &'rc Context,
+        _: &mut RenderContext<'reg, 'rc>,
+        out: &mut dyn Output,
+    ) -> Result<(), RenderError> {
+        let param = h
+            .param(0)
+            .ok_or_else(|| RenderErrorReason::ParamNotFoundForIndex("render_value", 0))?;
+        let value = param.value();
+
+        match value {
+            Json::Object(_) | Json::Array(_) => {
+                out.write(&json_to_html(r, value))?;
+            }
+            Json::String(s) => {
+                let escaped = s
+                    .replace('&', "&amp;")
+                    .replace('<', "&lt;")
+                    .replace('>', "&gt;");
+                write!(
+                    out,
+                    "<span style=\"color: #ce9178;\">\"{}\"</span>",
+                    escaped
+                )?;
+            }
+            Json::Number(n) => {
+                write!(out, "<span style=\"color: #b5cea8;\">{}</span>", n)?;
+            }
+            Json::Bool(b) => {
+                write!(out, "<span style=\"color: #569cd6;\">{}</span>", b)?;
+            }
+            Json::Null => {
+                out.write("<span style=\"color: #808080;\">null</span>")?;
+            }
+        }
+
+        Ok(())
+    }
+}
+
+fn json_to_html(reg: &Handlebars, value: &Json) -> String {
+    match value {
+        Json::Object(_) => {
+            let template = r#"
+<table style="border-collapse: collapse; width: 100%; font-family: monospace; background: #1e1e1e; color: #d4d4d4;">
+{{#each this}}
+    <tr style="border-bottom: 1px solid #333;">
+        <td style="padding: 8px; font-weight: bold; vertical-align: top; color: #9cdcfe;">{{@key}}</td>
+        <td style="padding: 8px;">{{{render_value this}}}</td>
+    </tr>
+{{/each}}
+</table>"#;
+
+            reg.render_template(template, value)
+                .unwrap_or_else(|e| format!("Render error: {}", e))
+        }
+        Json::Array(_) => {
+            let template = r#"
+<table style="border-collapse: collapse; width: 100%; font-family: monospace; background: #1e1e1e; color: #d4d4d4;">
+{{#each this}}
+    <tr style="border-bottom: 1px solid #333;">
+        <td style="padding: 8px; color: #888; vertical-align: top;">[{{@index}}]</td>
+        <td style="padding: 8px;">{{{render_value this}}}</td>
+    </tr>
+{{/each}}
+</table>"#;
+
+            reg.render_template(template, value)
+                .unwrap_or_else(|e| format!("Render error: {}", e))
+        }
+        _ => unreachable!(),
+    }
+}
+
+fn stringify_html(value: &Json) -> Result<String, String> {
+    let mut reg = Handlebars::new();
+    reg.register_helper("render_value", Box::new(RenderValueHelper));
+
+    let result = json_to_html(&reg, value);
+    Ok(result)
+}
+
+
+
+
+
+
+
+
 
 fn format_ini_value(s: &str) -> String {
     if s.is_empty() {
