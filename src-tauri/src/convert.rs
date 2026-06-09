@@ -214,7 +214,53 @@ use handlebars::{
 };
 use serde_json::Value as Json;
 
-/// Хелпер для рекурсивного рендеринга значений
+const CSS: &str = r#"
+<style>
+.json-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 13px;
+    background: #1e1e1e;
+    color: #d4d4d4;
+    border-radius: 6px;
+    overflow: hidden;
+}
+.json-table th, .json-table td {
+    padding: 6px 12px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid #2d2d2d;
+}
+.json-table tr:last-child td {
+    border-bottom: none;
+}
+.json-table tr:hover {
+    background: #2a2a2a;
+}
+.json-table .key-cell {
+    color: #9cdcfe;
+    font-weight: 600;
+    white-space: nowrap;
+    width: auto;
+    min-width: 80px;
+}
+.json-table .index-cell {
+    color: #888;
+    white-space: nowrap;
+    width: 1%;
+}
+.json-table .value-cell {
+    color: #d4d4d4;
+    word-break: break-word;
+}
+.json-string  { color: #ce9178; }
+.json-number  { color: #b5cea8; }
+.json-bool    { color: #569cd6; }
+.json-null    { color: #808080; font-style: italic; }
+</style>
+"#;
+
 #[derive(Clone, Copy)]
 struct RenderValueHelper;
 
@@ -243,18 +289,18 @@ impl HelperDef for RenderValueHelper {
                     .replace('>', "&gt;");
                 write!(
                     out,
-                    "<span style=\"color: #ce9178;\">\"{}\"</span>",
+                    "<span class=\"json-string\">\"{}\"</span>",
                     escaped
                 )?;
             }
             Json::Number(n) => {
-                write!(out, "<span style=\"color: #b5cea8;\">{}</span>", n)?;
+                write!(out, "<span class=\"json-number\">{}</span>", n)?;
             }
             Json::Bool(b) => {
-                write!(out, "<span style=\"color: #569cd6;\">{}</span>", b)?;
+                write!(out, "<span class=\"json-bool\">{}</span>", b)?;
             }
             Json::Null => {
-                out.write("<span style=\"color: #808080;\">null</span>")?;
+                out.write("<span class=\"json-null\">null</span>")?;
             }
         }
 
@@ -266,11 +312,11 @@ fn json_to_html(reg: &Handlebars, value: &Json) -> String {
     match value {
         Json::Object(_) => {
             let template = r#"
-<table style="border-collapse: collapse; width: 100%; font-family: monospace; background: #1e1e1e; color: #d4d4d4;">
+<table class="json-table">
 {{#each this}}
-    <tr style="border-bottom: 1px solid #333;">
-        <td style="padding: 8px; font-weight: bold; vertical-align: top; color: #9cdcfe;">{{@key}}</td>
-        <td style="padding: 8px;">{{{render_value this}}}</td>
+    <tr>
+        <td class="key-cell">{{@key}}</td>
+        <td class="value-cell">{{{render_value this}}}</td>
     </tr>
 {{/each}}
 </table>"#;
@@ -280,11 +326,11 @@ fn json_to_html(reg: &Handlebars, value: &Json) -> String {
         }
         Json::Array(_) => {
             let template = r#"
-<table style="border-collapse: collapse; width: 100%; font-family: monospace; background: #1e1e1e; color: #d4d4d4;">
+<table class="json-table">
 {{#each this}}
-    <tr style="border-bottom: 1px solid #333;">
-        <td style="padding: 8px; color: #888; vertical-align: top;">[{{@index}}]</td>
-        <td style="padding: 8px;">{{{render_value this}}}</td>
+    <tr>
+        <td class="index-cell">[{{@index}}]</td>
+        <td class="value-cell">{{{render_value this}}}</td>
     </tr>
 {{/each}}
 </table>"#;
@@ -296,15 +342,13 @@ fn json_to_html(reg: &Handlebars, value: &Json) -> String {
     }
 }
 
-fn stringify_html(value: &Json) -> Result<String, String> {
+pub fn stringify_html(value: &Json) -> Result<String, String> {
     let mut reg = Handlebars::new();
     reg.register_helper("render_value", Box::new(RenderValueHelper));
 
-    let result = json_to_html(&reg, value);
-    Ok(result)
+    let table = json_to_html(&reg, value);
+    Ok(format!("{}{}", CSS, table))
 }
-
-
 
 
 
