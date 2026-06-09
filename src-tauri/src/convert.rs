@@ -2,10 +2,10 @@
 
 use scraper::{ElementRef, Html};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, path::PathBuf};
+use std::{collections::{BTreeMap, HashMap}, path::PathBuf};
 use json_to_table::json_to_table;
 use json2csv::write_json_to_csv;
-use flatten_json_object::Flattener;
+use flatten_json_object::{ArrayFormatting, Flattener};
 use xml2json_rs::XmlBuilder;
 use std::io::BufReader;
     
@@ -192,37 +192,126 @@ fn stringify_csv(value: &AnyValue) -> Result<String, String> {
 // ============================================================
 
 fn stringify(value: &AnyValue, format: &str) -> Result<String, String> {
-    let json_str = || serde_json::to_string(value).map_err(|e| format!("JSON: {e}"));
+    // let json_str = || serde_json::to_string(value).map_err(|e| format!("JSON: {e}"));
     
     match format {
         "json" | "json5" | "hjson" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}")),
         "yaml" | "yml" => serde_yaml::to_string(value).map_err(|e| format!("YAML: {e}")),
         "toml" => toml::to_string_pretty(value).map_err(|e| format!("TOML: {e}")),
         "xml" => stringify_xml(value).map_err(|e| format!("XML: {e}")),
-        "ini" => {
-            let flat_json = Flattener::new()
-                .set_key_separator(".")
-                .flatten(value)
-                .map_err(|e| format!("INI flatten: {e}"))?;
-            
-            let mut ini_map: HashMap<String, HashMap<String, String>> = HashMap::new();
-            if let AnyValue::Object(map) = flat_json {
-                for (full_key, val) in map {
-                    let val_str = val.as_str().map(|s| s.to_string()).unwrap_or_else(|| val.to_string());
-                    if let Some((section, key)) = full_key.split_once('.') {
-                        ini_map.entry(section.to_string()).or_default().insert(key.to_string(), val_str);
-                    } else {
-                        ini_map.entry("General".to_string()).or_default().insert(full_key, val_str);
-                    }
-                }
-            }
-            serde_ini::to_string(&ini_map).map_err(|e| format!("INI: {e}"))
-        },
-        "markdown" | "md" => Ok(json_to_table(value).to_string()),
         "csv" => stringify_csv(value),
+        "ini" => stringify_ini(value), // Лаконичный вызов внешней функции
+        "markdown" | "md" => Ok(json_to_table(value).to_string()),
         _ => Err(format!("Unsupported: {format}")),
     }
 }
+
+fn format_ini_value(s: &str) -> String {
+    if s.is_empty() {
+        return String::new();
+    }
+    // Если есть спецсимволы — оборачиваем в кавычки
+    if s.contains(';') || s.contains('#') || s.contains('=') || s.contains(':')
+        || s.contains('\n') || s.contains('\t') || s.starts_with(' ') || s.ends_with(' ')
+        || s.starts_with('\'') || s.starts_with('"')
+    {
+        format!("'{}'", s)
+    } else {
+        s.to_string()
+    }
+}
+
+fn stringify_ini(value: &AnyValue) -> Result<String, String> {
+    fn process(
+        key: &str,
+        value: &AnyValue,
+        structure: &mut Vec<(String, Vec<(String, String)>)>,
+        current_section: &str,
+    ) {
+        let section = if current_section == "__root__" {
+            "__root__".to_string()
+        } else {
+            current_section.to_string()
+        };
+
+        match value {
+            AnyValue::Object(nested) => {
+                let new_section = if current_section == "__root__" {
+                    key.to_string()
+                } else {
+                    format!("{}.{}", current_section, key)
+                };
+                for (k, v) in nested {
+                    process(k, v, structure, &new_section);
+                }
+            }
+            AnyValue::Array(arr) => {
+                for item in arr {
+                    let val_str = format_ini_value(
+                        item.as_str().unwrap_or(&item.to_string())
+                    );
+                    let array_key = format!("{}[]", key);
+                    if let Some(pos) = structure.iter().position(|(s, _)| s == &section) {
+                        structure[pos].1.push((array_key, val_str));
+                    } else {
+                        structure.push((section.clone(), vec![(array_key, val_str)]));
+                    }
+                }
+            }
+            AnyValue::String(s) => {
+                let val_str = format_ini_value(s);
+                if let Some(pos) = structure.iter().position(|(s_name, _)| s_name == &section) {
+                    structure[pos].1.push((key.to_string(), val_str));
+                } else {
+                    structure.push((section, vec![(key.to_string(), val_str)]));
+                }
+            }
+            other if !other.is_null() => {
+                let val_str = format_ini_value(&other.to_string());
+                if let Some(pos) = structure.iter().position(|(s_name, _)| s_name == &section) {
+                    structure[pos].1.push((key.to_string(), val_str));
+                } else {
+                    structure.push((section, vec![(key.to_string(), val_str)]));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let mut ini_structure: Vec<(String, Vec<(String, String)>)> = Vec::new();
+    if let AnyValue::Object(map) = value {
+        for (k, v) in map {
+            process(k, v, &mut ini_structure, "__root__");
+        }
+    }
+
+    let mut ini_str = String::new();
+
+    // Глобальные ключи (секция "__root__") — в начале
+    if let Some(pos) = ini_structure.iter().position(|(s, _)| s == "__root__") {
+        let (_, pairs) = &ini_structure[pos];
+        for (k, v) in pairs {
+            ini_str.push_str(&format!("{}={}\n", k, v));
+        }
+        if !pairs.is_empty() {
+            ini_str.push('\n');
+        }
+        ini_structure.remove(pos);
+    }
+
+    // Остальные секции
+    for (section, pairs) in &ini_structure {
+        ini_str.push_str(&format!("[{}]\n", section));
+        for (k, v) in pairs {
+            ini_str.push_str(&format!("{}={}\n", k, v));
+        }
+        ini_str.push('\n');
+    }
+
+    Ok(ini_str.trim_end().to_string() + "\n")
+}
+
+
 
 fn stringify_xml(value: &AnyValue) -> Result<String, String> {
     let json_str = serde_json::to_string(value).map_err(|e| format!("JSON: {e}"))?;
