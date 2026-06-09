@@ -210,12 +210,49 @@ fn format_ini_value(s: &str) -> String {
     if s.is_empty() {
         return String::new();
     }
-    // Если есть спецсимволы — оборачиваем в кавычки
-    if s.contains(';') || s.contains('#') || s.contains('=') || s.contains(':')
-        || s.contains('\n') || s.contains('\t') || s.starts_with(' ') || s.ends_with(' ')
-        || s.starts_with('\'') || s.starts_with('"')
-    {
-        format!("'{}'", s)
+
+    // Уже в кавычках — не трогаем
+    if (s.starts_with('\'') && s.ends_with('\'')) || (s.starts_with('"') && s.ends_with('"')) {
+        return s.to_string();
+    }
+
+    // JSON-объект или массив — не оборачиваем
+    if (s.starts_with('{') && s.ends_with('}')) || (s.starts_with('[') && s.ends_with(']')) {
+        return s.to_string();
+    }
+
+    // Числа: целые, дробные, отрицательные, научная нотация
+    if let Ok(n) = s.parse::<f64>() {
+        if n.is_finite() {
+            return s.to_string();
+        }
+    }
+
+    // Булевы значения
+    if s == "true" || s == "false" {
+        return s.to_string();
+    }
+
+    // null
+    if s == "null" || s == "Null" || s == "NULL" {
+        return s.to_string();
+    }
+
+    // Содержит спецсимволы INI — оборачиваем в кавычки
+    let needs_quoting = s.contains(';')
+        || s.contains('#')
+        || s.contains('\n')
+        || s.contains('\r')
+        || s.contains('\t')
+        || s.contains('\\')
+        || s.starts_with(' ')
+        || s.ends_with(' ')
+        || s.contains('\0');
+
+    if needs_quoting {
+        // Экранируем внутренние кавычки
+        let escaped = s.replace('\'', "\\'");
+        format!("'{}'", escaped)
     } else {
         s.to_string()
     }
@@ -235,7 +272,7 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
         };
 
         match value {
-            AnyValue::Object(nested) => {
+            AnyValue::Object(nested) if !nested.is_empty() => {
                 let new_section = if current_section == "__root__" {
                     key.to_string()
                 } else {
@@ -245,17 +282,37 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
                     process(k, v, structure, &new_section);
                 }
             }
-            AnyValue::Array(arr) => {
+            AnyValue::Object(_) => {
+                // Пустой объект — записываем как "{}"
+                if let Some(pos) = structure.iter().position(|(s, _)| s == &section) {
+                    structure[pos].1.push((key.to_string(), "{}".to_string()));
+                } else {
+                    structure.push((section, vec![(key.to_string(), "{}".to_string())]));
+                }
+            }
+            AnyValue::Array(arr) if !arr.is_empty() => {
                 for item in arr {
-                    let val_str = format_ini_value(
-                        item.as_str().unwrap_or(&item.to_string())
-                    );
+                    let val_str = match item {
+                        AnyValue::Object(_) | AnyValue::Array(_) => {
+                            // Вложенный объект/массив — сериализуем в JSON
+                            format_ini_value(&serde_json::to_string(item).unwrap_or_else(|_| item.to_string()))
+                        }
+                        _ => format_ini_value(item.as_str().unwrap_or(&item.to_string())),
+                    };
                     let array_key = format!("{}[]", key);
                     if let Some(pos) = structure.iter().position(|(s, _)| s == &section) {
                         structure[pos].1.push((array_key, val_str));
                     } else {
                         structure.push((section.clone(), vec![(array_key, val_str)]));
                     }
+                }
+            }
+            AnyValue::Array(_) => {
+                // Пустой массив
+                if let Some(pos) = structure.iter().position(|(s, _)| s == &section) {
+                    structure[pos].1.push((key.to_string(), "[]".to_string()));
+                } else {
+                    structure.push((section, vec![(key.to_string(), "[]".to_string())]));
                 }
             }
             AnyValue::String(s) => {
@@ -266,15 +323,25 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
                     structure.push((section, vec![(key.to_string(), val_str)]));
                 }
             }
-            other if !other.is_null() => {
-                let val_str = format_ini_value(&other.to_string());
+            AnyValue::Number(n) => {
+                let val_str = format_ini_value(&n.to_string());
                 if let Some(pos) = structure.iter().position(|(s_name, _)| s_name == &section) {
                     structure[pos].1.push((key.to_string(), val_str));
                 } else {
                     structure.push((section, vec![(key.to_string(), val_str)]));
                 }
             }
-            _ => {}
+            AnyValue::Bool(b) => {
+                let val_str = if *b { "true" } else { "false" };
+                if let Some(pos) = structure.iter().position(|(s_name, _)| s_name == &section) {
+                    structure[pos].1.push((key.to_string(), val_str.to_string()));
+                } else {
+                    structure.push((section, vec![(key.to_string(), val_str.to_string())]));
+                }
+            }
+            AnyValue::Null => {
+                // null — пропускаем
+            }
         }
     }
 
@@ -283,6 +350,12 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
         for (k, v) in map {
             process(k, v, &mut ini_structure, "__root__");
         }
+    } else if let AnyValue::Array(arr) = value {
+        // Корневой массив — оборачиваем в секцию "root"
+        process("root", &AnyValue::Array(arr.clone()), &mut ini_structure, "__root__");
+    } else {
+        // Примитив на корне — в глобальную секцию
+        process("value", value, &mut ini_structure, "__root__");
     }
 
     let mut ini_str = String::new();
@@ -310,7 +383,6 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
 
     Ok(ini_str.trim_end().to_string() + "\n")
 }
-
 
 
 fn stringify_xml(value: &AnyValue) -> Result<String, String> {
