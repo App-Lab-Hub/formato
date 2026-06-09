@@ -208,7 +208,6 @@ fn stringify(value: &AnyValue, format: &str) -> Result<String, String> {
     }
 }
 
-
 use handlebars::{
     Context, Handlebars, Helper, HelperDef, Output, RenderContext, RenderError, RenderErrorReason,
 };
@@ -216,50 +215,171 @@ use serde_json::Value as Json;
 
 const CSS: &str = r#"
 <style>
+/* ========== CONTAINER ========== */
+.json-table-wrap {
+    display: inline-block;
+    width: 100%;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+/* ========== TABLE ========== */
 .json-table {
     border-collapse: collapse;
     width: 100%;
-    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+    table-layout: fixed;
+    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Cascadia Code', monospace;
     font-size: 13px;
+    line-height: 1.6;
     background: #1e1e1e;
     color: #d4d4d4;
-    border-radius: 6px;
-    overflow: hidden;
 }
-.json-table th, .json-table td {
-    padding: 6px 12px;
+
+/* ========== CELLS: общие ========== */
+.json-table th,
+.json-table td {
+    padding: 8px 14px;
     text-align: left;
     vertical-align: top;
     border-bottom: 1px solid #2d2d2d;
+    transition: background 0.15s ease, color 0.15s ease;
 }
-.json-table tr:last-child td {
-    border-bottom: none;
-}
-.json-table tr:hover {
-    background: #2a2a2a;
-}
+
+/* ========== KEY / INDEX ========== */
 .json-table .key-cell {
     color: #9cdcfe;
     font-weight: 600;
     white-space: nowrap;
-    width: auto;
-    min-width: 80px;
+    width: 25%;
+    min-width: 120px;
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    user-select: all;
 }
+
 .json-table .index-cell {
-    color: #888;
+    color: #6a6a6a;
+    font-weight: 400;
     white-space: nowrap;
-    width: 1%;
+    width: 60px;
+    min-width: 60px;
+    max-width: 60px;
+    text-align: right;
+    padding-right: 10px;
+    user-select: none;
+    font-variant-numeric: tabular-nums;
 }
+
+/* ========== VALUE ========== */
 .json-table .value-cell {
     color: #d4d4d4;
+    width: auto;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+}
+
+/* ========== ROWS ========== */
+.json-table tbody tr {
+    transition: background 0.12s ease, box-shadow 0.12s ease;
+    position: relative;
+}
+
+/* Hover: вся строка подсвечивается */
+.json-table tbody tr:hover {
+    background: #2a2d35;
+}
+
+/* Hover: левая граница-индикатор */
+.json-table tbody tr:hover td:first-child {
+    box-shadow: inset 3px 0 0 #569cd6;
+}
+
+/* Hover: ключ становится ярче */
+.json-table tbody tr:hover .key-cell {
+    color: #b8e0ff;
+}
+
+/* Последняя строка без разделителя */
+.json-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* ========== ВЛОЖЕННЫЕ ТАБЛИЦЫ ========== */
+.json-table .json-table {
+    margin: 0;
+    width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+}
+.json-table .value-cell > .json-table-wrap {
+    margin: 4px 0 4px -14px;
+    width: calc(100% + 14px);
+    box-shadow: none;
+    border: 1px solid #2d2d2d;
+    border-radius: 4px;
+}
+
+/* ========== ПРИМИТИВЫ ========== */
+.json-string {
+    color: #ce9178;
     word-break: break-word;
 }
-.json-string  { color: #ce9178; }
-.json-number  { color: #b5cea8; }
-.json-bool    { color: #569cd6; }
-.json-null    { color: #808080; font-style: italic; }
+.json-string::before,
+.json-string::after {
+    color: #ce9178;
+    opacity: 0.7;
+}
+
+.json-number {
+    color: #b5cea8;
+    font-variant-numeric: tabular-nums;
+}
+
+.json-bool {
+    color: #569cd6;
+    font-weight: 500;
+}
+
+.json-null {
+    color: #6a6a6a;
+    font-style: italic;
+}
+
+/* ========== EMPTY OBJECT/ARRAY ========== */
+.json-empty {
+    color: #6a6a6a;
+    font-style: italic;
+    opacity: 0.7;
+}
 </style>
 "#;
+
+const OBJECT_TEMPLATE: &str = r#"
+<table class="json-table">
+<tbody>
+{{#each this}}
+    <tr>
+        <td class="key-cell">{{@key}}</td>
+        <td class="value-cell">{{{render_value this}}}</td>
+    </tr>
+{{/each}}
+</tbody>
+</table>"#;
+
+const ARRAY_TEMPLATE: &str = r#"
+<table class="json-table">
+<tbody>
+{{#each this}}
+    <tr>
+        <td class="index-cell">{{@index}}</td>
+        <td class="value-cell">{{{render_value this}}}</td>
+    </tr>
+{{/each}}
+</tbody>
+</table>"#;
 
 #[derive(Clone, Copy)]
 struct RenderValueHelper;
@@ -279,19 +399,22 @@ impl HelperDef for RenderValueHelper {
         let value = param.value();
 
         match value {
+            Json::Object(obj) if obj.is_empty() => {
+                out.write("<span class=\"json-empty\">{}</span>")?;
+            }
+            Json::Array(arr) if arr.is_empty() => {
+                out.write("<span class=\"json-empty\">[]</span>")?;
+            }
             Json::Object(_) | Json::Array(_) => {
-                out.write(&json_to_html(r, value))?;
+                let html = json_to_html(r, value);
+                out.write(&html)?;
             }
             Json::String(s) => {
                 let escaped = s
                     .replace('&', "&amp;")
                     .replace('<', "&lt;")
                     .replace('>', "&gt;");
-                write!(
-                    out,
-                    "<span class=\"json-string\">\"{}\"</span>",
-                    escaped
-                )?;
+                write!(out, "<span class=\"json-string\">{}</span>", escaped)?;
             }
             Json::Number(n) => {
                 write!(out, "<span class=\"json-number\">{}</span>", n)?;
@@ -309,49 +432,26 @@ impl HelperDef for RenderValueHelper {
 }
 
 fn json_to_html(reg: &Handlebars, value: &Json) -> String {
-    match value {
-        Json::Object(_) => {
-            let template = r#"
-<table class="json-table">
-{{#each this}}
-    <tr>
-        <td class="key-cell">{{@key}}</td>
-        <td class="value-cell">{{{render_value this}}}</td>
-    </tr>
-{{/each}}
-</table>"#;
-
-            reg.render_template(template, value)
-                .unwrap_or_else(|e| format!("Render error: {}", e))
-        }
-        Json::Array(_) => {
-            let template = r#"
-<table class="json-table">
-{{#each this}}
-    <tr>
-        <td class="index-cell">[{{@index}}]</td>
-        <td class="value-cell">{{{render_value this}}}</td>
-    </tr>
-{{/each}}
-</table>"#;
-
-            reg.render_template(template, value)
-                .unwrap_or_else(|e| format!("Render error: {}", e))
-        }
+    let template = match value {
+        Json::Object(_) => OBJECT_TEMPLATE,
+        Json::Array(_) => ARRAY_TEMPLATE,
         _ => unreachable!(),
-    }
+    };
+
+    let inner = reg
+        .render_template(template, value)
+        .unwrap_or_else(|e| format!("Render error: {}", e));
+
+    // Оборачиваем только верхний уровень
+    format!("<div class=\"json-table-wrap\">{}</div>", inner)
 }
 
 pub fn stringify_html(value: &Json) -> Result<String, String> {
     let mut reg = Handlebars::new();
     reg.register_helper("render_value", Box::new(RenderValueHelper));
 
-    let table = json_to_html(&reg, value);
-    Ok(format!("{}{}", CSS, table))
+    Ok(format!("{}{}", CSS, json_to_html(&reg, value)))
 }
-
-
-
 
 
 
