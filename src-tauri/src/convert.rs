@@ -461,6 +461,88 @@ pub fn stringify_html(value: &Json) -> Result<String, String> {
 }
 
 
+const MD_CSS: &str = r#"<span style="display:none"></span>
+
+<style>
+  /* --- 0. БАЗОВЫЕ СБРОСЫ --- */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #1e1e1e !important;
+  }
+
+  /* --- 1. КАСКАДНАЯ ПОДСВЕТКА (И в VS Code, и на сайтах) --- */
+  .markdown-preview blockquote, blockquote { 
+    border-left: 2px solid #3f3f46 !important; 
+    padding-left: 12px !important; 
+    margin: 4px 0 !important; 
+    background: transparent !important; 
+    transition: border-color 0.15s ease !important; 
+  }
+  
+  .markdown-preview blockquote:hover, blockquote:hover { 
+    border-left-color: #9cdcfe !important; 
+  }
+  
+  blockquote blockquote { border-left-color: #3f3f46 !important; }
+  blockquote blockquote blockquote { border-left-color: #3f3f46 !important; }
+  blockquote blockquote:hover { border-left-color: #9cdcfe !important; }
+  blockquote blockquote blockquote:hover { border-left-color: #9cdcfe !important; }
+
+  /* Безопасная поддержка списков (> -) через строгую вложенность */
+  blockquote:has(ul:hover), blockquote:has(li:hover) { border-left-color: #9cdcfe !important; }
+  blockquote blockquote:has(ul:hover), blockquote blockquote:has(li:hover) { border-left-color: #9cdcfe !important; }
+
+
+  /* --- 2. МАССИВЫ И ИНДЕКСЫ ([0]) --- */
+  blockquote h2, .markdown-preview h2, h2 {
+    color: #52525b !important; 
+    font-size: 1.2em !important; 
+    font-weight: 600 !important;
+    margin: 10px 0 4px 0 !important;
+  }
+
+
+  /* --- 3. НАЗВАНИЯ ПАРАМЕТРОВ / КЛЮЧИ (Синие) --- */
+  blockquote strong, p strong, .markdown-preview strong, strong {
+    color: #4fc1ff !important; 
+    font-weight: 600 !important;
+  }
+
+
+  /* --- 4. ЗНАЧЕНИЯ В КОДЕ (`code`) --- */
+  .markdown-preview code, code {
+    font-family: monospace !important;
+    background-color: #1e1e1e !important; 
+    color: #ce9178 !important;            
+    padding: 2px 5px !important;
+    border-radius: 3px !important;
+    border: 1px solid #2d2d2d !important;
+    font-size: 0.9em !important;
+  }
+  
+  strong code {
+    color: #b5cea8 !important;            
+    font-weight: bold !important;
+  }
+
+
+  /* --- 5. ТЕКСТ И ЗАГОЛОВКИ СЕКЦИЙ --- */
+  .markdown-preview h3, h3 {
+    color: #f4f4f5 !important;
+    font-size: 1.15em !important;
+    margin: 18px 0 6px 0 !important;
+    border: none !important;
+  }
+
+  /* РЕШЕНИЕ: Точный изолированный селектор для списков внутри цитат */
+  blockquote ul, blockquote li {
+    color: #a1a1aa !important;            
+  }
+</style>
+
+"#;
+
 const ENTRY_TEMPLATE: &str = "{{{md _value _key _depth}}}";
 
 #[derive(Clone, Copy)]
@@ -589,7 +671,7 @@ pub fn stringify_markdown(value: &Json) -> Result<String, String> {
         Json::Object(_) | Json::Array(_) => render_entry(&reg, value, "", 0),
         _ => format_primitive(value),
     };
-    Ok(result.trim().to_string())
+    Ok(format!("{}{}", MD_CSS, result.trim()))
 }
 
 fn format_ini_value(s: &str) -> String {
