@@ -32,8 +32,13 @@ pub fn save_to_app_dir(content: &str, original_path: &str, to: &str) -> Result<S
     let input_path = PathBuf::from(original_path);
     let stem = input_path.file_stem().and_then(|s| s.to_str()).unwrap_or("converted");
     let ext = match to {
-        "json" | "json5" | "hjson" => "json", "yaml" | "yml" => "yaml",
-        "toml" => "toml", "csv" => "csv", "xml" => "xml", "ini" => "ini",
+        "json" | "json5" | "hjson" => "json",
+        "yaml" | "yml" => "yaml",
+        "toml" => "toml",
+        "csv" => "csv",
+        "xml" => "xml",
+        "ini" => "ini",
+        "html" => "html",
         "markdown" | "md" => "md",
         _ => "txt",
     };
