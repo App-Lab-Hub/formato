@@ -481,7 +481,8 @@ impl HelperDef for MdHelper {
         let key = h.param(1).and_then(|p| p.value().as_str()).unwrap_or("");
         let depth: usize = h.param(2).and_then(|p| p.value().as_u64()).unwrap_or(0) as usize;
 
-        let indent = if depth == 0 { String::new() } else { "> ".repeat(depth) };
+        let indent = "> ".repeat(depth);
+        let is_root = depth == 0 && key.is_empty();
 
         match value {
             Json::Object(obj) if obj.is_empty() => {
@@ -491,28 +492,25 @@ impl HelperDef for MdHelper {
                 if !key.is_empty() { write!(out, "{}**{}** `[]`\n", indent, key)?; }
             }
             Json::Object(obj) => {
-                // Заголовок — на текущем уровне depth
                 if !key.is_empty() {
                     write!(out, "{}### {}\n", indent, key)?;
                 }
-                // Поля объекта — на уровень глубже
-                let next_depth = depth + 1;
+                let field_indent = if is_root { String::new() } else { format!("{}> ", indent) };
+                let next_depth = if is_root { 0 } else { depth + 1 };
                 for (k, v) in obj {
                     if k.starts_with('_') { continue; }
                     match v {
                         Json::Object(_) | Json::Array(_) => {
                             out.write(&render_entry(r, v, k, next_depth))?;
                         }
-                        _ => {
-                            write!(out, "{}**{}** {}\n", "> ".repeat(next_depth), k, format_primitive(v))?;
-                        }
+                        _ => write!(out, "{}**{}** {}\n", field_indent, k, format_primitive(v))?,
                     }
                 }
             }
             Json::Array(arr) if all_primitive(arr) => {
                 if !key.is_empty() {
                     write!(out, "{}**{}**\n", indent, key)?;
-                    let item_indent = if depth == 0 { "> ".to_string() } else { indent.clone() + "> " };
+                    let item_indent = format!("{}> ", indent);
                     for (i, item) in arr.iter().enumerate() {
                         write!(out, "{}- [{}] {}\n", item_indent, i, format_primitive(item))?;
                     }
@@ -525,12 +523,12 @@ impl HelperDef for MdHelper {
                 if !key.is_empty() {
                     write!(out, "{}**{}**\n", indent, key)?;
                 }
-                let item_indent = if depth == 0 { "> ".to_string() } else { indent.clone() + "> " };
+                let item_indent = format!("{}> ", indent);
                 for (i, item) in arr.iter().enumerate() {
                     write!(out, "{}## [{}]\n", item_indent, i)?;
                     match item {
                         Json::Object(obj) => {
-                            let field_indent = item_indent.clone() + "> ";
+                            let field_indent = format!("{}> ", item_indent);
                             for (k, v) in obj {
                                 if k.starts_with('_') { continue; }
                                 match v {
@@ -593,9 +591,6 @@ pub fn stringify_markdown(value: &Json) -> Result<String, String> {
     };
     Ok(result.trim().to_string())
 }
-
-
-
 
 fn format_ini_value(s: &str) -> String {
     if s.is_empty() {
