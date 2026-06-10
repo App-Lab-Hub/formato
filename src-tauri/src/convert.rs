@@ -481,82 +481,78 @@ impl HelperDef for MdHelper {
         let key = h.param(1).and_then(|p| p.value().as_str()).unwrap_or("");
         let depth: usize = h.param(2).and_then(|p| p.value().as_u64()).unwrap_or(0) as usize;
 
+        let indent = if depth == 0 { String::new() } else { "> ".repeat(depth) };
+
         match value {
-            // ── Пустой объект ────────────────────────────────────
             Json::Object(obj) if obj.is_empty() => {
-                if !key.is_empty() {
-                    writeln!(out, "{}**{}** `{{}}`", "> ".repeat(depth), key)?;
-                }
+                if !key.is_empty() { write!(out, "{}**{}** `{{}}`\n", indent, key)?; }
             }
-            // ── Пустой массив ────────────────────────────────────
             Json::Array(arr) if arr.is_empty() => {
-                if !key.is_empty() {
-                    writeln!(out, "{}**{}** `[]`", "> ".repeat(depth), key)?;
-                }
+                if !key.is_empty() { write!(out, "{}**{}** `[]`\n", indent, key)?; }
             }
-            // ── Объект ───────────────────────────────────────────
             Json::Object(obj) => {
+                // Заголовок — на текущем уровне depth
                 if !key.is_empty() {
-                    writeln!(out, "{}### {}", "> ".repeat(depth), key)?;
-                    writeln!(out)?;
+                    write!(out, "{}### {}\n", indent, key)?;
                 }
+                // Поля объекта — на уровень глубже
+                let next_depth = depth + 1;
                 for (k, v) in obj {
                     if k.starts_with('_') { continue; }
                     match v {
                         Json::Object(_) | Json::Array(_) => {
-                            out.write(&render_entry(r, v, k, depth + 1))?;
+                            out.write(&render_entry(r, v, k, next_depth))?;
                         }
-                        _ => writeln!(out, "{}**{}** {}", "> ".repeat(depth + 1), k, format_primitive(v))?,
+                        _ => {
+                            write!(out, "{}**{}** {}\n", "> ".repeat(next_depth), k, format_primitive(v))?;
+                        }
                     }
                 }
             }
-            // ── Массив примитивов (без ключа) ────────────────────
-            Json::Array(arr) if key.is_empty() && arr.iter().all(|v| v.is_string() || v.is_number() || v.is_boolean() || v.is_null()) => {
-                let items: Vec<String> = arr.iter().map(format_primitive).collect();
-                write!(out, "{}", items.join(" "))?;
-            }
-            // ── Массив примитивов (с ключом) ─────────────────────
-            Json::Array(arr) if arr.iter().all(|v| v.is_string() || v.is_number() || v.is_boolean() || v.is_null()) => {
-                writeln!(out, "{}**{}**", "> ".repeat(depth), key)?;
-                for (i, item) in arr.iter().enumerate() {
-                    writeln!(out, "{}- [{}] {}", "> ".repeat(depth + 1), i, format_primitive(item))?;
+            Json::Array(arr) if all_primitive(arr) => {
+                if !key.is_empty() {
+                    write!(out, "{}**{}**\n", indent, key)?;
+                    let item_indent = if depth == 0 { "> ".to_string() } else { indent.clone() + "> " };
+                    for (i, item) in arr.iter().enumerate() {
+                        write!(out, "{}- [{}] {}\n", item_indent, i, format_primitive(item))?;
+                    }
+                } else {
+                    let items: Vec<String> = arr.iter().map(format_primitive).collect();
+                    write!(out, "{}", items.join(" "))?;
                 }
             }
-            // ── Массив объектов/массивов ─────────────────────────
             Json::Array(arr) => {
                 if !key.is_empty() {
-                    writeln!(out, "{}**{}**", "> ".repeat(depth), key)?;
+                    write!(out, "{}**{}**\n", indent, key)?;
                 }
+                let item_indent = if depth == 0 { "> ".to_string() } else { indent.clone() + "> " };
                 for (i, item) in arr.iter().enumerate() {
-                    writeln!(out, "{}## [{}]", "> ".repeat(depth + 1), i)?;
+                    write!(out, "{}## [{}]\n", item_indent, i)?;
                     match item {
                         Json::Object(obj) => {
+                            let field_indent = item_indent.clone() + "> ";
                             for (k, v) in obj {
                                 if k.starts_with('_') { continue; }
                                 match v {
                                     Json::Object(_) | Json::Array(_) => {
                                         out.write(&render_entry(r, v, k, depth + 2))?;
                                     }
-                                    _ => writeln!(out, "{}**{}** {}", "> ".repeat(depth + 2), k, format_primitive(v))?,
+                                    _ => write!(out, "{}**{}** {}\n", field_indent, k, format_primitive(v))?,
                                 }
                             }
                         }
                         Json::Array(_) => out.write(&render_entry(r, item, "", depth + 2))?,
-                        _ => writeln!(out, "{}{}", "> ".repeat(depth + 2), format_primitive(item))?,
+                        _ => write!(out, "{}{}\n", item_indent, format_primitive(item))?,
                     }
                     if i < arr.len() - 1 {
-                        writeln!(out, "{}---", "> ".repeat(depth + 1))?;
+                        write!(out, "{}---\n", item_indent)?;
                     }
                 }
             }
-            // ── Примитив ─────────────────────────────────────────
             _ => {
                 let s = format_primitive(value);
-                if key.is_empty() {
-                    write!(out, "{}", s)?;
-                } else {
-                    writeln!(out, "{}**{}** {}", "> ".repeat(depth), key, s)?;
-                }
+                if key.is_empty() { write!(out, "{}", s)?; }
+                else { write!(out, "{}**{}** {}\n", indent, key, s)?; }
             }
         }
         Ok(())
@@ -571,6 +567,10 @@ fn render_entry(reg: &Handlebars, value: &Json, key: &str, depth: usize) -> Stri
     let ctx = Json::Object(params);
     reg.render_template(ENTRY_TEMPLATE, &ctx)
         .unwrap_or_else(|e| format!("*error: {}*", e))
+}
+
+fn all_primitive(arr: &[Json]) -> bool {
+    arr.iter().all(|v| v.is_string() || v.is_number() || v.is_boolean() || v.is_null())
 }
 
 fn format_primitive(v: &Json) -> String {
@@ -593,7 +593,6 @@ pub fn stringify_markdown(value: &Json) -> Result<String, String> {
     };
     Ok(result.trim().to_string())
 }
-
 
 
 
