@@ -8,7 +8,10 @@ use json2csv::write_json_to_csv;
 use flatten_json_object::{ArrayFormatting, Flattener};
 use xml2json_rs::XmlBuilder;
 use std::io::BufReader;
-
+use handlebars::{
+    Context, Handlebars, Helper, HelperDef, Output, RenderContext, RenderError, RenderErrorReason,
+};
+use serde_json::Value as Json;
 
 #[derive(Debug, Serialize)]
 pub struct ConvertResult {
@@ -203,15 +206,12 @@ fn stringify(value: &AnyValue, format: &str) -> Result<String, String> {
         "csv" => stringify_csv(value),
         "ini" => stringify_ini(value), // Лаконичный вызов внешней функции
         "html" => stringify_html(value),
-        "markdown" | "md" => Ok(json_to_table(value).to_string()),
+        "markdown" | "md" => stringify_markdown(value),
         _ => Err(format!("Unsupported: {format}")),
     }
 }
 
-use handlebars::{
-    Context, Handlebars, Helper, HelperDef, Output, RenderContext, RenderError, RenderErrorReason,
-};
-use serde_json::Value as Json;
+
 
 const CSS: &str = r#"
 <style>
@@ -459,6 +459,127 @@ pub fn stringify_html(value: &Json) -> Result<String, String> {
 
     Ok(format!("{}{}", CSS, json_to_html(&reg, value)))
 }
+
+
+const ENTRY_TEMPLATE: &str = "{{{md _value _key _depth}}}";
+
+#[derive(Clone, Copy)]
+struct MdHelper;
+
+impl HelperDef for MdHelper {
+    fn call<'reg: 'rc, 'rc>(
+        &self,
+        h: &Helper<'rc>,
+        r: &'reg Handlebars<'reg>,
+        _: &handlebars::Context,
+        _: &mut RenderContext<'reg, 'rc>,
+        out: &mut dyn Output,
+    ) -> Result<(), RenderError> {
+        let value = h.param(0)
+            .ok_or_else(|| RenderErrorReason::ParamNotFoundForIndex("md", 0))?
+            .value();
+        let key = h.param(1).and_then(|p| p.value().as_str()).unwrap_or("");
+        let depth: usize = h.param(2).and_then(|p| p.value().as_u64()).unwrap_or(0) as usize;
+
+        match value {
+            Json::Object(obj) if obj.is_empty() => {
+                if !key.is_empty() {
+                    write!(out, "{}**{}** `{{}}`\n", "> ".repeat(depth), key)?;
+                }
+            }
+            Json::Array(arr) if arr.is_empty() => {
+                if !key.is_empty() {
+                    write!(out, "{}**{}** `[]`\n", "> ".repeat(depth), key)?;
+                }
+            }
+            Json::Object(obj) => {
+                let cd = if key.is_empty() { depth } else { depth + 1 };
+                if !key.is_empty() {
+                    write!(out, "\n{}### {}\n\n", "> ".repeat(depth), key)?;
+                }
+                for (k, v) in obj {
+                    if k == "_key" || k == "_depth" || k == "_value" { continue; }
+                    match v {
+                        Json::Object(_) | Json::Array(_) => {
+                            out.write(&render_entry(r, v, k, cd))?;
+                        }
+                        _ => write!(out, "{}**{}** {}\n", "> ".repeat(cd), k, format_primitive(v))?,
+                    }
+                }
+            }
+            Json::Array(arr) => {
+                let cd = if key.is_empty() { depth } else { depth + 1 };
+                let all_prim = arr.iter().all(|v| v.is_string() || v.is_number() || v.is_boolean() || v.is_null());
+                if all_prim {
+                    let items: Vec<String> = arr.iter().map(format_primitive).collect();
+                    if !key.is_empty() {
+                        write!(out, "{}**{}**\n{}> {}\n", "> ".repeat(depth), key, "> ".repeat(depth), items.join(" "))?;
+                    } else {
+                        write!(out, "{}", items.join(" "))?;
+                    }
+                } else {
+                    if !key.is_empty() { write!(out, "\n{}**{}**\n", "> ".repeat(depth), key)?; }
+                    for (i, item) in arr.iter().enumerate() {
+                        write!(out, "\n{}## [{}]\n", "> ".repeat(cd), i)?;
+                        match item {
+                            Json::Object(obj) => {
+                                for (k, v) in obj {
+                                    if k == "_key" || k == "_depth" || k == "_value" { continue; }
+                                    match v {
+                                        Json::Object(_) | Json::Array(_) => {
+                                            out.write(&render_entry(r, v, k, cd + 1))?;
+                                        }
+                                        _ => write!(out, "{}**{}** {}\n", "> ".repeat(cd + 1), k, format_primitive(v))?,
+                                    }
+                                }
+                            }
+                            Json::Array(_) => out.write(&render_entry(r, item, "", cd + 1))?,
+                            _ => write!(out, "{}{}\n", "> ".repeat(cd + 1), format_primitive(item))?,
+                        }
+                        if i < arr.len() - 1 { write!(out, "\n{}---\n", "> ".repeat(cd))?; }
+                    }
+                }
+            }
+            _ => {
+                let s = format_primitive(value);
+                if key.is_empty() { write!(out, "{}", s)?; }
+                else { write!(out, "{}**{}** {}\n", "> ".repeat(depth), key, s)?; }
+            }
+        }
+        Ok(())
+    }
+}
+
+fn render_entry(reg: &Handlebars, value: &Json, key: &str, depth: usize) -> String {
+    let mut params = serde_json::Map::new();
+    params.insert("_value".to_string(), value.clone());
+    params.insert("_key".to_string(), Json::String(key.to_string()));
+    params.insert("_depth".to_string(), Json::Number(depth.into()));
+    let ctx = Json::Object(params);
+    reg.render_template(ENTRY_TEMPLATE, &ctx).unwrap_or_else(|e| format!("*error: {}*", e))
+}
+
+fn format_primitive(v: &Json) -> String {
+    match v {
+        Json::String(s) => format!("`{}`", s.replace('`', "\\`").replace('*', "\\*")),
+        Json::Number(n) => format!("`{}`", n),
+        Json::Bool(b) => format!("**`{}`**", b),
+        Json::Null => "*null*".to_string(),
+        _ => unreachable!(),
+    }
+}
+
+pub fn stringify_markdown(value: &Json) -> Result<String, String> {
+    let mut reg = Handlebars::new();
+    reg.register_escape_fn(handlebars::no_escape);
+    reg.register_helper("md", Box::new(MdHelper));
+    let result = match value {
+        Json::Object(_) | Json::Array(_) => render_entry(&reg, value, "", 0),
+        _ => format_primitive(value),
+    };
+    Ok(result.trim().to_string())
+}
+
 
 
 
