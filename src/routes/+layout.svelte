@@ -1,14 +1,14 @@
 <script lang="ts">
   import "../app.css";
-  // import { initMonacoWorkers } from "$lib/monaco-workers";
+  import SplashScreen from '$lib/components/SplashScreen.svelte';
 
   let { children } = $props();
-
-  // Выполняется только на клиенте (в браузере / WebView Tauri)
-  $effect(() => {
-    // initMonacoWorkers();
-  });
+  let splashDone = $state(false);
 </script>
+
+{#if !splashDone}
+  <SplashScreen onComplete={() => splashDone = true} />
+{/if}
 
 <div class="bg-background text-foreground">
   {@render children?.()}
