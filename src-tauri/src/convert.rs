@@ -1,17 +1,15 @@
 // src-tauri/src/convert.rs
 
-use scraper::{ElementRef, Html};
-use serde::{Deserialize, Serialize};
-use std::{collections::{BTreeMap, HashMap}, path::PathBuf};
-use json_to_table::json_to_table;
+use serde::{ Serialize};
+use std::{path::PathBuf};
 use json2csv::write_json_to_csv;
-use flatten_json_object::{ArrayFormatting, Flattener};
 use xml2json_rs::XmlBuilder;
 use std::io::BufReader;
 use handlebars::{
-    Context, Handlebars, Helper, HelperDef, Output, RenderContext, RenderError, RenderErrorReason,
+    Handlebars, Helper, HelperDef, Output, RenderContext, RenderError, RenderErrorReason,
 };
 use serde_json::Value as Json;
+use crate::html_convert::convert_to_html;
 
 #[derive(Debug, Serialize)]
 pub struct ConvertResult {
@@ -210,260 +208,12 @@ fn stringify(value: &AnyValue, format: &str) -> Result<String, String> {
         "xml" => stringify_xml(value).map_err(|e| format!("XML: {e}")),
         "csv" => stringify_csv(value),
         "ini" => stringify_ini(value), // Лаконичный вызов внешней функции
-        "html" => stringify_html(value),
+        "html" => Ok(convert_to_html(value)),
         "markdown" | "md" => stringify_markdown(value),
         _ => Err(format!("Unsupported: {format}")),
     }
 }
 
-
-
-const CSS: &str = r#"
-<style>
-/* ========== RESET ========== */
-body {
-    margin: 0;
-    padding: 0;
-    background: #1e1e1e;
-}
-
-/* ========== CONTAINER ========== */
-.json-table-wrap {
-    display: inline-block;
-    width: 100%;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-/* ========== TABLE ========== */
-.json-table {
-    border-collapse: collapse;
-    width: 100%;
-    table-layout: fixed;
-    font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', 'Cascadia Code', monospace;
-    font-size: 13px;
-    line-height: 1.6;
-    background: #1e1e1e;
-    color: #d4d4d4;
-}
-
-/* ========== CELLS: общие ========== */
-.json-table th,
-.json-table td {
-    padding: 8px 14px;
-    text-align: left;
-    vertical-align: middle;
-    border-bottom: 1px solid #2d2d2d;
-    transition: background 0.15s ease, color 0.15s ease;
-}
-
-/* ========== KEY / INDEX ========== */
-.json-table .key-cell {
-    color: #9cdcfe;
-    font-weight: 600;
-    white-space: nowrap;
-    width: 25%;
-    min-width: 120px;
-    max-width: 300px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    user-select: all;
-}
-
-.json-table .index-cell {
-    color: #888;
-    font-weight: 400;
-    white-space: nowrap;
-    width: 64px;
-    min-width: 64px;
-    max-width: 64px;
-    text-align: right;
-    padding: 8px 16px 8px 18px;
-    user-select: none;
-    font-variant-numeric: tabular-nums;
-    text-align: center;
-}
-
-/* ========== VALUE ========== */
-.json-table .value-cell {
-    color: #d4d4d4;
-    width: auto;
-    word-break: break-word;
-    overflow-wrap: break-word;
-    hyphens: auto;
-}
-
-/* ========== ROWS ========== */
-.json-table tbody tr {
-    transition: background 0.12s ease, box-shadow 0.12s ease;
-    position: relative;
-}
-
-/* Hover: вся строка подсвечивается */
-.json-table tbody tr:hover {
-    background: #2a2d35;
-}
-
-/* Hover: левая граница-индикатор */
-.json-table tbody tr:hover td:first-child {
-    box-shadow: inset 3px 0 0 #569cd6;
-}
-
-/* Hover: ключ становится ярче */
-.json-table tbody tr:hover .key-cell {
-    color: #b8e0ff;
-}
-
-/* Последняя строка без разделителя */
-.json-table tbody tr:last-child td {
-    border-bottom: none;
-}
-
-/* ========== ВЛОЖЕННЫЕ ТАБЛИЦЫ ========== */
-.json-table .json-table {
-    margin: 0;
-    width: 100%;
-    border-radius: 4px;
-    overflow: hidden;
-}
-.json-table .value-cell > .json-table-wrap {
-    margin: 4px 0 4px -14px;
-    width: calc(100% + 14px);
-    box-shadow: none;
-    border: 1px solid #2d2d2d;
-    border-radius: 4px;
-}
-
-/* ========== ПРИМИТИВЫ ========== */
-.json-string {
-    color: #ce9178;
-    word-break: break-word;
-}
-.json-string::before,
-.json-string::after {
-    color: #ce9178;
-    opacity: 0.7;
-}
-
-.json-number {
-    color: #b5cea8;
-    font-variant-numeric: tabular-nums;
-}
-
-.json-bool {
-    color: #569cd6;
-    font-weight: 500;
-}
-
-.json-null {
-    color: #6a6a6a;
-    font-style: italic;
-}
-
-/* ========== EMPTY OBJECT/ARRAY ========== */
-.json-empty {
-    color: #6a6a6a;
-    font-style: italic;
-    opacity: 0.7;
-}
-</style>
-"#;
-
-const OBJECT_TEMPLATE: &str = r#"
-<table class="json-table">
-<tbody>
-{{#each this}}
-    <tr>
-        <td class="key-cell">{{@key}}</td>
-        <td class="value-cell">{{{render_value this}}}</td>
-    </tr>
-{{/each}}
-</tbody>
-</table>"#;
-
-const ARRAY_TEMPLATE: &str = r#"
-<table class="json-table">
-<tbody>
-{{#each this}}
-    <tr>
-        <td class="index-cell">{{@index}}</td>
-        <td class="value-cell">{{{render_value this}}}</td>
-    </tr>
-{{/each}}
-</tbody>
-</table>"#;
-
-#[derive(Clone, Copy)]
-struct RenderValueHelper;
-
-impl HelperDef for RenderValueHelper {
-    fn call<'reg: 'rc, 'rc>(
-        &self,
-        h: &Helper<'rc>,
-        r: &'reg Handlebars<'reg>,
-        _: &'rc Context,
-        _: &mut RenderContext<'reg, 'rc>,
-        out: &mut dyn Output,
-    ) -> Result<(), RenderError> {
-        let param = h
-            .param(0)
-            .ok_or_else(|| RenderErrorReason::ParamNotFoundForIndex("render_value", 0))?;
-        let value = param.value();
-
-        match value {
-            Json::Object(obj) if obj.is_empty() => {
-                out.write("<span class=\"json-empty\">{}</span>")?;
-            }
-            Json::Array(arr) if arr.is_empty() => {
-                out.write("<span class=\"json-empty\">[]</span>")?;
-            }
-            Json::Object(_) | Json::Array(_) => {
-                let html = json_to_html(r, value);
-                out.write(&html)?;
-            }
-            Json::String(s) => {
-                let escaped = s
-                    .replace('&', "&amp;")
-                    .replace('<', "&lt;")
-                    .replace('>', "&gt;");
-                write!(out, "<span class=\"json-string\">{}</span>", escaped)?;
-            }
-            Json::Number(n) => {
-                write!(out, "<span class=\"json-number\">{}</span>", n)?;
-            }
-            Json::Bool(b) => {
-                write!(out, "<span class=\"json-bool\">{}</span>", b)?;
-            }
-            Json::Null => {
-                out.write("<span class=\"json-null\">null</span>")?;
-            }
-        }
-
-        Ok(())
-    }
-}
-
-fn json_to_html(reg: &Handlebars, value: &Json) -> String {
-    let template = match value {
-        Json::Object(_) => OBJECT_TEMPLATE,
-        Json::Array(_) => ARRAY_TEMPLATE,
-        _ => unreachable!(),
-    };
-
-    let inner = reg
-        .render_template(template, value)
-        .unwrap_or_else(|e| format!("Render error: {}", e));
-
-    format!("<div class=\"json-table-wrap\">{}</div>", inner)
-}
-
-pub fn stringify_html(value: &Json) -> Result<String, String> {
-    let mut reg = Handlebars::new();
-    reg.register_helper("render_value", Box::new(RenderValueHelper));
-
-    Ok(format!("{}{}", CSS, json_to_html(&reg, value)))
-}
 
 
 const MD_CSS: &str = r#"<span style="display:none"></span>
@@ -590,7 +340,7 @@ impl HelperDef for MdHelper {
                         Json::Object(_) | Json::Array(_) => {
                             out.write(&render_entry(r, v, k, next_depth))?;
                         }
-                        _ => write!(out, "{}**{}** {}\n", field_indent, k, format_primitive(v))?,
+                        _ => write!(out, "{}**{}** {}\n", field_indent, k, format_primitive_md(v))?,
                     }
                 }
             }
@@ -599,10 +349,10 @@ impl HelperDef for MdHelper {
                     write!(out, "{}**{}**\n", indent, key)?;
                     let item_indent = format!("{}> ", indent);
                     for (i, item) in arr.iter().enumerate() {
-                        write!(out, "{}- [{}] {}\n", item_indent, i, format_primitive(item))?;
+                        write!(out, "{}- [{}] {}\n", item_indent, i, format_primitive_md(item))?;
                     }
                 } else {
-                    let items: Vec<String> = arr.iter().map(format_primitive).collect();
+                    let items: Vec<String> = arr.iter().map(format_primitive_md).collect();
                     write!(out, "{}", items.join(" "))?;
                 }
             }
@@ -622,12 +372,12 @@ impl HelperDef for MdHelper {
                                     Json::Object(_) | Json::Array(_) => {
                                         out.write(&render_entry(r, v, k, depth + 2))?;
                                     }
-                                    _ => write!(out, "{}**{}** {}\n", field_indent, k, format_primitive(v))?,
+                                    _ => write!(out, "{}**{}** {}\n", field_indent, k, format_primitive_md(v))?,
                                 }
                             }
                         }
                         Json::Array(_) => out.write(&render_entry(r, item, "", depth + 2))?,
-                        _ => write!(out, "{}{}\n", item_indent, format_primitive(item))?,
+                        _ => write!(out, "{}{}\n", item_indent, format_primitive_md(item))?,
                     }
                     if i < arr.len() - 1 {
                         write!(out, "{}---\n", item_indent)?;
@@ -635,7 +385,7 @@ impl HelperDef for MdHelper {
                 }
             }
             _ => {
-                let s = format_primitive(value);
+                let s = format_primitive_md(value);
                 if key.is_empty() { write!(out, "{}", s)?; }
                 else { write!(out, "{}**{}** {}\n", indent, key, s)?; }
             }
@@ -658,7 +408,7 @@ fn all_primitive(arr: &[Json]) -> bool {
     arr.iter().all(|v| v.is_string() || v.is_number() || v.is_boolean() || v.is_null())
 }
 
-fn format_primitive(v: &Json) -> String {
+fn format_primitive_md(v: &Json) -> String {
     match v {
         Json::String(s) => format!("`{}`", s.replace('`', "\\`").replace('*', "\\*")),
         Json::Number(n) => format!("`{}`", n),
@@ -674,7 +424,7 @@ pub fn stringify_markdown(value: &Json) -> Result<String, String> {
     reg.register_helper("md", Box::new(MdHelper));
     let result = match value {
         Json::Object(_) | Json::Array(_) => render_entry(&reg, value, "", 0),
-        _ => format_primitive(value),
+        _ => format_primitive_md(value),
     };
     Ok(format!("{}{}", MD_CSS, result.trim()))
 }

@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="neon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#60a5fa" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+  </defs>
+  <!-- Левая скобка -->
+  <path d="M42 22 
+           Q32 22 32 32 
+           L32 42 
+           Q32 50 22 50 
+           Q32 50 32 58 
+           L32 68 
+           Q32 78 42 78" 
+        fill="none" 
+        stroke="url(#neon)" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+  <!-- Правая скобка -->
+  <path d="M58 22 
+           Q68 22 68 32 
+           L68 42 
+           Q68 50 78 50 
+           Q68 50 68 58 
+           L68 68 
+           Q68 78 58 78" 
+        fill="none" 
+        stroke="url(#neon)" 
+        stroke-width="5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round"/>
+</svg>

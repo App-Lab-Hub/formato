@@ -1,5 +1,7 @@
 mod convert;
 mod highlight;
+mod html_convert;
+
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
