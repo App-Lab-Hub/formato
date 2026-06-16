@@ -29,7 +29,6 @@
       {
         "label": "splashscreen",
         "title": "Formato",
-        "fullscreen": false,
         "maximized": true,
         "decorations": false,
         "alwaysOnTop": true,
