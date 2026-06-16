@@ -1,3 +1,12 @@
+/* Виньетка */
+.bg-radial-vignette {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 40%,
+    rgba(0, 0, 0, 0.6) 100%
+  );
+}
+
 @keyframes spin-slow {
   0% {
     transform: rotate(0deg);
@@ -10,7 +19,7 @@
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(16px);
+    transform: translateY(20px);
   }
   to {
     opacity: 1;
@@ -30,27 +39,21 @@
 @keyframes meteor {
   0% {
     transform: rotate(215deg) translateX(0);
+    opacity: 0;
+  }
+  10% {
     opacity: 1;
   }
   70% {
-    opacity: 0.5;
+    opacity: 0.6;
   }
   100% {
-    transform: rotate(215deg) translateX(-600px);
+    transform: rotate(215deg) translateX(-700px);
     opacity: 0;
   }
 }
 
-@keyframes draw-left {
-  from {
-    stroke-dashoffset: 200;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes draw-right {
+@keyframes draw-both {
   from {
     stroke-dashoffset: 200;
   }
@@ -62,10 +65,10 @@
 @keyframes pulse-glow {
   0%,
   100% {
-    opacity: 0.15;
+    opacity: 0.08;
   }
   50% {
-    opacity: 0.3;
+    opacity: 0.25;
   }
 }
 
@@ -75,7 +78,7 @@
     transform: translateY(0) scale(1);
   }
   50% {
-    transform: translateY(-20px) scale(1.05);
+    transform: translateY(-25px) scale(1.08);
   }
 }
 
@@ -85,52 +88,100 @@
     transform: translateY(0) scale(1);
   }
   50% {
-    transform: translateY(15px) scale(1.05);
+    transform: translateY(20px) scale(1.06);
+  }
+}
+
+@keyframes shimmer-left {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes shimmer-right {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes shimmer-left-delayed {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+@keyframes shimmer-right-delayed {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.3;
   }
 }
 
 .animate-spin-slow {
-  animation: spin-slow 25s linear infinite;
+  animation: spin-slow 30s linear infinite;
 }
 
 .animate-meteor {
-  animation: meteor 8s linear infinite;
+  animation: meteor 10s linear infinite;
 }
 
 .animate-progress-bar {
-  animation: progress 3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation: progress 3.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
-.animate-draw-left {
-  animation: draw-left 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) 0.2s forwards;
-}
-
-.animate-draw-right {
-  animation: draw-right 1.2s cubic-bezier(0.22, 0.61, 0.36, 1) 0.4s forwards;
+.animate-draw-both {
+  animation: draw-both 1.4s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
 }
 
 .animate-pulse-glow {
-  animation: pulse-glow 4s ease-in-out infinite;
+  animation: pulse-glow 5s ease-in-out infinite;
 }
 
 .animate-float {
-  animation: float 8s ease-in-out infinite;
+  animation: float 10s ease-in-out infinite;
 }
 
 .animate-float-delayed {
-  animation: float-delayed 10s ease-in-out infinite 2s;
+  animation: float-delayed 12s ease-in-out infinite 3s;
+}
+
+.animate-shimmer-left {
+  animation: shimmer-left 4s ease-in-out infinite;
+}
+
+.animate-shimmer-right {
+  animation: shimmer-right 5s ease-in-out infinite 1s;
+}
+
+.animate-shimmer-left-delayed {
+  animation: shimmer-left-delayed 6s ease-in-out infinite 2s;
+}
+
+.animate-shimmer-right-delayed {
+  animation: shimmer-right-delayed 7s ease-in-out infinite 0.5s;
 }
 
 .fade-up-delayed {
   opacity: 0;
-  animation: fadeUp 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) 1.2s forwards;
+  animation: fadeUp 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) 1.6s forwards;
 }
 
 .fade-up-more-delayed {
   opacity: 0;
-  animation: fadeUp 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) 1.8s forwards;
-}
-
-.exiting {
-  transition: opacity 0.8s cubic-bezier(0.55, 0.055, 0.675, 0.19);
+  animation: fadeUp 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) 2.2s forwards;
 }
