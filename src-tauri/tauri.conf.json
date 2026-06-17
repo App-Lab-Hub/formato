@@ -22,19 +22,9 @@
         "center": true,
         "visible": false,
         "dragDropEnabled": true,
-        "transparent": true,
+        "transparent": false,
         "theme": "Dark",
         "additionalBrowserArgs": "--enable-features=UseOzonePlatform --ozone-platform-hint=auto --enable-gpu-rasterization --ignore-gpu-blocklist --disable-features=CalculateNativeWinOcclusion"
-      },
-      {
-        "label": "splashscreen",
-        "title": "Formato",
-        "maximized": true,
-        "decorations": false,
-        "alwaysOnTop": true,
-        "resizable": false,
-        "visible": true,
-        "url": "splashscreen.html"
       }
     ],
     "security": {

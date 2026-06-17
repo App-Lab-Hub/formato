@@ -1,14 +1,22 @@
 <script lang="ts">
-  import { invoke } from  "@tauri-apps/api/core";
   import "../app.css";
+  import SplashScreen from '$lib/components/SplashScreen.svelte';
   import { onMount } from 'svelte';
 
   let { children } = $props();
+  let splashDone = $state(false);
 
-  onMount(async () => {
-    await invoke('set_complete', { task: 'frontend' });
+  onMount(() => {
+    // SvelteKit полностью загрузился — показываем окно
+    import('@tauri-apps/api/core').then(({ invoke }) => {
+      invoke('app_ready');
+    });
   });
 </script>
+
+{#if !splashDone}
+  <SplashScreen onComplete={() => splashDone = true} />
+{/if}
 
 <div class="bg-background text-foreground">
   {@render children?.()}
