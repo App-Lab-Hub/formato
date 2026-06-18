@@ -16,16 +16,19 @@
   let glow2 = $state<HTMLDivElement | null>(null);
 
   onMount(async () => {
-    if (glow1) animate(glow1, { opacity: [0.03, 0.12, 0.03] }, { duration: 6, easing: 'ease-in-out', repeat: Infinity });
-    if (glow2) animate(glow2, { opacity: [0.03, 0.12, 0.03] }, { duration: 7, easing: 'ease-in-out', delay: 0.5, repeat: Infinity });
-    if (logoGlow) {
-      animate(logoGlow, { rotate: 360 }, { duration: 35, easing: 'linear', repeat: Infinity });
-      animate(logoGlow, { opacity: [0.05, 0.15, 0.05] }, { duration: 6, easing: 'ease-in-out', repeat: Infinity });
-    }
-
+    // Скобки рисуются — свечения нарастают параллельно
     if (bracketL && bracketR) {
       animate(bracketL, { opacity: [0, 1] }, { duration: 0.4, easing: 'ease-out' });
       animate(bracketR, { opacity: [0, 1] }, { duration: 0.4, easing: 'ease-out' });
+      
+      // Запускаем свечения и скобки одновременно
+      if (glow1) animate(glow1, { opacity: [0, 0.3] }, { duration: 3, easing: 'ease-out' });
+      if (glow2) animate(glow2, { opacity: [0, 0.3] }, { duration: 3.5, easing: 'ease-out', delay: 0.3 });
+      if (logoGlow) {
+        animate(logoGlow, { rotate: 360 }, { duration: 35, easing: 'linear', repeat: Infinity });
+        animate(logoGlow, { opacity: [0, 0.4] }, { duration: 3, easing: 'ease-out' });
+      }
+      
       await Promise.all([
         animate(bracketL, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'linear' }).finished,
         animate(bracketR, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'linear' }).finished,
@@ -40,12 +43,12 @@
       ).finished;
     }
 
-  if (subtitle) {
-    await animate(subtitle,
-      { opacity: [0, 1], transform: ['translateY(24px)', 'translateY(0)'] },
-      { duration: 1, easing: [0.22, 0.61, 0.36, 1] }
-    ).finished;
-  }
+    if (subtitle) {
+      await animate(subtitle,
+        { opacity: [0, 1], transform: ['translateY(24px)', 'translateY(0)'] },
+        { duration: 1, easing: [0.22, 0.61, 0.36, 1] }
+      ).finished;
+    }
 
     if (progressWrapper && progressBar) {
       animate(progressWrapper, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' });
@@ -55,7 +58,7 @@
       ).finished;
     }
 
-    await new Promise(r => setTimeout(r, 2000)); // 2 секунды
+    await new Promise(r => setTimeout(r, 2000));
 
     if (container) {
       await animate(container,
