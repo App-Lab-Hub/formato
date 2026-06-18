@@ -14,57 +14,143 @@
   let progressWrapper = $state<HTMLDivElement | null>(null);
   let glow1 = $state<HTMLDivElement | null>(null);
   let glow2 = $state<HTMLDivElement | null>(null);
+  let splashContent = $state<HTMLDivElement | null>(null);
 
   onMount(async () => {
     // Скобки рисуются — свечения нарастают параллельно
     if (bracketL && bracketR) {
-      animate(bracketL, { opacity: [0, 1] }, { duration: 0.4, easing: 'ease-out' });
-      animate(bracketR, { opacity: [0, 1] }, { duration: 0.4, easing: 'ease-out' });
+      animate(bracketL, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' });
+      animate(bracketR, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' });
       
-      // Запускаем свечения и скобки одновременно
-      if (glow1) animate(glow1, { opacity: [0, 0.3] }, { duration: 3, easing: 'ease-out' });
-      if (glow2) animate(glow2, { opacity: [0, 0.3] }, { duration: 3.5, easing: 'ease-out', delay: 0.3 });
+      if (glow1) animate(glow1, { opacity: [0, 0.3] }, { duration: 2.5, easing: 'ease-out' });
+      if (glow2) animate(glow2, { opacity: [0, 0.3] }, { duration: 3, easing: 'ease-out', delay: 0.3 });
       if (logoGlow) {
         animate(logoGlow, { rotate: 360 }, { duration: 35, easing: 'linear', repeat: Infinity });
-        animate(logoGlow, { opacity: [0, 0.4] }, { duration: 3, easing: 'ease-out' });
+        animate(logoGlow, { opacity: [0, 0.4] }, { duration: 2.5, easing: 'ease-out' });
       }
       
       await Promise.all([
-        animate(bracketL, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'linear' }).finished,
-        animate(bracketR, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'linear' }).finished,
+        animate(bracketL, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' }).finished,
+        animate(bracketR, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' }).finished,
       ]);
     }
 
     if (title) {
       const letters = title.querySelectorAll('.letter');
       await animate(letters,
-        { opacity: [0, 1], filter: ['blur(10px)', 'blur(0px)'], transform: ['translateY(30px)', 'translateY(0)'] },
-        { delay: stagger(0.1), duration: 1.2, easing: [0.22, 0.61, 0.36, 1] }
+        { opacity: [0, 1], filter: ['blur(12px)', 'blur(0px)'], transform: ['translateY(40px)', 'translateY(0)'] },
+        { delay: stagger(0.08), duration: 1.4, easing: [0.34, 1.56, 0.64, 1] }
       ).finished;
     }
 
     if (subtitle) {
       await animate(subtitle,
-        { opacity: [0, 1], transform: ['translateY(24px)', 'translateY(0)'] },
-        { duration: 1, easing: [0.22, 0.61, 0.36, 1] }
+        { opacity: [0, 1], transform: ['translateY(30px)', 'translateY(0)'] },
+        { duration: 1.2, easing: [0.34, 1.56, 0.64, 1] }
       ).finished;
     }
 
     if (progressWrapper && progressBar) {
-      animate(progressWrapper, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' });
+      animate(progressWrapper, { opacity: [0, 1] }, { duration: 0.8, easing: 'ease-out' });
       await animate(progressBar,
         { transform: ['scaleX(0)', 'scaleX(1)'] },
-        { duration: 3, easing: [0.4, 0, 0.2, 1] }
+        { duration: 3.5, easing: [0.4, 0, 0.2, 1] }
       ).finished;
     }
 
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise(r => setTimeout(r, 2500));
 
-    if (container) {
+    // === ЭФФЕКТ: СТИРАНИЕ ТЕКСТА + FADE ФОНА ===
+    if (container && splashContent && title) {
+      const letters = title.querySelectorAll('.letter');
+
+// 1. Стираем все элементы
+await Promise.all([
+  // Буквы исчезают
+  ...Array.from(letters).map((letter, i) => {
+    const delay = i * 0.06;
+    
+    return animate(letter as HTMLElement,
+      {
+        opacity: [1, 0]
+      },
+      {
+        duration: 0.6,
+        delay: delay,
+        easing: 'ease-out'
+      }
+    ).finished;
+  }),
+  
+  // Сабтайтл исчезает
+  animate(subtitle,
+    {
+      opacity: [1, 0]
+    },
+    { duration: 0.6, delay: 0.2, easing: 'ease-out' }
+  ).finished,
+  
+  // Прогресс бар исчезает
+  animate(progressWrapper,
+    {
+      opacity: [1, 0]
+    },
+    { duration: 0.6, delay: 0.1, easing: 'ease-out' }
+  ).finished,
+  
+  // Логотип (скобки) исчезает
+  animate(bracketL?.parentElement || document.createElement('div'),
+    {
+      opacity: [1, 0]
+    },
+    { duration: 0.6, delay: 0.1, easing: 'ease-out' }
+  ).finished,
+  
+  // logoGlow исчезает
+  animate(logoGlow,
+    {
+      opacity: [0.4, 0]
+    },
+    { duration: 0.6, delay: 0.1, easing: 'ease-out' }
+  ).finished,
+  
+  // Свечение 1 исчезает
+  animate(glow1,
+    {
+      opacity: [0.3, 0]
+    },
+    { duration: 0.6, easing: 'ease-out' }
+  ).finished,
+  
+  // Свечение 2 исчезает
+  animate(glow2,
+    {
+      opacity: [0.3, 0]
+    },
+    { duration: 0.6, delay: 0.1, easing: 'ease-out' }
+  ).finished,
+  
+  // Весь контент исчезает
+  animate(splashContent,
+    {
+      opacity: [1, 0]
+    },
+    { duration: 0.6, easing: 'ease-out' }
+  ).finished
+]);
+
+      // 2. Пауза
+      await new Promise(r => setTimeout(r, 300));
+
+      // 3. Фон исчезает
       await animate(container,
-        { opacity: [1, 0], filter: ['blur(0px)', 'blur(40px)'], scale: [1, 1.1] },
-        { duration: 1, easing: [0.4, 0, 0.2, 1] }
+        {
+          opacity: [1, 0]
+        },
+        { duration: 0.8, easing: 'ease-out' }
       ).finished;
+
+      await new Promise(r => setTimeout(r, 100));
     }
 
     visible = false;
@@ -73,12 +159,14 @@
 </script>
 
 {#if visible}
-  <div bind:this={container} class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#060608] overflow-hidden select-none">
+  <div bind:this={container} class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#060608] overflow-visible">
+    
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.7)_100%)] opacity-90" />
-    <div bind:this={glow1} class="absolute w-[700px] h-[700px] bg-blue-500/[0.03] rounded-full blur-[140px] opacity-0" />
-    <div bind:this={glow2} class="absolute w-[450px] h-[450px] bg-purple-500/[0.05] rounded-full blur-[140px] top-[30%] left-[20%] opacity-0" />
+    
+    <div bind:this={glow1} class="absolute w-[700px] h-[700px] bg-blue-500/[0.03] blur-[140px] opacity-0 pointer-events-none" style="top: 50%; left: 50%; transform: translate(-50%, -50%);" />
+    <div bind:this={glow2} class="absolute w-[450px] h-[450px] bg-purple-500/[0.05] blur-[140px] opacity-0 pointer-events-none" style="top: 30%; left: 20%;" />
 
-    <div class="relative z-10 flex flex-col items-center gap-12">
+    <div bind:this={splashContent} class="relative z-10 flex flex-col items-center gap-12">
       <div class="relative">
         <div bind:this={logoGlow} class="absolute inset-[-10px] rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-blue-500 blur-[56px] opacity-0" />
         <svg class="relative w-32 h-32" viewBox="0 0 120 120">
