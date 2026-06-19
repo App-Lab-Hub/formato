@@ -128,7 +128,7 @@
 </script>
 
 {#if visible}
-  <div bind:this={container} class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0f] overflow-hidden">
+  <div bind:this={container} class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0f] overflow-hidden select-none">
     
     <!-- Тёмная виньетка -->
     <div bind:this={overlay} class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.8)_100%)] opacity-90" />
@@ -140,7 +140,7 @@
     <!-- Сканирующая линия (циан) -->
     <div bind:this={scanLine} class="absolute left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent pointer-events-none" style="top: -5%; opacity: 0;" />
 
-    <div bind:this={splashContent} class="relative z-10 flex flex-col items-center gap-12">
+    <div bind:this={splashContent} class="relative z-10 flex flex-col items-center gap-12 select-none">
       <div class="relative">
         <!-- Свечение вокруг логотипа -->
         <div bind:this={logoGlow} class="absolute inset-[-10px] rounded-full bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-cyan-400 blur-[56px] opacity-0" />
@@ -158,7 +158,7 @@
       </div>
 
       <!-- Заголовок с динамической неоновой подсветкой -->
-      <h1 bind:this={title} class="text-5xl font-bold tracking-[0.35em] uppercase">
+      <h1 bind:this={title} class="text-5xl font-bold tracking-[0.35em] uppercase select-none">
         <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0;">F</span>
         <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0;">O</span>
         <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0;">R</span>
@@ -168,7 +168,7 @@
         <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0;">O</span>
       </h1>
 
-      <div bind:this={subtitle} class="flex flex-col items-center gap-4 text-center opacity-0">
+      <div bind:this={subtitle} class="flex flex-col items-center gap-4 text-center opacity-0 select-none">
         <p class="text-sm text-white/70 tracking-[0.5em] uppercase font-light">
           Universal Data Converter
         </p>
@@ -182,7 +182,7 @@
         <div class="w-32 h-px bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent" />
       </div>
 
-      <div bind:this={progressWrapper} class="w-72 h-px bg-white/5 rounded-full overflow-hidden opacity-0">
+      <div bind:this={progressWrapper} class="w-72 h-px bg-white/5 rounded-full overflow-hidden opacity-0 select-none">
         <div bind:this={progressBar} class="h-full bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-rose-400 rounded-full origin-left" style="transform:scaleX(0)" />
       </div>
     </div>
