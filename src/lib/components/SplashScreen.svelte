@@ -127,17 +127,18 @@
     onComplete();
   }
 
-  // Обработчик кликов
-  function handleClick(e: MouseEvent) {
+  // Универсальный обработчик для всех событий
+  function handleAnyInput(e: Event) {
     e.preventDefault();
     e.stopPropagation();
     performSmoothFadeOut();
   }
 
-  // Блокировка правой кнопки
-  function handleContextMenu(e: MouseEvent) {
+  // Обработчик для колеса мыши
+  function handleWheel(e: WheelEvent) {
     e.preventDefault();
     e.stopPropagation();
+    performSmoothFadeOut();
   }
 
   onMount(async () => {
@@ -150,9 +151,6 @@
       document.body.style.cursor = 'none';
       document.documentElement.style.cursor = 'none';
     }
-
-    // Блокируем правый клик
-    document.addEventListener('contextmenu', handleContextMenu);
 
     // Фоновые свечения – вход и вечная пульсация
     async function startGlowPulse() {
@@ -255,18 +253,21 @@
       document.body.style.cursor = '';
       document.documentElement.style.cursor = '';
     }
-    
-    document.removeEventListener('contextmenu', handleContextMenu);
   });
 </script>
 
+<svelte:window 
+  on:keydown={handleAnyInput}
+  on:mousedown={handleAnyInput}
+  on:touchstart={handleAnyInput}
+  on:wheel={handleWheel}
+  on:contextmenu|preventDefault={handleAnyInput}
+/>
+
 {#if visible}
-  <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
     bind:this={container} 
     class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0f] overflow-hidden select-none"
-    on:click={handleClick}
-    on:contextmenu={handleContextMenu}
   >
     
     <!-- Тёмная виньетка -->
