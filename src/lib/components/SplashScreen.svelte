@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { animate, stagger } from '@motionone/dom';
+  import { getCurrentWindow } from '@tauri-apps/api/window';
   import "$lib/styles/splashScreen.css";
 
   let { onComplete = () => {} } = $props();
@@ -27,6 +28,13 @@
     if (isFadingOut || !container || !splashContent || !title) return;
     isFadingOut = true;
 
+    // Показываем курсор обратно перед fade-out
+    try {
+      await getCurrentWindow().setCursorVisible(true);
+    } catch (e) {
+      console.warn('Failed to restore cursor:', e);
+    }
+
     // Останавливаем все текущие бесконечные анимации
     animationIds.forEach(anim => {
       try { anim?.stop?.(); } catch(e) {}
@@ -34,9 +42,6 @@
     animationIds = [];
 
     const letters = title.querySelectorAll('.letter');
-
-    // Собираем все анимации fade-out (без указания начального значения — 
-    // Motion One сам возьмёт текущее значение элемента)
     const fadeOutAnimations: Promise<any>[] = [];
 
     // Буквы заголовка исчезают по одной
@@ -136,7 +141,17 @@
   }
 
   onMount(async () => {
-    // Блокируем правый клик на всём документе пока сплеш активен
+    // Скрываем курсор средствами ОС через Tauri
+    try {
+      await getCurrentWindow().setCursorVisible(false);
+    } catch (e) {
+      console.warn('Failed to hide cursor:', e);
+      // Фолбэк: скрываем через CSS если Tauri API недоступен
+      document.body.style.cursor = 'none';
+      document.documentElement.style.cursor = 'none';
+    }
+
+    // Блокируем правый клик
     document.addEventListener('contextmenu', handleContextMenu);
 
     // Фоновые свечения – вход и вечная пульсация
@@ -232,7 +247,15 @@
       await performSmoothFadeOut();
     }
 
-    // Очистка обработчиков
+    // Очистка: показываем курсор обратно
+    try {
+      await getCurrentWindow().setCursorVisible(true);
+    } catch (e) {
+      console.warn('Failed to restore cursor:', e);
+      document.body.style.cursor = '';
+      document.documentElement.style.cursor = '';
+    }
+    
     document.removeEventListener('contextmenu', handleContextMenu);
   });
 </script>
@@ -241,7 +264,7 @@
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div 
     bind:this={container} 
-    class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0f] overflow-hidden select-none cursor-pointer"
+    class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0f] overflow-hidden select-none"
     on:click={handleClick}
     on:contextmenu={handleContextMenu}
   >
