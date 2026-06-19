@@ -19,116 +19,232 @@
   let scanLine = $state<HTMLDivElement | null>(null);
   let overlay = $state<HTMLDivElement | null>(null);
 
+  let isFadingOut = $state(false);
+  let animationIds: any[] = [];
+
+  // Функция для плавного fade-out
+  async function performSmoothFadeOut() {
+    if (isFadingOut || !container || !splashContent || !title) return;
+    isFadingOut = true;
+
+    // Останавливаем все текущие бесконечные анимации
+    animationIds.forEach(anim => {
+      try { anim?.stop?.(); } catch(e) {}
+    });
+    animationIds = [];
+
+    const letters = title.querySelectorAll('.letter');
+
+    // Собираем все анимации fade-out (без указания начального значения — 
+    // Motion One сам возьмёт текущее значение элемента)
+    const fadeOutAnimations: Promise<any>[] = [];
+
+    // Буквы заголовка исчезают по одной
+    letters.forEach((letter, i) => {
+      fadeOutAnimations.push(
+        animate(letter as HTMLElement, 
+          { opacity: 0 }, 
+          { duration: 0.6, delay: i * 0.06, easing: 'ease-out' }
+        ).finished
+      );
+    });
+
+    // Подзаголовок
+    if (subtitle) {
+      fadeOutAnimations.push(
+        animate(subtitle, { opacity: 0 }, { duration: 0.6, delay: 0.2, easing: 'ease-out' }).finished
+      );
+    }
+
+    // Прогресс-бар
+    if (progressWrapper) {
+      fadeOutAnimations.push(
+        animate(progressWrapper, { opacity: 0 }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished
+      );
+    }
+
+    // SVG логотип (весь элемент)
+    const logoSvg = logoGlow?.parentElement;
+    if (logoSvg) {
+      fadeOutAnimations.push(
+        animate(logoSvg, { opacity: 0 }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished
+      );
+    }
+
+    // Свечение логотипа
+    if (logoGlow) {
+      fadeOutAnimations.push(
+        animate(logoGlow, { opacity: 0 }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished
+      );
+    }
+
+    // Фоновые свечения
+    if (glow1) {
+      fadeOutAnimations.push(
+        animate(glow1, { opacity: 0 }, { duration: 0.8, easing: 'ease-out' }).finished
+      );
+    }
+    if (glow2) {
+      fadeOutAnimations.push(
+        animate(glow2, { opacity: 0 }, { duration: 0.8, delay: 0.1, easing: 'ease-out' }).finished
+      );
+    }
+
+    // Сканирующая линия
+    if (scanLine) {
+      fadeOutAnimations.push(
+        animate(scanLine, { opacity: 0 }, { duration: 0.6, easing: 'ease-out' }).finished
+      );
+    }
+
+    // Виньетка
+    if (overlay) {
+      fadeOutAnimations.push(
+        animate(overlay, { opacity: 0 }, { duration: 0.8, easing: 'ease-out' }).finished
+      );
+    }
+
+    // Основной контент
+    fadeOutAnimations.push(
+      animate(splashContent, { opacity: 0 }, { duration: 0.6, easing: 'ease-out' }).finished
+    );
+
+    // Ждём все анимации
+    await Promise.all(fadeOutAnimations);
+
+    await new Promise(r => setTimeout(r, 300));
+    
+    // Финальное исчезновение контейнера
+    await animate(container, { opacity: 0 }, { duration: 0.8, easing: 'ease-out' }).finished;
+    await new Promise(r => setTimeout(r, 100));
+
+    visible = false;
+    onComplete();
+  }
+
+  // Обработчик кликов
+  function handleClick(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    performSmoothFadeOut();
+  }
+
+  // Блокировка правой кнопки
+  function handleContextMenu(e: MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+  }
+
   onMount(async () => {
+    // Блокируем правый клик на всём документе пока сплеш активен
+    document.addEventListener('contextmenu', handleContextMenu);
+
     // Фоновые свечения – вход и вечная пульсация
     async function startGlowPulse() {
       if (glow1) {
-        await animate(glow1, { opacity: [0, 0.35] }, { duration: 2.5, easing: 'ease-out' }).finished;
-        animate(glow1, { opacity: [0.25, 0.45] }, { duration: 2, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+        const anim1 = await animate(glow1, { opacity: [0, 0.35] }, { duration: 2.5, easing: 'ease-out' });
+        animationIds.push(anim1);
+        await anim1.finished;
+        if (!isFadingOut) {
+          const anim2 = animate(glow1, { opacity: [0.25, 0.45] }, { duration: 2, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+          animationIds.push(anim2);
+        }
       }
       if (glow2) {
-        await animate(glow2, { opacity: [0, 0.3] }, { duration: 3, delay: 0.3, easing: 'ease-out' }).finished;
-        animate(glow2, { opacity: [0.15, 0.35] }, { duration: 2.5, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+        const anim3 = await animate(glow2, { opacity: [0, 0.3] }, { duration: 3, delay: 0.3, easing: 'ease-out' });
+        animationIds.push(anim3);
+        await anim3.finished;
+        if (!isFadingOut) {
+          const anim4 = animate(glow2, { opacity: [0.15, 0.35] }, { duration: 2.5, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+          animationIds.push(anim4);
+        }
       }
     }
     startGlowPulse();
 
     // Логотип – вращение + мягкий scale
-    if (logoGlow) {
-      animate(logoGlow, { rotate: 360 }, { duration: 35, easing: 'linear', repeat: Infinity });
-      animate(logoGlow, { opacity: [0, 0.45] }, { duration: 2.5, easing: 'ease-out' });
-      animate(logoGlow, { scale: [1, 1.08] }, { duration: 4, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+    if (logoGlow && !isFadingOut) {
+      const anim5 = animate(logoGlow, { rotate: 360 }, { duration: 35, easing: 'linear', repeat: Infinity });
+      const anim6 = animate(logoGlow, { opacity: [0, 0.45] }, { duration: 2.5, easing: 'ease-out' });
+      const anim7 = animate(logoGlow, { scale: [1, 1.08] }, { duration: 4, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+      animationIds.push(anim5, anim6, anim7);
     }
 
     // Сканирующая линия
     async function startScanLine() {
       await new Promise(r => setTimeout(r, 3500));
-      if (scanLine) {
-        animate(scanLine, { top: ['-5%', '105%'] }, { duration: 5, repeat: Infinity, easing: 'linear' });
-        animate(scanLine, { opacity: [0, 0.3, 0] }, { duration: 5, repeat: Infinity, easing: 'linear' });
+      if (scanLine && !isFadingOut) {
+        const anim8 = animate(scanLine, { top: ['-5%', '105%'] }, { duration: 5, repeat: Infinity, easing: 'linear' });
+        const anim9 = animate(scanLine, { opacity: [0, 0.3, 0] }, { duration: 5, repeat: Infinity, easing: 'linear' });
+        animationIds.push(anim8, anim9);
       }
     }
     startScanLine();
 
     // Основная анимация – скобки, заголовок, подзаголовок, прогресс
-    if (bracketL && bracketR) {
-      animate(bracketL, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' });
-      animate(bracketR, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' });
+    if (bracketL && bracketR && !isFadingOut) {
+      const anim10 = animate(bracketL, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' });
+      const anim11 = animate(bracketR, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' });
+      animationIds.push(anim10, anim11);
 
-      await Promise.all([
-        animate(bracketL, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' }).finished,
-        animate(bracketR, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' }).finished,
-      ]);
+      const anim12 = animate(bracketL, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' });
+      const anim13 = animate(bracketR, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' });
+      animationIds.push(anim12, anim13);
+
+      await Promise.all([anim12.finished, anim13.finished]);
     }
 
-    if (title) {
+    if (title && !isFadingOut) {
       const letters = title.querySelectorAll('.letter');
-      await animate(letters,
+      const anim14 = animate(letters,
         { opacity: [0, 1] },
         { delay: stagger(0.08), duration: 0.8, easing: [0.34, 1.56, 0.64, 1] }
-      ).finished;
+      );
+      animationIds.push(anim14);
+      await anim14.finished;
     }
 
-    if (subtitle) {
-      await animate(subtitle,
+    if (subtitle && !isFadingOut) {
+      const anim15 = animate(subtitle,
         { opacity: [0, 1], transform: ['translateY(30px)', 'translateY(0)'] },
         { duration: 1.2, easing: [0.34, 1.56, 0.64, 1] }
-      ).finished;
+      );
+      animationIds.push(anim15);
+      await anim15.finished;
     }
 
-    if (progressWrapper && progressBar) {
-      animate(progressWrapper, { opacity: [0, 1] }, { duration: 0.8, easing: 'ease-out' });
-      await animate(progressBar,
+    if (progressWrapper && progressBar && !isFadingOut) {
+      const anim16 = animate(progressWrapper, { opacity: [0, 1] }, { duration: 0.8, easing: 'ease-out' });
+      const anim17 = animate(progressBar,
         { transform: ['scaleX(0)', 'scaleX(1)'] },
         { duration: 3.5, easing: [0.4, 0, 0.2, 1] }
-      ).finished;
+      );
+      animationIds.push(anim16, anim17);
+      await anim17.finished;
     }
 
-    await new Promise(r => setTimeout(r, 2000));
-
-    // Эффект стирания и финал
-    if (container && splashContent && title) {
-      const letters = title.querySelectorAll('.letter');
-
-      // Анимируем исчезновение всех элементов одновременно
-      await Promise.all([
-        // Буквы заголовка
-        ...Array.from(letters).map((letter, i) =>
-          animate(letter as HTMLElement, { opacity: [1, 0] }, { duration: 0.6, delay: i * 0.06, easing: 'ease-out' }).finished
-        ),
-        // Подзаголовок
-        subtitle ? animate(subtitle, { opacity: [1, 0] }, { duration: 0.6, delay: 0.2, easing: 'ease-out' }).finished : Promise.resolve(),
-        // Прогресс-бар
-        progressWrapper ? animate(progressWrapper, { opacity: [1, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished : Promise.resolve(),
-        // SVG логотип (весь элемент)
-        logoGlow?.parentElement ? animate(logoGlow.parentElement, { opacity: [1, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished : Promise.resolve(),
-        // Свечение логотипа
-        logoGlow ? animate(logoGlow, { opacity: [0.45, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished : Promise.resolve(),
-        // Фоновые свечения
-        glow1 ? animate(glow1, { opacity: [0.45, 0] }, { duration: 0.8, easing: 'ease-out' }).finished : Promise.resolve(),
-        glow2 ? animate(glow2, { opacity: [0.35, 0] }, { duration: 0.8, delay: 0.1, easing: 'ease-out' }).finished : Promise.resolve(),
-        // Сканирующая линия
-        scanLine ? animate(scanLine, { opacity: [0.3, 0] }, { duration: 0.6, easing: 'ease-out' }).finished : Promise.resolve(),
-        // Виньетка
-        overlay ? animate(overlay, { opacity: [0.9, 0] }, { duration: 0.8, easing: 'ease-out' }).finished : Promise.resolve(),
-        // Основной контент
-        animate(splashContent, { opacity: [1, 0] }, { duration: 0.6, easing: 'ease-out' }).finished,
-      ]);
-
-      await new Promise(r => setTimeout(r, 300));
-      
-      // Финальное исчезновение контейнера
-      await animate(container, { opacity: [1, 0] }, { duration: 0.8, easing: 'ease-out' }).finished;
-      await new Promise(r => setTimeout(r, 100));
+    if (!isFadingOut) {
+      await new Promise(r => setTimeout(r, 2000));
     }
 
-    visible = false;
-    onComplete();
+    // Если не было принудительного fade-out, запускаем обычный
+    if (!isFadingOut) {
+      await performSmoothFadeOut();
+    }
+
+    // Очистка обработчиков
+    document.removeEventListener('contextmenu', handleContextMenu);
   });
 </script>
 
 {#if visible}
-  <div bind:this={container} class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0f] overflow-hidden select-none">
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div 
+    bind:this={container} 
+    class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0f] overflow-hidden select-none cursor-pointer"
+    on:click={handleClick}
+    on:contextmenu={handleContextMenu}
+  >
     
     <!-- Тёмная виньетка -->
     <div bind:this={overlay} class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.8)_100%)] opacity-90" />
@@ -140,7 +256,7 @@
     <!-- Сканирующая линия (циан) -->
     <div bind:this={scanLine} class="absolute left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent pointer-events-none" style="top: -5%; opacity: 0;" />
 
-    <div bind:this={splashContent} class="relative z-10 flex flex-col items-center gap-12 select-none">
+    <div bind:this={splashContent} class="relative z-10 flex flex-col items-center gap-12 select-none pointer-events-none">
       <div class="relative">
         <!-- Свечение вокруг логотипа -->
         <div bind:this={logoGlow} class="absolute inset-[-10px] rounded-full bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-cyan-400 blur-[56px] opacity-0" />
