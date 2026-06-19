@@ -15,20 +15,44 @@
   let glow1 = $state<HTMLDivElement | null>(null);
   let glow2 = $state<HTMLDivElement | null>(null);
   let splashContent = $state<HTMLDivElement | null>(null);
+  let scanLine = $state<HTMLDivElement | null>(null);
 
   onMount(async () => {
-    // Скобки рисуются — свечения нарастают параллельно
+    // ── Фоновые свечения: плавный вход, потом бесконечная пульсация ──
+    async function startGlowPulse() {
+      if (glow1) {
+        await animate(glow1, { opacity: [0, 0.3] }, { duration: 2.5, easing: 'ease-out' }).finished;
+        animate(glow1, { opacity: [0.2, 0.4] }, { duration: 2, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+      }
+      if (glow2) {
+        await animate(glow2, { opacity: [0, 0.3] }, { duration: 3, delay: 0.3, easing: 'ease-out' }).finished;
+        animate(glow2, { opacity: [0.15, 0.3] }, { duration: 2.5, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+      }
+    }
+    startGlowPulse(); // не ждём, свечения живут своей жизнью
+
+    // ── Логотип: вращение + мягкое масштабирование ──
+    if (logoGlow) {
+      animate(logoGlow, { rotate: 360 }, { duration: 35, easing: 'linear', repeat: Infinity });
+      animate(logoGlow, { opacity: [0, 0.4] }, { duration: 2.5, easing: 'ease-out' });
+      animate(logoGlow, { scale: [1, 1.08] }, { duration: 4, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
+    }
+
+    // ── Сканирующая линия (после небольшой задержки) ──
+    async function startScanLine() {
+      await new Promise(r => setTimeout(r, 3500));
+      if (scanLine) {
+        animate(scanLine, { top: ['-5%', '105%'] }, { duration: 5, repeat: Infinity, easing: 'linear' });
+        animate(scanLine, { opacity: [0, 0.25, 0] }, { duration: 5, repeat: Infinity, easing: 'linear' });
+      }
+    }
+    startScanLine();
+
+    // ── Основная часть: скобки → заголовок → подзаголовок → прогресс ──
     if (bracketL && bracketR) {
       animate(bracketL, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' });
       animate(bracketR, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' });
-      
-      if (glow1) animate(glow1, { opacity: [0, 0.3] }, { duration: 2.5, easing: 'ease-out' });
-      if (glow2) animate(glow2, { opacity: [0, 0.3] }, { duration: 3, easing: 'ease-out', delay: 0.3 });
-      if (logoGlow) {
-        animate(logoGlow, { rotate: 360 }, { duration: 35, easing: 'linear', repeat: Infinity });
-        animate(logoGlow, { opacity: [0, 0.4] }, { duration: 2.5, easing: 'ease-out' });
-      }
-      
+
       await Promise.all([
         animate(bracketL, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' }).finished,
         animate(bracketR, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' }).finished,
@@ -58,98 +82,37 @@
       ).finished;
     }
 
-    await new Promise(r => setTimeout(r, 2500));
+    // ── Пауза, пока фон дышит ──
+    await new Promise(r => setTimeout(r, 2000));
 
-    // === ЭФФЕКТ: СТИРАНИЕ ТЕКСТА + FADE ФОНА ===
+    // ── ЭФФЕКТ: СТИРАНИЕ ТЕКСТА + FADE ФОНА ──
     if (container && splashContent && title) {
       const letters = title.querySelectorAll('.letter');
 
-// 1. Стираем все элементы
-await Promise.all([
-  // Буквы исчезают
-  ...Array.from(letters).map((letter, i) => {
-    const delay = i * 0.06;
-    
-    return animate(letter as HTMLElement,
-      {
-        opacity: [1, 0]
-      },
-      {
-        duration: 0.6,
-        delay: delay,
-        easing: 'ease-out'
-      }
-    ).finished;
-  }),
-  
-  // Сабтайтл исчезает
-  animate(subtitle,
-    {
-      opacity: [1, 0]
-    },
-    { duration: 0.6, delay: 0.2, easing: 'ease-out' }
-  ).finished,
-  
-  // Прогресс бар исчезает
-  animate(progressWrapper,
-    {
-      opacity: [1, 0]
-    },
-    { duration: 0.6, delay: 0.1, easing: 'ease-out' }
-  ).finished,
-  
-  // Логотип (скобки) исчезает
-  animate(bracketL?.parentElement || document.createElement('div'),
-    {
-      opacity: [1, 0]
-    },
-    { duration: 0.6, delay: 0.1, easing: 'ease-out' }
-  ).finished,
-  
-  // logoGlow исчезает
-  animate(logoGlow,
-    {
-      opacity: [0.4, 0]
-    },
-    { duration: 0.6, delay: 0.1, easing: 'ease-out' }
-  ).finished,
-  
-  // Свечение 1 исчезает
-  animate(glow1,
-    {
-      opacity: [0.3, 0]
-    },
-    { duration: 0.6, easing: 'ease-out' }
-  ).finished,
-  
-  // Свечение 2 исчезает
-  animate(glow2,
-    {
-      opacity: [0.3, 0]
-    },
-    { duration: 0.6, delay: 0.1, easing: 'ease-out' }
-  ).finished,
-  
-  // Весь контент исчезает
-  animate(splashContent,
-    {
-      opacity: [1, 0]
-    },
-    { duration: 0.6, easing: 'ease-out' }
-  ).finished
-]);
+      await Promise.all([
+        // Буквы
+        ...Array.from(letters).map((letter, i) =>
+          animate(letter as HTMLElement, { opacity: [1, 0] }, { duration: 0.6, delay: i * 0.06, easing: 'ease-out' }).finished
+        ),
+        // Подзаголовок
+        animate(subtitle, { opacity: [1, 0] }, { duration: 0.6, delay: 0.2, easing: 'ease-out' }).finished,
+        // Прогресс-бар
+        animate(progressWrapper, { opacity: [1, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished,
+        // Логотип (родитель скобок)
+        animate(bracketL?.parentElement || document.createElement('div'), { opacity: [1, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished,
+        // Свечение логотипа
+        animate(logoGlow, { opacity: [0.4, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished,
+        // Фоновые свечения
+        animate(glow1, { opacity: [0, 0] }, { duration: 0.6, easing: 'ease-out' }).finished,
+        animate(glow2, { opacity: [0, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished,
+        // Сканирующая линия
+        scanLine ? animate(scanLine, { opacity: [0, 0] }, { duration: 0.6, easing: 'ease-out' }).finished : Promise.resolve(),
+        // Весь контент
+        animate(splashContent, { opacity: [1, 0] }, { duration: 0.6, easing: 'ease-out' }).finished,
+      ]);
 
-      // 2. Пауза
       await new Promise(r => setTimeout(r, 300));
-
-      // 3. Фон исчезает
-      await animate(container,
-        {
-          opacity: [1, 0]
-        },
-        { duration: 0.8, easing: 'ease-out' }
-      ).finished;
-
+      await animate(container, { opacity: [1, 0] }, { duration: 0.8, easing: 'ease-out' }).finished;
       await new Promise(r => setTimeout(r, 100));
     }
 
@@ -159,12 +122,17 @@ await Promise.all([
 </script>
 
 {#if visible}
-  <div bind:this={container} class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#060608] overflow-visible">
+  <div bind:this={container} class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#060608] overflow-hidden">
     
+    <!-- Тёмная виньетка -->
     <div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.7)_100%)] opacity-90" />
     
+    <!-- Бесконечно пульсирующие пятна -->
     <div bind:this={glow1} class="absolute w-[700px] h-[700px] bg-blue-500/[0.03] blur-[140px] opacity-0 pointer-events-none" style="top: 50%; left: 50%; transform: translate(-50%, -50%);" />
     <div bind:this={glow2} class="absolute w-[450px] h-[450px] bg-purple-500/[0.05] blur-[140px] opacity-0 pointer-events-none" style="top: 30%; left: 20%;" />
+
+    <!-- Сканирующая линия (бесконечная) -->
+    <div bind:this={scanLine} class="absolute left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" style="top: -5%; opacity: 0;" />
 
     <div bind:this={splashContent} class="relative z-10 flex flex-col items-center gap-12">
       <div class="relative">
