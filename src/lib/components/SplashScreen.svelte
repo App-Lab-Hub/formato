@@ -5,194 +5,202 @@
 
   let { onComplete = () => {} } = $props();
   let visible = $state(true);
-  let container = $state<HTMLDivElement | null>(null);
-  let bracketL = $state<SVGPathElement | null>(null);
-  let bracketR = $state<SVGPathElement | null>(null);
-  let logoGlow = $state<HTMLDivElement | null>(null);
-  let title = $state<HTMLHeadingElement | null>(null);
-  let subtitle = $state<HTMLDivElement | null>(null);
-  let progressBar = $state<HTMLDivElement | null>(null);
-  let progressWrapper = $state<HTMLDivElement | null>(null);
-  let glow1 = $state<HTMLDivElement | null>(null);
-  let glow2 = $state<HTMLDivElement | null>(null);
-  let splashContent = $state<HTMLDivElement | null>(null);
-  let scanLine = $state<HTMLDivElement | null>(null);
-  let overlay = $state<HTMLDivElement | null>(null);
+  let isFadingOut = false;
+  
+  // Используем refs вместо $ (зарезервировано)
+  const refs: Record<string, Element | null> = {};
+  
+  const animationIds: any[] = [];
+  let letters: Element[] = [];
 
-  let isFadingOut = $state(false);
-  let animationIds: any[] = [];
-  let letters: NodeListOf<HTMLElement> | null = null;
+  const FADE = { duration: 0.6, easing: 'ease-out' } as const;
+  const GLOW_FADE = { duration: 0.8, easing: 'ease-out' } as const;
 
-  const FADE_CONFIG = { duration: 0.6, easing: 'ease-out' as const };
-  const GLOW_FADE_CONFIG = { duration: 0.8, easing: 'ease-out' as const };
-
-  function addAnimation(anim: any) {
-    animationIds.push(anim);
-    return anim;
+  function stopAll() {
+    for (let i = 0; i < animationIds.length; i++) {
+      try { animationIds[i]?.stop?.(); } catch {}
+    }
+    animationIds.length = 0;
   }
 
-  function safeAnimate(el: any, keyframes: any, options: any) {
-    return el ? animate(el, keyframes, options) : null;
-  }
-
-  async function performSmoothFadeOut() {
-    if (isFadingOut || !container || !splashContent || !title) return;
+  async function fadeOut() {
+    if (isFadingOut || !refs.container || !refs.splashContent || !refs.title) return;
     isFadingOut = true;
 
-    try { await getCurrentWindow().setCursorVisible(true); } catch {}
+    getCurrentWindow().setCursorVisible(true).catch(() => {});
+    stopAll();
 
-    animationIds.forEach(anim => { try { anim?.stop?.(); } catch {} });
-    animationIds = [];
-    if (!letters) letters = title.querySelectorAll('.letter');
+    if (!letters.length && refs.title) {
+      letters = Array.from((refs.title as HTMLElement).querySelectorAll('.letter'));
+    }
 
-    const fadeTargets = [
-      ...Array.from(letters).map((letter, i) =>
-        safeAnimate(letter, { opacity: 0 }, { ...FADE_CONFIG, delay: i * 0.06 })
-      ),
-      safeAnimate(subtitle, { opacity: 0 }, { ...FADE_CONFIG, delay: 0.2 }),
-      safeAnimate(progressWrapper, { opacity: 0 }, { ...FADE_CONFIG, delay: 0.1 }),
-      safeAnimate(logoGlow?.parentElement, { opacity: 0 }, { ...FADE_CONFIG, delay: 0.1 }),
-      safeAnimate(logoGlow, { opacity: 0 }, { ...FADE_CONFIG, delay: 0.1 }),
-      safeAnimate(glow1, { opacity: 0 }, GLOW_FADE_CONFIG),
-      safeAnimate(glow2, { opacity: 0 }, { ...GLOW_FADE_CONFIG, delay: 0.1 }),
-      safeAnimate(scanLine, { opacity: 0 }, FADE_CONFIG),
-      safeAnimate(overlay, { opacity: 0 }, GLOW_FADE_CONFIG),
-      safeAnimate(splashContent, { opacity: 0 }, FADE_CONFIG),
-    ].filter(Boolean);
+    const targets = [];
+    
+    for (let i = 0; i < letters.length; i++) {
+      targets.push(animate(letters[i] as HTMLElement, { opacity: 0 }, { ...FADE, delay: i * 0.06 }));
+    }
+    
+    if (refs.subtitle) targets.push(animate(refs.subtitle as HTMLElement, { opacity: 0 }, { ...FADE, delay: 0.2 }));
+    if (refs.progressWrapper) targets.push(animate(refs.progressWrapper as HTMLElement, { opacity: 0 }, { ...FADE, delay: 0.1 }));
+    if (refs.logoGlow?.parentElement) targets.push(animate(refs.logoGlow.parentElement, { opacity: 0 }, { ...FADE, delay: 0.1 }));
+    if (refs.logoGlow) targets.push(animate(refs.logoGlow as HTMLElement, { opacity: 0 }, { ...FADE, delay: 0.1 }));
+    if (refs.glow1) targets.push(animate(refs.glow1 as HTMLElement, { opacity: 0 }, GLOW_FADE));
+    if (refs.glow2) targets.push(animate(refs.glow2 as HTMLElement, { opacity: 0 }, { ...GLOW_FADE, delay: 0.1 }));
+    if (refs.scanLine) targets.push(animate(refs.scanLine as HTMLElement, { opacity: 0 }, FADE));
+    if (refs.overlay) targets.push(animate(refs.overlay as HTMLElement, { opacity: 0 }, GLOW_FADE));
+    if (refs.splashContent) targets.push(animate(refs.splashContent as HTMLElement, { opacity: 0 }, FADE));
 
-    await Promise.all(fadeTargets.map(a => a!.finished));
+    await Promise.all(targets.map(a => a.finished));
     await new Promise(r => setTimeout(r, 300));
-    await animate(container, { opacity: 0 }, { duration: 0.8, easing: 'ease-out' }).finished;
+    await animate(refs.container as HTMLElement, { opacity: 0 }, { duration: 0.8, easing: 'ease-out' }).finished;
     await new Promise(r => setTimeout(r, 100));
 
     visible = false;
     onComplete();
   }
 
-  function handleAnyInput(e: Event) {
+  function handleInput(e: Event) {
     e.preventDefault();
     e.stopPropagation();
-    performSmoothFadeOut();
+    fadeOut();
   }
 
-  onMount(async () => {
-    try {
-      await getCurrentWindow().setCursorVisible(false);
-    } catch {
+  onMount(() => {
+    getCurrentWindow().setCursorVisible(false).catch(() => {
       document.body.style.cursor = 'none';
       document.documentElement.style.cursor = 'none';
+    });
+
+    if (refs.title) letters = Array.from((refs.title as HTMLElement).querySelectorAll('.letter'));
+
+    if (refs.glow1) {
+      animate(refs.glow1 as HTMLElement, { opacity: [0, 0.35] }, { duration: 2.5, easing: 'ease-out' })
+        .finished.then(() => {
+          if (!isFadingOut) animationIds.push(animate(refs.glow1 as HTMLElement, { opacity: [0.25, 0.45] }, { duration: 2, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' }));
+        });
+    }
+    if (refs.glow2) {
+      animate(refs.glow2 as HTMLElement, { opacity: [0, 0.3] }, { duration: 3, delay: 0.3, easing: 'ease-out' })
+        .finished.then(() => {
+          if (!isFadingOut) animationIds.push(animate(refs.glow2 as HTMLElement, { opacity: [0.15, 0.35] }, { duration: 2.5, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' }));
+        });
     }
 
-    if (title) letters = title.querySelectorAll('.letter');
-
-    async function startGlowPulse() {
-      if (glow1) {
-        await addAnimation(animate(glow1, { opacity: [0, 0.35] }, { duration: 2.5, easing: 'ease-out' })).finished;
-        if (!isFadingOut) addAnimation(animate(glow1, { opacity: [0.25, 0.45] }, { duration: 2, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' }));
-      }
-      if (glow2) {
-        await addAnimation(animate(glow2, { opacity: [0, 0.3] }, { duration: 3, delay: 0.3, easing: 'ease-out' })).finished;
-        if (!isFadingOut) addAnimation(animate(glow2, { opacity: [0.15, 0.35] }, { duration: 2.5, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' }));
-      }
-    }
-    startGlowPulse();
-
-    if (logoGlow && !isFadingOut) {
-      addAnimation(animate(logoGlow, { rotate: 360 }, { duration: 35, easing: 'linear', repeat: Infinity }));
-      addAnimation(animate(logoGlow, { opacity: [0, 0.45] }, { duration: 2.5, easing: 'ease-out' }));
-      addAnimation(animate(logoGlow, { scale: [1, 1.08] }, { duration: 4, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' }));
+    if (refs.logoGlow) {
+      animationIds.push(
+        animate(refs.logoGlow as HTMLElement, { rotate: 360 }, { duration: 35, easing: 'linear', repeat: Infinity }),
+        animate(refs.logoGlow as HTMLElement, { opacity: [0, 0.45] }, { duration: 2.5, easing: 'ease-out' }),
+        animate(refs.logoGlow as HTMLElement, { scale: [1, 1.08] }, { duration: 4, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' })
+      );
     }
 
-    (async () => {
-      await new Promise(r => setTimeout(r, 3500));
-      if (scanLine && !isFadingOut) {
-        addAnimation(animate(scanLine, { top: ['-5%', '105%'] }, { duration: 5, repeat: Infinity, easing: 'linear' }));
-        addAnimation(animate(scanLine, { opacity: [0, 0.3, 0] }, { duration: 5, repeat: Infinity, easing: 'linear' }));
+    setTimeout(() => {
+      if (refs.scanLine && !isFadingOut) {
+        animationIds.push(
+          animate(refs.scanLine as HTMLElement, { top: ['-5%', '105%'] }, { duration: 5, repeat: Infinity, easing: 'linear' }),
+          animate(refs.scanLine as HTMLElement, { opacity: [0, 0.3, 0] }, { duration: 5, repeat: Infinity, easing: 'linear' })
+        );
       }
-    })();
+    }, 3500);
 
-    if (bracketL && bracketR && !isFadingOut) {
-      addAnimation(animate(bracketL, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' }));
-      addAnimation(animate(bracketR, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' }));
+    async function runSequence() {
+      if (!refs.bracketL || !refs.bracketR) return;
+
+      animationIds.push(
+        animate(refs.bracketL as SVGPathElement, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' }),
+        animate(refs.bracketR as SVGPathElement, { opacity: [0, 1] }, { duration: 0.6, easing: 'ease-out' })
+      );
+
       await Promise.all([
-        addAnimation(animate(bracketL, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' })).finished,
-        addAnimation(animate(bracketR, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' })).finished,
+        animate(refs.bracketL as SVGPathElement, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' }).finished,
+        animate(refs.bracketR as SVGPathElement, { strokeDashoffset: [150, 0] }, { duration: 3, easing: 'ease-in-out' }).finished,
       ]);
+
+      if (isFadingOut) return;
+
+      if (refs.title && letters.length) {
+        await animate(letters as HTMLElement[], { opacity: [0, 1] }, { 
+          delay: stagger(0.08), duration: 0.8, easing: [0.34, 1.56, 0.64, 1] 
+        }).finished;
+      }
+
+      if (isFadingOut || !refs.subtitle) return;
+      await animate(refs.subtitle as HTMLElement, { opacity: [0, 1], transform: ['translateY(30px)', 'translateY(0)'] }, { 
+        duration: 1.2, easing: [0.34, 1.56, 0.64, 1] 
+      }).finished;
+
+      if (isFadingOut || !refs.progressWrapper || !refs.progressBar) return;
+      animationIds.push(animate(refs.progressWrapper as HTMLElement, { opacity: [0, 1] }, { duration: 0.8, easing: 'ease-out' }));
+      await animate(refs.progressBar as HTMLElement, { transform: ['scaleX(0)', 'scaleX(1)'] }, { 
+        duration: 3.5, easing: [0.4, 0, 0.2, 1] 
+      }).finished;
+
+      if (!isFadingOut) await new Promise(r => setTimeout(r, 2000));
+      if (!isFadingOut) await fadeOut();
     }
 
-    if (title && letters && !isFadingOut) {
-      await addAnimation(animate(letters, { opacity: [0, 1] }, { delay: stagger(0.08), duration: 0.8, easing: [0.34, 1.56, 0.64, 1] })).finished;
-    }
+    runSequence();
 
-    if (subtitle && !isFadingOut) {
-      await addAnimation(animate(subtitle, { opacity: [0, 1], transform: ['translateY(30px)', 'translateY(0)'] }, { duration: 1.2, easing: [0.34, 1.56, 0.64, 1] })).finished;
-    }
-
-    if (progressWrapper && progressBar && !isFadingOut) {
-      addAnimation(animate(progressWrapper, { opacity: [0, 1] }, { duration: 0.8, easing: 'ease-out' }));
-      await addAnimation(animate(progressBar, { transform: ['scaleX(0)', 'scaleX(1)'] }, { duration: 3.5, easing: [0.4, 0, 0.2, 1] })).finished;
-    }
-
-    if (!isFadingOut) await new Promise(r => setTimeout(r, 2000));
-    if (!isFadingOut) await performSmoothFadeOut();
-
-    try { await getCurrentWindow().setCursorVisible(true); } catch {
-      document.body.style.cursor = '';
-      document.documentElement.style.cursor = '';
-    }
+    return () => {
+      stopAll();
+      getCurrentWindow().setCursorVisible(true).catch(() => {
+        document.body.style.cursor = '';
+        document.documentElement.style.cursor = '';
+      });
+    };
   });
 </script>
 
 <svelte:window
-  on:keydown={handleAnyInput}
-  on:mousedown={handleAnyInput}
-  on:touchstart={handleAnyInput}
-  on:wheel={handleAnyInput}
-  on:contextmenu|preventDefault={handleAnyInput}
+  on:keydown={handleInput}
+  on:mousedown={handleInput}
+  on:touchstart={handleInput}
+  on:wheel={handleInput}
+  on:contextmenu|preventDefault={handleInput}
 />
 
 {#if visible}
-  <div bind:this={container} class="fixed inset-0 z-[9999] flex items-center justify-center bg-[#0a0a0f] overflow-hidden select-none">
-    <div bind:this={overlay} class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_30%,rgba(0,0,0,0.8)_100%)] opacity-90" />
-    <div bind:this={glow1} class="absolute w-[700px] h-[700px] bg-cyan-500/10 blur-[140px] opacity-0 pointer-events-none" style="top:50%;left:50%;transform:translate(-50%,-50%)" />
-    <div bind:this={glow2} class="absolute w-[450px] h-[450px] bg-fuchsia-500/10 blur-[140px] opacity-0 pointer-events-none" style="top:30%;left:20%" />
-    <div bind:this={scanLine} class="absolute left-0 w-full h-px bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent pointer-events-none" style="top:-5%;opacity:0" />
+  <div bind:this={refs.container} class="fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden select-none" style="background:#0a0a0f">
+    <div bind:this={refs.overlay} class="absolute inset-0 opacity-90" style="background:radial-gradient(ellipse at center,transparent 30%,rgba(0,0,0,0.8) 100%)" />
+    <div bind:this={refs.glow1} class="absolute w-[700px] h-[700px] opacity-0 pointer-events-none" style="background:rgba(6,182,212,0.1);filter:blur(140px);top:50%;left:50%;transform:translate(-50%,-50%)" />
+    <div bind:this={refs.glow2} class="absolute w-[450px] h-[450px] opacity-0 pointer-events-none" style="background:rgba(217,70,239,0.1);filter:blur(140px);top:30%;left:20%" />
+    <div bind:this={refs.scanLine} class="absolute left-0 w-full h-px pointer-events-none" style="background:linear-gradient(to right,transparent,rgba(34,211,238,0.2),transparent);top:-5%;opacity:0" />
 
-    <div bind:this={splashContent} class="relative z-10 flex flex-col items-center gap-12 select-none pointer-events-none">
+    <div bind:this={refs.splashContent} class="relative z-10 flex flex-col items-center gap-12 select-none pointer-events-none">
       <div class="relative">
-        <div bind:this={logoGlow} class="absolute inset-[-10px] rounded-full bg-gradient-to-br from-cyan-400 via-fuchsia-500 to-cyan-400 blur-[56px] opacity-0" />
+        <div bind:this={refs.logoGlow} class="absolute inset-[-10px] rounded-full opacity-0" style="background:linear-gradient(to bottom right,#22d3ee,#c084fc,#22d3ee);filter:blur(56px)" />
         <svg class="relative w-32 h-32" viewBox="0 0 120 120">
           <defs>
             <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="#22d3ee" />
-              <stop offset="50%" stop-color="#c084fc" />
-              <stop offset="100%" stop-color="#f472b6" />
+              <stop offset="0%" stop-color="#22d3ee"/>
+              <stop offset="50%" stop-color="#c084fc"/>
+              <stop offset="100%" stop-color="#f472b6"/>
             </linearGradient>
           </defs>
-          <path bind:this={bracketL} d="M48 22 Q36 22 36 34 L36 46 Q36 54 24 54 Q36 54 36 62 L36 74 Q36 86 48 86" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="150" stroke-dashoffset="150" style="opacity:0" />
-          <path bind:this={bracketR} d="M72 22 Q84 22 84 34 L84 46 Q84 54 96 54 Q84 54 84 62 L84 74 Q84 86 72 86" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="150" stroke-dashoffset="150" style="opacity:0" />
+          <path bind:this={refs.bracketL} d="M48 22 Q36 22 36 34 L36 46 Q36 54 24 54 Q36 54 36 62 L36 74 Q36 86 48 86" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="150" stroke-dashoffset="150" style="opacity:0"/>
+          <path bind:this={refs.bracketR} d="M72 22 Q84 22 84 34 L84 46 Q84 54 96 54 Q84 54 84 62 L84 74 Q84 86 72 86" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="150" stroke-dashoffset="150" style="opacity:0"/>
         </svg>
       </div>
 
-      <h1 bind:this={title} class="text-5xl font-bold tracking-[0.35em] uppercase select-none">
-        <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0">F</span>
-        <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0">O</span>
-        <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0">R</span>
-        <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0">M</span>
-        <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0">A</span>
-        <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0">T</span>
-        <span class="letter inline-block bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-rose-400 bg-clip-text text-transparent" style="opacity:0">O</span>
+      <h1 bind:this={refs.title} class="text-5xl font-bold tracking-[0.35em] uppercase select-none">
+        <span class="letter inline-block" style="opacity:0;background:linear-gradient(to right,#22d3ee,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">F</span>
+        <span class="letter inline-block" style="opacity:0;background:linear-gradient(to right,#22d3ee,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">O</span>
+        <span class="letter inline-block" style="opacity:0;background:linear-gradient(to right,#22d3ee,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">R</span>
+        <span class="letter inline-block" style="opacity:0;background:linear-gradient(to right,#22d3ee,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">M</span>
+        <span class="letter inline-block" style="opacity:0;background:linear-gradient(to right,#22d3ee,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">A</span>
+        <span class="letter inline-block" style="opacity:0;background:linear-gradient(to right,#22d3ee,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">T</span>
+        <span class="letter inline-block" style="opacity:0;background:linear-gradient(to right,#22d3ee,#c084fc,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">O</span>
       </h1>
 
-      <div bind:this={subtitle} class="flex flex-col items-center gap-4 text-center opacity-0 select-none">
+      <div bind:this={refs.subtitle} class="flex flex-col items-center gap-4 text-center opacity-0 select-none">
         <p class="text-sm text-white/70 tracking-[0.5em] uppercase font-light">Universal Data Converter</p>
-        <div class="w-48 h-px bg-gradient-to-r from-transparent via-fuchsia-400/40 to-transparent" />
+        <div class="w-48 h-px" style="background:linear-gradient(to right,transparent,rgba(192,132,252,0.4),transparent)"/>
         <span class="text-xs text-white/40 font-mono tracking-[0.4em]">v0.1.0</span>
-        <div class="w-32 h-px bg-gradient-to-r from-transparent via-cyan-400/20 to-transparent" />
+        <div class="w-32 h-px" style="background:linear-gradient(to right,transparent,rgba(34,211,238,0.2),transparent)"/>
       </div>
 
-      <div bind:this={progressWrapper} class="w-72 h-px bg-white/5 rounded-full overflow-hidden opacity-0 select-none">
-        <div bind:this={progressBar} class="h-full bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-rose-400 rounded-full origin-left" style="transform:scaleX(0)" />
+      <div bind:this={refs.progressWrapper} class="w-72 h-px rounded-full overflow-hidden opacity-0 select-none" style="background:rgba(255,255,255,0.05)">
+        <div bind:this={refs.progressBar} class="h-full rounded-full origin-left" style="transform:scaleX(0);background:linear-gradient(to right,#22d3ee,#c084fc,#f472b6)"/>
       </div>
     </div>
   </div>
