@@ -29,7 +29,7 @@
         animate(glow2, { opacity: [0.15, 0.3] }, { duration: 2.5, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
       }
     }
-    startGlowPulse(); // не ждём, свечения живут своей жизнью
+    startGlowPulse();
 
     // ── Логотип: вращение + мягкое масштабирование ──
     if (logoGlow) {
@@ -38,7 +38,7 @@
       animate(logoGlow, { scale: [1, 1.08] }, { duration: 4, repeat: Infinity, direction: 'alternate', easing: 'ease-in-out' });
     }
 
-    // ── Сканирующая линия (после небольшой задержки) ──
+    // ── Сканирующая линия ──
     async function startScanLine() {
       await new Promise(r => setTimeout(r, 3500));
       if (scanLine) {
@@ -62,8 +62,8 @@
     if (title) {
       const letters = title.querySelectorAll('.letter');
       await animate(letters,
-        { opacity: [0, 1], filter: ['blur(12px)', 'blur(0px)'], transform: ['translateY(40px)', 'translateY(0)'] },
-        { delay: stagger(0.08), duration: 1.4, easing: [0.34, 1.56, 0.64, 1] }
+        { opacity: [0, 1] },
+        { delay: stagger(0.08), duration: 0.8, easing: [0.34, 1.56, 0.64, 1] }
       ).finished;
     }
 
@@ -82,7 +82,7 @@
       ).finished;
     }
 
-    // ── Пауза, пока фон дышит ──
+    // ── Пауза ──
     await new Promise(r => setTimeout(r, 2000));
 
     // ── ЭФФЕКТ: СТИРАНИЕ ТЕКСТА + FADE ФОНА ──
@@ -90,24 +90,16 @@
       const letters = title.querySelectorAll('.letter');
 
       await Promise.all([
-        // Буквы
         ...Array.from(letters).map((letter, i) =>
           animate(letter as HTMLElement, { opacity: [1, 0] }, { duration: 0.6, delay: i * 0.06, easing: 'ease-out' }).finished
         ),
-        // Подзаголовок
         animate(subtitle, { opacity: [1, 0] }, { duration: 0.6, delay: 0.2, easing: 'ease-out' }).finished,
-        // Прогресс-бар
         animate(progressWrapper, { opacity: [1, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished,
-        // Логотип (родитель скобок)
         animate(bracketL?.parentElement || document.createElement('div'), { opacity: [1, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished,
-        // Свечение логотипа
         animate(logoGlow, { opacity: [0.4, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished,
-        // Фоновые свечения
         animate(glow1, { opacity: [0, 0] }, { duration: 0.6, easing: 'ease-out' }).finished,
         animate(glow2, { opacity: [0, 0] }, { duration: 0.6, delay: 0.1, easing: 'ease-out' }).finished,
-        // Сканирующая линия
         scanLine ? animate(scanLine, { opacity: [0, 0] }, { duration: 0.6, easing: 'ease-out' }).finished : Promise.resolve(),
-        // Весь контент
         animate(splashContent, { opacity: [1, 0] }, { duration: 0.6, easing: 'ease-out' }).finished,
       ]);
 
@@ -131,7 +123,7 @@
     <div bind:this={glow1} class="absolute w-[700px] h-[700px] bg-blue-500/[0.03] blur-[140px] opacity-0 pointer-events-none" style="top: 50%; left: 50%; transform: translate(-50%, -50%);" />
     <div bind:this={glow2} class="absolute w-[450px] h-[450px] bg-purple-500/[0.05] blur-[140px] opacity-0 pointer-events-none" style="top: 30%; left: 20%;" />
 
-    <!-- Сканирующая линия (бесконечная) -->
+    <!-- Сканирующая линия -->
     <div bind:this={scanLine} class="absolute left-0 w-full h-px bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" style="top: -5%; opacity: 0;" />
 
     <div bind:this={splashContent} class="relative z-10 flex flex-col items-center gap-12">
@@ -151,14 +143,40 @@
       </div>
 
       <h1 bind:this={title} class="text-5xl font-bold tracking-[0.35em] uppercase">
-        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0;filter:blur(8px)">F</span>
-        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0;filter:blur(8px)">O</span>
-        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0;filter:blur(8px)">R</span>
-        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0;filter:blur(8px)">M</span>
-        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0;filter:blur(8px)">A</span>
-        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0;filter:blur(8px)">T</span>
-        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0;filter:blur(8px)">O</span>
+        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0; text-shadow: 0 0 8px rgba(96,165,250,0.4), 0 0 16px rgba(168,85,247,0.3), 0 0 24px rgba(96,165,250,0.2);">F</span>
+        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0; text-shadow: 0 0 8px rgba(96,165,250,0.4), 0 0 16px rgba(168,85,247,0.3), 0 0 24px rgba(96,165,250,0.2);">O</span>
+        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0; text-shadow: 0 0 8px rgba(96,165,250,0.4), 0 0 16px rgba(168,85,247,0.3), 0 0 24px rgba(96,165,250,0.2);">R</span>
+        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0; text-shadow: 0 0 8px rgba(96,165,250,0.4), 0 0 16px rgba(168,85,247,0.3), 0 0 24px rgba(96,165,250,0.2);">M</span>
+        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0; text-shadow: 0 0 8px rgba(96,165,250,0.4), 0 0 16px rgba(168,85,247,0.3), 0 0 24px rgba(96,165,250,0.2);">A</span>
+        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0; text-shadow: 0 0 8px rgba(96,165,250,0.4), 0 0 16px rgba(168,85,247,0.3), 0 0 24px rgba(96,165,250,0.2);">T</span>
+        <span class="letter inline-block bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent" style="opacity:0; text-shadow: 0 0 8px rgba(96,165,250,0.4), 0 0 16px rgba(168,85,247,0.3), 0 0 24px rgba(96,165,250,0.2);">O</span>
       </h1>
+
+      <!-- Анимация пульсации неона -->
+      <style>
+        .letter {
+          animation: neonPulse 2s ease-in-out infinite alternate;
+        }
+        .letter:nth-child(1) { animation-delay: 0s; }
+        .letter:nth-child(2) { animation-delay: 0.1s; }
+        .letter:nth-child(3) { animation-delay: 0.2s; }
+        .letter:nth-child(4) { animation-delay: 0.3s; }
+        .letter:nth-child(5) { animation-delay: 0.4s; }
+        .letter:nth-child(6) { animation-delay: 0.5s; }
+        .letter:nth-child(7) { animation-delay: 0.6s; }
+
+        @keyframes neonPulse {
+          0% {
+            text-shadow: 0 0 4px rgba(96,165,250,0.2), 0 0 8px rgba(168,85,247,0.15), 0 0 12px rgba(96,165,250,0.1);
+          }
+          50% {
+            text-shadow: 0 0 8px rgba(96,165,250,0.5), 0 0 16px rgba(168,85,247,0.4), 0 0 24px rgba(96,165,250,0.25);
+          }
+          100% {
+            text-shadow: 0 0 4px rgba(96,165,250,0.2), 0 0 8px rgba(168,85,247,0.15), 0 0 12px rgba(96,165,250,0.1);
+          }
+        }
+      </style>
 
       <div bind:this={subtitle} class="flex flex-col items-center gap-2 text-center opacity-0">
         <p class="text-sm text-white/40 tracking-[0.35em] uppercase">Universal Data Converter</p>
