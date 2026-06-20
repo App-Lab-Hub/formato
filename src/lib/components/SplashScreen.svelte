@@ -162,8 +162,8 @@ if (refs.logoGlow) {
 />
 {#if visible}
   <div bind:this={refs.container} class="splash-container">
-    <div bind:this={refs.overlay} class="splash-overlay" />
-    <div bind:this={refs.scanLine} class="splash-scanline" />
+    <div bind:this={refs.overlay} class="splash-overlay" ></div>
+    <div bind:this={refs.scanLine} class="splash-scanline" ></div>
 
     <div bind:this={refs.splashContent} class="splash-content">
       <div bind:this={refs.logoWrapper} class="logo-wrapper">
@@ -179,7 +179,7 @@ if (refs.logoGlow) {
           <path bind:this={refs.bracketR} d="M72 22 Q84 22 84 34 L84 46 Q84 54 96 54 Q84 54 84 62 L84 74 Q84 86 72 86" fill="none" stroke="url(#g)" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="150" stroke-dashoffset="150" style="opacity:0"/>
         </svg>
         <!-- Свечение теперь ПОСЛЕ SVG в DOM, но визуально за ним через z-index -->
-        <div bind:this={refs.logoGlow} class="logo-glow" />
+        <div bind:this={refs.logoGlow} class="logo-glow" ></div>
       </div>
 
       <h1 bind:this={refs.title} class="splash-title">
@@ -194,13 +194,13 @@ if (refs.logoGlow) {
 
       <div bind:this={refs.subtitle} class="splash-subtitle">
         <p class="subtitle-text">Universal Data Converter</p>
-        <div class="divider divider-purple" />
+        <div class="divider divider-purple" ></div>
         <span class="version-text">v0.1.0</span>
-        <div class="divider divider-cyan" />
+        <div class="divider divider-cyan" ></div>
       </div>
 
       <div bind:this={refs.progressWrapper} class="progress-wrapper">
-        <div bind:this={refs.progressBar} class="progress-bar" />
+        <div bind:this={refs.progressBar} class="progress-bar" ></div>
       </div>
     </div>
   </div>
