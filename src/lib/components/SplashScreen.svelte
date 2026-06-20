@@ -96,14 +96,20 @@ if (refs.logoGlow) {
   
   animationIds.push(fadeIn);
 }
-    setTimeout(() => {
-      if (refs.scanLine && !isFadingOut) {
-        animationIds.push(
-          animate(refs.scanLine as HTMLElement, { top: ['-5%', '105%'] }, { duration: 5, repeat: Infinity, easing: 'linear' }),
-          animate(refs.scanLine as HTMLElement, { opacity: [0, 0.3, 0] }, { duration: 5, repeat: Infinity, easing: 'linear' })
-        );
-      }
-    }, 3500);
+setTimeout(() => {
+  if (refs.scanLine && !isFadingOut) {
+    animationIds.push(
+      animate(refs.scanLine as HTMLElement, 
+        { top: ['-5%', '105%'] }, 
+        { duration: 6, repeat: Infinity, easing: 'linear' }
+      ),
+      animate(refs.scanLine as HTMLElement, 
+        { opacity: [0, 0.9, 0] }, 
+        { duration: 6, repeat: Infinity, easing: 'linear' }
+      )
+    );
+  }
+}, 3500);
 
     async function runSequence() {
       if (!refs.bracketL || !refs.bracketR) return;
