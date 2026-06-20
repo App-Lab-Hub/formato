@@ -1,19 +1,204 @@
-.letter {
-  animation: none;
+.splash-container {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  background: #0a0a0f;
 }
 
-@keyframes neonPulse {
-  0%,
-  100% {
-    text-shadow:
-      0 0 4px rgba(34, 211, 238, 0.3),
-      0 0 8px rgba(192, 132, 252, 0.2),
-      0 0 12px rgba(244, 114, 182, 0.15);
+.splash-overlay {
+  position: absolute;
+  inset: 0;
+  opacity: 0.9;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 30%,
+    rgba(0, 0, 0, 0.8) 100%
+  );
+}
+
+.splash-scanline {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  pointer-events: none;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(34, 211, 238, 0.2),
+    transparent
+  );
+  top: -5%;
+  opacity: 0;
+}
+
+.splash-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(1.5rem, 4vh, 3rem);
+  pointer-events: none;
+  user-select: none;
+  padding: 1rem;
+  max-width: 90vw;
+  max-height: 90vh;
+}
+
+.logo-wrapper {
+  position: relative;
+}
+
+.logo-svg {
+  position: relative;
+  width: clamp(5rem, 12vw, 8rem);
+  height: clamp(5rem, 12vw, 8rem);
+}
+
+.splash-title {
+  font-size: clamp(1.8rem, 6vw, 3rem);
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  user-select: none;
+  margin: 0;
+}
+
+.letter {
+  display: inline-block;
+  opacity: 0;
+  background: linear-gradient(to right, #22d3ee, #c084fc, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.splash-subtitle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(0.5rem, 1.5vh, 1rem);
+  text-align: center;
+  opacity: 0;
+  user-select: none;
+}
+
+.subtitle-text {
+  font-size: clamp(0.65rem, 1.4vw, 0.875rem);
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  font-weight: 300;
+  margin: 0;
+}
+
+.divider {
+  height: 1px;
+}
+
+.divider-purple {
+  width: clamp(6rem, 18vw, 12rem);
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(192, 132, 252, 0.4),
+    transparent
+  );
+}
+
+.divider-cyan {
+  width: clamp(4rem, 12vw, 8rem);
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(34, 211, 238, 0.2),
+    transparent
+  );
+}
+
+.version-text {
+  font-size: clamp(0.55rem, 1.2vw, 0.75rem);
+  color: rgba(255, 255, 255, 0.4);
+  font-family: monospace;
+  letter-spacing: 0.4em;
+}
+
+.progress-wrapper {
+  width: clamp(10rem, 28vw, 18rem);
+  height: 1px;
+  border-radius: 9999px;
+  overflow: hidden;
+  opacity: 0;
+  user-select: none;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.progress-bar {
+  height: 100%;
+  border-radius: 9999px;
+  transform-origin: left;
+  transform: scaleX(0);
+  background: linear-gradient(to right, #22d3ee, #c084fc, #f472b6);
+}
+
+@media (max-width: 600px) {
+  .splash-content {
+    gap: clamp(1rem, 3vh, 1.5rem);
   }
-  50% {
-    text-shadow:
-      0 0 10px rgba(34, 211, 238, 0.7),
-      0 0 20px rgba(192, 132, 252, 0.5),
-      0 0 30px rgba(244, 114, 182, 0.3);
+
+  .splash-title {
+    letter-spacing: 0.25em;
   }
+
+  .subtitle-text {
+    letter-spacing: 0.3em;
+  }
+}
+
+@media (max-height: 500px) {
+  .splash-content {
+    gap: 0.8rem;
+  }
+
+  .logo-svg {
+    width: clamp(3rem, 10vw, 5rem);
+    height: clamp(3rem, 10vw, 5rem);
+  }
+
+  .splash-title {
+    font-size: clamp(1.2rem, 4vw, 2rem);
+  }
+
+  .splash-subtitle {
+    gap: 0.4rem;
+  }
+}
+
+.logo-glow {
+  position: absolute;
+  /* Центрируем через top/left + margin — не трогаем transform */
+  top: 50%;
+  left: 50%;
+  width: clamp(130px, 20vw, 190px);
+  height: clamp(130px, 20vw, 190px);
+  margin-top: calc(clamp(130px, 20vw, 190px) / -2);
+  margin-left: calc(clamp(130px, 20vw, 190px) / -2);
+  border-radius: 50%;
+  opacity: 1;
+  background: radial-gradient(
+    circle,
+    rgba(34, 211, 238, 0.35) 0%,
+    rgba(192, 132, 252, 0.2) 35%,
+    rgba(244, 114, 182, 0.08) 65%,
+    transparent 100%
+  );
+  filter: blur(25px);
+  z-index: -1;
+  pointer-events: none;
 }
