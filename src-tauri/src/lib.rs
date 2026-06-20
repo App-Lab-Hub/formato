@@ -2,7 +2,6 @@ mod convert;
 mod highlight;
 mod html_convert;
 
-
 use tauri::Manager;
 
 #[tauri::command]
@@ -11,6 +10,13 @@ fn app_ready(app: tauri::AppHandle) {
         let _ = window.set_background_color(Some(tauri::utils::config::Color(6, 6, 8, 255)));
         let _ = window.set_theme(Some(tauri::Theme::Dark));
         let _ = window.show();
+    }
+}
+
+#[tauri::command]
+fn set_window_background(app: tauri::AppHandle, r: u8, g: u8, b: u8, a: u8) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.set_background_color(Some(tauri::utils::config::Color(r, g, b, a)));
     }
 }
 
@@ -27,6 +33,7 @@ pub fn run() {
             highlight::highlight_code,
             highlight::highlight_code_stream,
             app_ready,
+            set_window_background,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
