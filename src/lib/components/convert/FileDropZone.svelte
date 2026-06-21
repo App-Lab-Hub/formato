@@ -1,6 +1,7 @@
 <script lang="ts">
   import { open } from '@tauri-apps/plugin-dialog';
-  import { animate } from '@motionone/dom';
+  import { getCurrentWebview } from '@tauri-apps/api/webview';
+  import { onMount } from 'svelte';
   import { tick } from 'svelte';
   import { Upload, Play, X, FileText, Zap, ListX, LoaderCircle, Eye, Download, ArrowRight } from 'lucide-svelte';
   import Tooltip from '$lib/components/ui/tooltip/tooltip.svelte';
@@ -38,6 +39,44 @@
   } = $props();
 
   let _counter = $state(counter);
+  let isDragOver = $state(false);
+  let dropzoneEl = $state<HTMLElement | null>(null);
+
+  async function processAndAddPaths(paths: string[]) {
+    const validPaths = paths.filter(path => {
+      const ext = path.split('.').pop()?.toLowerCase();
+      const valid = ext === sourceFormatId.toLowerCase();
+      console.log(`[FileDrop] path: "${path}", ext: "${ext}", valid: ${valid}`);
+      return valid;
+    });
+
+    if (validPaths.length === 0) {
+      console.log('[FileDrop] No valid files for format:', sourceFormatId);
+      return;
+    }
+
+    const ids = validPaths.map(() => `${_counter++}-${Date.now()}`);
+    const newFiles = validPaths.map((path, idx) => ({
+      path,
+      name: path.split('/').pop() || path.split('\\').pop() || path,
+      id: ids[idx],
+    }));
+
+    console.log('[FileDrop] Adding files:', newFiles);
+    onfileschange([...files, ...newFiles]);
+    await tick();
+
+    for (const f of newFiles) {
+      const el = document.querySelector(`[data-file-id="${f.id}"]`) as HTMLElement;
+      el?.animate(
+        [
+          { transform: 'translateX(30px)', opacity: 0 },
+          { transform: 'translateX(0)', opacity: 1 },
+        ],
+        { duration: 300, easing: 'ease-out', fill: 'forwards' },
+      );
+    }
+  }
 
   async function pickFile() {
     const result = await open({
@@ -47,47 +86,64 @@
 
     if (result) {
       const paths = Array.isArray(result) ? result : [result];
-      const ids = paths.map(() => `${_counter++}-${Date.now()}`);
-      const newFiles = paths.map((path, idx) => ({
-        path: path as string,
-        name: (path as string).split('/').pop() || (path as string).split('\\').pop() || path as string,
-        id: ids[idx],
-      }));
-
-      onfileschange([...files, ...newFiles]);
-      await tick();
-
-      for (const id of ids) {
-        const el = document.querySelector(`[data-file-id="${id}"]`) as HTMLElement;
-        if (el) {
-          el.animate(
-            [
-              { transform: 'translateX(30px)', opacity: 0 },
-              { transform: 'translateX(0)', opacity: 1 },
-            ],
-            { duration: 300, easing: 'ease-out', fill: 'forwards' }
-          );
-        }
-      }
+      await processAndAddPaths(paths as string[]);
     }
   }
+
+  function isOverDropzone(x: number, y: number): boolean {
+    if (!dropzoneEl) return false;
+    const el = document.elementFromPoint(x, y);
+    return el ? dropzoneEl.contains(el) : false;
+  }
+
+  onMount(() => {
+    const webview = getCurrentWebview();
+
+    const unlisten = webview.onDragDropEvent((event) => {
+      if (event.payload.type === 'over') {
+        const pos = event.payload.position;
+        const x = pos.x / window.devicePixelRatio;
+        const y = pos.y / window.devicePixelRatio;
+        isDragOver = isOverDropzone(x, y);
+        // Меняем курсор глобально
+        document.body.style.cursor = isDragOver ? 'copy' : 'no-drop';
+      } else if (event.payload.type === 'drop') {
+        isDragOver = false;
+        document.body.style.cursor = '';
+        const pos = event.payload.position;
+        const x = pos.x / window.devicePixelRatio;
+        const y = pos.y / window.devicePixelRatio;
+        if (isOverDropzone(x, y) && event.payload.paths?.length) {
+          console.log('[Tauri DnD] Dropped paths:', event.payload.paths);
+          processAndAddPaths(event.payload.paths);
+        }
+      } else if (event.payload.type === 'leave') {
+        isDragOver = false;
+        document.body.style.cursor = '';
+      }
+    });
+
+    return () => {
+      document.body.style.cursor = '';
+      unlisten.then(fn => fn());
+    };
+  });
 
   async function removeFile(index: number) {
     const file = files[index];
     if (convertingFiles.has(file.id)) return;
-    
+
     const el = document.querySelector(`[data-file-id="${file.id}"]`) as HTMLElement;
     if (el) {
-      const animation = el.animate(
+      await el.animate(
         [
           { transform: 'translateX(0)', opacity: 1 },
           { transform: 'translateX(300px)', opacity: 0 },
         ],
-        { duration: 300, easing: 'ease-in', fill: 'forwards' }
-      );
-      await animation.finished;
+        { duration: 300, easing: 'ease-in', fill: 'forwards' },
+      ).finished;
     }
-    
+
     onfileschange(files.filter((_, i) => i !== index));
   }
 
@@ -99,33 +155,48 @@
           { transform: 'translateX(0)', opacity: 1 },
           { transform: 'translateX(300px)', opacity: 0 },
         ],
-        { duration: 300, easing: 'ease-in', fill: 'forwards' }
-      ).finished
+        { duration: 300, easing: 'ease-in', fill: 'forwards' },
+      ).finished,
     );
     await Promise.all(animations);
     onclearall();
   }
 </script>
 
-<button onclick={pickFile} class="group w-full max-w-4xl min-h-[180px] flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed border-border bg-card/30 hover:border-primary/50 hover:bg-primary/5 duration-300 cursor-pointer transition-colors">
-  <div class="rounded-full bg-secondary p-4 group-hover:bg-primary/10 group-hover:text-primary transition-colors duration-300">
-    <Upload class="h-8 w-8 text-muted-foreground group-hover:text-primary" />
+<button
+  bind:this={dropzoneEl}
+  onclick={pickFile}
+  class="group w-full max-w-4xl min-h-[180px] flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed bg-card/30 duration-300 cursor-pointer transition-all {isDragOver
+    ? 'border-primary bg-primary/10'
+    : 'border-border hover:border-primary/50 hover:bg-primary/5'}"
+>
+  <div class="rounded-full bg-secondary p-4 transition-colors duration-300 {isDragOver ? 'bg-primary/20 text-primary' : 'group-hover:bg-primary/10 group-hover:text-primary'}">
+    <Upload class="h-8 w-8 {isDragOver ? 'text-primary scale-110' : 'text-muted-foreground group-hover:text-primary'}" />
   </div>
   <div class="text-center space-y-1">
-    <p class="text-base font-medium text-foreground">Drop your <span class="text-primary">{sourceFormatName}</span> files here</p>
-    <p class="text-sm text-muted-foreground">or click to browse filesystem</p>
+    {#if isDragOver}
+      <p class="text-base font-medium text-primary">Drop your files here</p>
+    {:else}
+      <p class="text-base font-medium text-foreground">
+        Drop your <span class="text-primary">{sourceFormatName}</span> files here
+      </p>
+      <p class="text-sm text-muted-foreground">or click to browse filesystem</p>
+    {/if}
   </div>
 </button>
 
 {#if files.length > 0}
   <div class="w-full max-w-4xl flex flex-col gap-4">
-    
     <div class="flex items-center justify-between px-1">
       <div class="flex items-center gap-2">
-        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-violet-500/10 text-xs font-bold text-violet-600 dark:text-violet-400">{files.length}</span>
-        <span class="text-base font-medium text-muted-foreground">{files.length === 1 ? 'File queued' : 'Files queued'}</span>
+        <span class="flex h-7 w-7 items-center justify-center rounded-full bg-violet-500/10 text-xs font-bold text-violet-600 dark:text-violet-400">
+          {files.length}
+        </span>
+        <span class="text-base font-medium text-muted-foreground">
+          {files.length === 1 ? 'File queued' : 'Files queued'}
+        </span>
       </div>
-      
+
       <div class="flex items-center gap-2">
         {#if selectedTarget}
           <Tooltip>
@@ -137,7 +208,7 @@
             <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>Convert all</p></TooltipContent>
           </Tooltip>
         {/if}
-        
+
         <Tooltip>
           <TooltipTrigger>
             <button onclick={clearAllWithAnimation} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-destructive/10 hover:text-destructive h-9 w-9 text-muted-foreground group/btn">
@@ -153,7 +224,7 @@
       {#each files as file, i (file.id)}
         {@const isConverting = convertingFiles.has(file.id)}
         {@const savedPath = convertedFiles.get(file.id)}
-        <div 
+        <div
           data-file-item
           data-file-id={file.id}
           class="group relative flex items-center gap-4 rounded-xl border bg-card p-3.5 transition-all duration-200 hover:shadow-md hover:border-violet-500/30 hover:bg-violet-500/[0.02]"
@@ -162,7 +233,7 @@
           <div class="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-secondary/50 text-muted-foreground group-hover:text-violet-500 transition-colors">
             <FileText class="h-5 w-5" />
           </div>
-          
+
           <div class="flex flex-col flex-1 min-w-0 gap-0.5">
             <span class="text-base font-medium text-foreground truncate pr-2" title={file.name}>{file.name}</span>
             {#if selectedTarget}
@@ -178,8 +249,6 @@
             <Tooltip>
               <TooltipTrigger>
                 <button onclick={() => onpreview(file.id)} disabled={!savedPath} class="cursor-pointer inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                <!-- <button onclick={() => onpreview(file.id)}  class="cursor-pointer inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"> -->
-                  
                   <Eye class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
@@ -211,7 +280,7 @@
                 <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{isConverting ? 'Converting...' : 'Convert'}</p></TooltipContent>
               </Tooltip>
             {/if}
-            
+
             <Tooltip>
               <TooltipTrigger>
                 <button onclick={() => removeFile(i)} disabled={isConverting} class="cursor-pointer inline-flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
@@ -224,6 +293,5 @@
         </div>
       {/each}
     </div>
-
   </div>
 {/if}
