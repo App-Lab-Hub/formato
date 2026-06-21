@@ -2,7 +2,6 @@
   import "../app.css";
   import SplashScreen from '$lib/components/SplashScreen.svelte';
   import { onMount } from 'svelte';
-  import { page } from '$app/state';
   import { invoke } from "@tauri-apps/api/core";
   import { browser } from '$app/environment';
 

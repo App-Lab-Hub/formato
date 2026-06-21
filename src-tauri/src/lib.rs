@@ -1,7 +1,5 @@
 mod convert;
-mod highlight;
 mod html_convert;
-
 use tauri::Manager;
 
 #[tauri::command]
@@ -30,8 +28,6 @@ pub fn run() {
             convert::convert_file,
             convert::read_file_content,
             convert::open_file,
-            highlight::highlight_code,
-            highlight::highlight_code_stream,
             app_ready,
             set_window_background,
         ])

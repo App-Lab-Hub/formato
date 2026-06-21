@@ -114,7 +114,7 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
         maximizable: true,
         minimizable: true,
         closable: true,
-        transparent: true,
+        transparent: false,
         backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
         theme: 'dark',
         minWidth:400,
