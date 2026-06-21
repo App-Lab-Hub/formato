@@ -11,9 +11,8 @@
   import SourceFormatHeader from '$lib/components/convert/SourceFormatHeader.svelte';
   import TargetFormatGrid from '$lib/components/convert/TargetFormatGrid.svelte';
   import FileDropZone from '$lib/components/convert/FileDropZone.svelte';
-import { save } from '@tauri-apps/plugin-dialog';
-import { writeTextFile } from '@tauri-apps/plugin-fs';
-
+  import { save } from '@tauri-apps/plugin-dialog';
+  import { writeTextFile } from '@tauri-apps/plugin-fs';
 
   const sourceFormatId: string = page.params.format!;
   const sourceFormat: Format | undefined = formats.find(f => f.id === sourceFormatId);
@@ -47,37 +46,18 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
 
   async function downloadFile(fileId: string) {
     const savedPath = convertedFiles.get(fileId);
-    
-    if (!savedPath) {
-      console.error('[Download] No path found for fileId:', fileId);
-      return;
-    }
-
-    // Читаем содержимое
+    if (!savedPath) return;
     const content = await invoke<string>('read_file_content', { path: savedPath });
-
-    // Берём имя файла из сохранённого пути (сконвертированного)
     const convertedFileName = savedPath.split('/').pop() || 'file.txt';
-
     try {
       const filePath = await save({
         defaultPath: convertedFileName,
         title: 'Сохранить файл',
-        filters: [{
-          name: 'Все файлы',
-          extensions: ['*']
-        }]
+        filters: [{ name: 'Все файлы', extensions: ['*'] }]
       });
-
-      if (filePath) {
-        await writeTextFile(filePath, content);
-        console.log('[Download] File saved to:', filePath);
-      }
-    } catch (e) {
-      console.error('[Download] Failed:', e);
-    }
+      if (filePath) await writeTextFile(filePath, content);
+    } catch (e) { console.error('[Download] Failed:', e); }
   }
-
 
   function getMonacoLang(format: string): string {
     const map: Record<string, string> = {
@@ -92,48 +72,26 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
   async function previewFileFn(fileId: string) {
     const savedPath = convertedFiles.get(fileId) ?? files.find(f => f.id === fileId)?.path;
     if (!savedPath) return;
-    
     try {
-      console.log('[Preview] Reading file...');
       const raw = await invoke<string>('read_file_content', { path: savedPath });
       const lang = getMonacoLang(selectedTarget?.id ?? sourceFormatId);
       const name = files.find(f => f.id === fileId)?.name ?? 'file';
-
       const windowId = `preview-${Date.now()}`;
-      console.log('[Preview] Window ID:', windowId);
-
-      // 1. Создаем объект окна с чистым коротким URL
-      console.log('[Preview] Instantiating window...');
       const webview = new WebviewWindow(windowId, {
         url: `/preview?windowId=${windowId}&title=${encodeURIComponent(name)}`,
         title: name,
-        width: 900,
-        height: 700,
-        resizable: true,
-        center: true,
-        maximizable: true,
-        minimizable: true,
-        closable: true,
+        width: 900, height: 700,
+        resizable: true, center: true,
+        maximizable: true, minimizable: true, closable: true,
         transparent: false,
         backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
         theme: 'dark',
-        minWidth:400,
-        minHeight:300
+        minWidth: 400, minHeight: 300
       });
-
-      // 2. Используем локальный метод .once экземпляра окна.
-      // Он сработает один раз, когда дочернее окно подаст сигнал 'preview-ready'
-      console.log('[Preview] Registering once listener for preview-ready...');
       await webview.once('preview-ready', async () => {
-        console.log('[Preview] Sub-window is ready! Sending 14k+ lines directly...');
-        // Метод .emit на инстансе бьет целенаправленно внутрь этого вебвью
         await webview.emit('preview-data', { content: raw, lang, title: name });
-        console.log('[Preview] Data sent via window channel');
       });
-
-    } catch (e) {
-      console.error('Preview failed:', e);
-    }
+    } catch (e) { console.error('Preview failed:', e); }
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -160,6 +118,7 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
     <FileDropZone
       sourceFormatId={sourceFormatId}
       sourceFormatName={sourceFormat?.name ?? ''}
+      sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
       {selectedTarget}
       {files}
       {convertingFiles}

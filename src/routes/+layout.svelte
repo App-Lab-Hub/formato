@@ -25,7 +25,7 @@
   
   async function setAppBackground() {
     try {
-      // oklch(0.18 0.06 295) ≈ rgb(37, 33, 52)
+      // oklch(0.18 0.06 295) ≈ rgb(20, 10, 41)
       await invoke('set_window_background', { r: 20, g: 10, b: 41, a: 255 });
     } catch (e) {
       console.warn('Failed to set background:', e);

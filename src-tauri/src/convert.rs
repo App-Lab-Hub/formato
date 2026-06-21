@@ -10,6 +10,7 @@ use handlebars::{
 };
 use serde_json::Value as Json;
 use crate::html_convert::convert_to_html;
+use scraper::{Html, ElementRef}; 
 
 #[derive(Debug, Serialize)]
 pub struct ConvertResult {
@@ -68,9 +69,71 @@ fn parse(input: &str, format: &str) -> Result<AnyValue, String> {
         "ini" => serde_ini::from_str(input).map_err(|e| format!("INI: {e}")),
         "markdown" | "md" => parse_markdown(input),
         "csv" => parse_csv(input),
+        "html" => parse_html(input),  // ← добавить
         _ => Err(format!("Unsupported: {format}")),
     }
 }
+
+
+fn parse_html(input: &str) -> Result<AnyValue, String> {
+
+    let document = Html::parse_document(input);
+
+    fn node_to_json(element: &ElementRef) -> AnyValue {
+        let mut map = serde_json::Map::new();
+        let tag = element.value().name().to_string();
+
+        // Атрибуты
+        let mut attrs = serde_json::Map::new();
+        for attr in element.value().attrs() {
+            attrs.insert(attr.0.to_string(), Json::String(attr.1.to_string()));
+        }
+        if !attrs.is_empty() {
+            map.insert("@attrs".to_string(), Json::Object(attrs));
+        }
+
+        // Дети
+        let mut children: Vec<Json> = Vec::new();
+        for child in element.children() {
+            match child.value() {
+                scraper::Node::Text(text) => {
+                    let trimmed = text.text.trim();
+                    if !trimmed.is_empty() {
+                        children.push(Json::String(trimmed.to_string()));
+                    }
+                }
+                scraper::Node::Element(_) => {
+                    if let Some(el) = ElementRef::wrap(child) {
+                        children.push(node_to_json(&el));
+                    }
+                }
+                _ => {}
+            }
+        }
+
+        if children.len() == 1 {
+            map.insert(tag, children.into_iter().next().unwrap());
+        } else if children.len() > 1 {
+            map.insert(tag, Json::Array(children));
+        } else {
+            map.insert(tag, Json::String(String::new()));
+        }
+
+        Json::Object(map)
+    }
+
+    // Ищем body
+    let body_sel = scraper::Selector::parse("body").unwrap();
+    
+    if let Some(body) = document.select(&body_sel).next() {
+        return Ok(node_to_json(&body));
+    }
+
+    // Если нет body — берём root (html)
+    let root = document.root_element();
+    Ok(node_to_json(&root))
+}
+
 
 fn parse_csv(input: &str) -> Result<AnyValue, String> {
     let mut reader = csv::Reader::from_reader(input.as_bytes());

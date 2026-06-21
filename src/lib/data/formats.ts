@@ -16,6 +16,7 @@ export const formats = [
   {
     id: "json",
     name: "JSON",
+    extensions: ["json", "hjson"],
     description:
       "JavaScript Object Notation — легковесный формат обмена данными, основанный на синтаксисе JavaScript",
     icon: FileBraces,
@@ -27,6 +28,7 @@ export const formats = [
   {
     id: "yaml",
     name: "YAML",
+    extensions: ["yaml", "yml"],
     description:
       "YAML Ain't Markup Language — человекочитаемый формат сериализации данных, популярный в конфигурациях и DevOps",
     icon: FileText,
@@ -38,6 +40,7 @@ export const formats = [
   {
     id: "csv",
     name: "CSV",
+    extensions: ["csv", "tsv"],
     description:
       "Comma-Separated Values — табличный формат для хранения и обмена данными между базами, Excel и аналитическими системами",
     icon: FileSpreadsheet,
@@ -49,6 +52,7 @@ export const formats = [
   {
     id: "xml",
     name: "XML",
+    extensions: ["xml"],
     description:
       "Extensible Markup Language — универсальный язык разметки с древовидной структурой, широко используется в API, SOAP и конфигурациях",
     icon: FileCode,
@@ -60,6 +64,7 @@ export const formats = [
   {
     id: "toml",
     name: "TOML",
+    extensions: ["toml"],
     description:
       "Tom's Obvious Minimal Language — минималистичный формат конфигураций с чёткой структурой, любимец Rust-сообщества",
     icon: AlignLeft,
@@ -71,6 +76,7 @@ export const formats = [
   {
     id: "ini",
     name: "INI",
+    extensions: ["ini", "cfg", "conf"],
     description:
       "Простейший формат конфигурационных файлов с секциями и парами ключ-значение, используется повсеместно",
     icon: ListOrdered,
@@ -82,6 +88,7 @@ export const formats = [
   {
     id: "markdown",
     name: "Markdown",
+    extensions: ["md", "markdown", "mdown", "mkd"],
     description:
       "Легковесный язык разметки для форматирования текста, конвертируется в HTML, PDF и другие форматы",
     icon: Braces,
@@ -93,6 +100,7 @@ export const formats = [
   {
     id: "html",
     name: "HTML",
+    extensions: ["html", "htm"],
     description:
       "HyperText Markup Language — стандартный язык веб-разметки, основа всех веб-страниц и шаблонов",
     icon: Globe,

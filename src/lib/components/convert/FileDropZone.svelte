@@ -11,6 +11,7 @@
   let {
     sourceFormatId,
     sourceFormatName,
+    sourceFormatExtensions = [sourceFormatId],
     selectedTarget,
     files = [],
     convertingFiles = new Set(),
@@ -25,6 +26,7 @@
   }: {
     sourceFormatId: string;
     sourceFormatName: string;
+    sourceFormatExtensions?: string[];
     selectedTarget: { id: string } | null;
     files: { path: string; name: string; id: string }[];
     convertingFiles: Set<string>;
@@ -45,15 +47,10 @@
   async function processAndAddPaths(paths: string[]) {
     const validPaths = paths.filter(path => {
       const ext = path.split('.').pop()?.toLowerCase();
-      const valid = ext === sourceFormatId.toLowerCase();
-      console.log(`[FileDrop] path: "${path}", ext: "${ext}", valid: ${valid}`);
-      return valid;
+      return ext ? sourceFormatExtensions.includes(ext) : false;
     });
 
-    if (validPaths.length === 0) {
-      console.log('[FileDrop] No valid files for format:', sourceFormatId);
-      return;
-    }
+    if (validPaths.length === 0) return;
 
     const ids = validPaths.map(() => `${_counter++}-${Date.now()}`);
     const newFiles = validPaths.map((path, idx) => ({
@@ -62,7 +59,6 @@
       id: ids[idx],
     }));
 
-    console.log('[FileDrop] Adding files:', newFiles);
     onfileschange([...files, ...newFiles]);
     await tick();
 
@@ -81,7 +77,7 @@
   async function pickFile() {
     const result = await open({
       multiple: true,
-      filters: [{ name: `${sourceFormatName} files`, extensions: [sourceFormatId] }],
+      filters: [{ name: `${sourceFormatName} files`, extensions: sourceFormatExtensions }],
     });
 
     if (result) {
@@ -92,8 +88,8 @@
 
   function isOverDropzone(x: number, y: number): boolean {
     if (!dropzoneEl) return false;
-    const el = document.elementFromPoint(x, y);
-    return el ? dropzoneEl.contains(el) : false;
+    const rect = dropzoneEl.getBoundingClientRect();
+    return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
   }
 
   onMount(() => {
@@ -104,9 +100,9 @@
         const pos = event.payload.position;
         const x = pos.x / window.devicePixelRatio;
         const y = pos.y / window.devicePixelRatio;
-        isDragOver = isOverDropzone(x, y);
-        // Меняем курсор глобально
-        document.body.style.cursor = isDragOver ? 'copy' : 'no-drop';
+        const over = isOverDropzone(x, y);
+        isDragOver = over;
+        document.body.style.cursor = over ? 'copy' : 'default';
       } else if (event.payload.type === 'drop') {
         isDragOver = false;
         document.body.style.cursor = '';
@@ -114,7 +110,6 @@
         const x = pos.x / window.devicePixelRatio;
         const y = pos.y / window.devicePixelRatio;
         if (isOverDropzone(x, y) && event.payload.paths?.length) {
-          console.log('[Tauri DnD] Dropped paths:', event.payload.paths);
           processAndAddPaths(event.payload.paths);
         }
       } else if (event.payload.type === 'leave') {
