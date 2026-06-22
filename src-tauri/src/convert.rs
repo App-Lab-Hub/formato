@@ -8,7 +8,7 @@ use std::io::BufReader;
 use handlebars::{
     Handlebars, Helper, HelperDef, Output, RenderContext, RenderError, RenderErrorReason,
 };
-use serde_json::Value as Json;
+use serde_json::{Value as Json, json};
 use crate::html_convert::convert_to_html;
 use scraper::{Html, ElementRef}; 
 
@@ -151,50 +151,219 @@ fn parse_csv(input: &str) -> Result<AnyValue, String> {
 }
 
 fn parse_markdown(input: &str) -> Result<AnyValue, String> {
-    let parser = pulldown_cmark::Parser::new(input);
-    let mut sections: Vec<AnyValue> = Vec::new();
-    let mut current_tag: Option<String> = None;
+    let parser = pulldown_cmark::Parser::new_ext(input, pulldown_cmark::Options::all());
+    let events: Vec<pulldown_cmark::Event> = parser.collect();
+
+    let mut stack: Vec<(String, Vec<AnyValue>, serde_json::Map<String, Json>)> = Vec::new();
+    let mut root_children: Vec<AnyValue> = Vec::new();
     let mut current_text = String::new();
-    for event in parser {
+
+    let mut in_table = false;
+    let mut table_headers: Vec<String> = Vec::new();
+    let mut table_rows: Vec<AnyValue> = Vec::new();
+    let mut table_cells: Vec<String> = Vec::new();
+    let mut in_table_head = false;
+
+    fn flush_text(text: &mut String, target: &mut Vec<AnyValue>) {
+        let t = text.trim().to_string();
+        if !t.is_empty() {
+            target.push(json!({"type": "text", "value": t}));
+        }
+        text.clear();
+    }
+
+    fn make_node(node_type: &str, children: Vec<AnyValue>, extra: serde_json::Map<String, Json>) -> AnyValue {
+        let mut map = extra;
+        map.insert("type".to_string(), Json::String(node_type.to_string()));
+        if !children.is_empty() {
+            map.insert("children".to_string(), Json::Array(children));
+        }
+        Json::Object(map)
+    }
+
+    fn make_text(value: &str) -> AnyValue {
+        json!({"type": "text", "value": value})
+    }
+
+    for event in &events {
         match event {
             pulldown_cmark::Event::Start(tag) => {
-                if !current_text.trim().is_empty() {
-                    let mut map = serde_json::Map::new();
-                    let key = current_tag.as_deref().map(md_tag_to_name).unwrap_or("p".into());
-                    map.insert(key, serde_json::Value::String(current_text.trim().to_string()));
-                    sections.push(serde_json::Value::Object(map));
-                    current_text.clear();
+                flush_text(&mut current_text, if let Some((_, children, _)) = stack.last_mut() { children } else { &mut root_children });
+
+                match tag {
+                    pulldown_cmark::Tag::Heading { level, .. } => {
+                        let mut attrs = serde_json::Map::new();
+                        attrs.insert("depth".to_string(), Json::Number((*level as u64).into()));
+                        stack.push(("heading".to_string(), Vec::new(), attrs));
+                    }
+                    pulldown_cmark::Tag::Paragraph => {
+                        stack.push(("paragraph".to_string(), Vec::new(), serde_json::Map::new()));
+                    }
+                    pulldown_cmark::Tag::BlockQuote(_) => {
+                        stack.push(("blockquote".to_string(), Vec::new(), serde_json::Map::new()));
+                    }
+                    pulldown_cmark::Tag::CodeBlock(kind) => {
+                        let mut attrs = serde_json::Map::new();
+                        if let pulldown_cmark::CodeBlockKind::Fenced(lang) = kind {
+                            if !lang.is_empty() {
+                                attrs.insert("lang".to_string(), Json::String(lang.to_string()));
+                            }
+                        }
+                        stack.push(("code".to_string(), Vec::new(), attrs));
+                    }
+                    pulldown_cmark::Tag::List(ordered) => {
+                        let mut attrs = serde_json::Map::new();
+                        attrs.insert("ordered".to_string(), Json::Bool(ordered.is_some()));
+                        if let Some(start) = ordered {
+                            attrs.insert("start".to_string(), Json::Number((*start).into()));
+                        }
+                        stack.push(("list".to_string(), Vec::new(), attrs));
+                    }
+                    pulldown_cmark::Tag::Item => {
+                        stack.push(("listItem".to_string(), Vec::new(), serde_json::Map::new()));
+                    }
+                    pulldown_cmark::Tag::Table(_) => {
+                        in_table = true;
+                        table_rows.clear();
+                        // headers не чистим — они перезапишутся в TableHead
+                    }
+                    pulldown_cmark::Tag::TableHead => {
+                        in_table_head = true;
+                        table_cells.clear();
+                    }
+                    pulldown_cmark::Tag::TableRow => {
+                        table_cells.clear();
+                    }
+                    pulldown_cmark::Tag::TableCell => {}
+                    pulldown_cmark::Tag::Emphasis => {
+                        stack.push(("emphasis".to_string(), Vec::new(), serde_json::Map::new()));
+                    }
+                    pulldown_cmark::Tag::Strong => {
+                        stack.push(("strong".to_string(), Vec::new(), serde_json::Map::new()));
+                    }
+                    pulldown_cmark::Tag::Link { link_type: _, dest_url, title, id: _ } => {
+                        let mut attrs = serde_json::Map::new();
+                        attrs.insert("url".to_string(), Json::String(dest_url.to_string()));
+                        if !title.is_empty() {
+                            attrs.insert("title".to_string(), Json::String(title.to_string()));
+                        }
+                        stack.push(("link".to_string(), Vec::new(), attrs));
+                    }
+                    pulldown_cmark::Tag::Image { link_type: _, dest_url, title, id: _ } => {
+                        let mut attrs = serde_json::Map::new();
+                        attrs.insert("url".to_string(), Json::String(dest_url.to_string()));
+                        if !title.is_empty() {
+                            attrs.insert("title".to_string(), Json::String(title.to_string()));
+                        }
+                        stack.push(("image".to_string(), Vec::new(), attrs));
+                    }
+                    _ => {}
                 }
-                current_tag = Some(format!("{:?}", tag));
             }
-            pulldown_cmark::Event::Text(text) => current_text.push_str(&text),
+            pulldown_cmark::Event::End(tag_end) => {
+                flush_text(&mut current_text, if let Some((_, children, _)) = stack.last_mut() { children } else { &mut root_children });
+
+                match tag_end {
+                    pulldown_cmark::TagEnd::Heading(_)
+                    | pulldown_cmark::TagEnd::Paragraph
+                    | pulldown_cmark::TagEnd::BlockQuote(_)
+                    | pulldown_cmark::TagEnd::CodeBlock
+                    | pulldown_cmark::TagEnd::List(_)
+                    | pulldown_cmark::TagEnd::Item
+                    | pulldown_cmark::TagEnd::Emphasis
+                    | pulldown_cmark::TagEnd::Strong
+                    | pulldown_cmark::TagEnd::Link
+                    | pulldown_cmark::TagEnd::Image => {
+                        if let Some((node_type, children, extra)) = stack.pop() {
+                            let node = make_node(&node_type, children, extra);
+                            if let Some((_, parent_children, _)) = stack.last_mut() {
+                                parent_children.push(node);
+                            } else {
+                                root_children.push(node);
+                            }
+                        }
+                    }
+                    pulldown_cmark::TagEnd::Table => {
+                        in_table = false;
+                        let mut table_children: Vec<AnyValue> = Vec::new();
+
+                        // Первая строка — заголовок с пометкой header: true
+                        if !table_headers.is_empty() {
+                            let mut header_attrs = serde_json::Map::new();
+                            header_attrs.insert("header".to_string(), Json::Bool(true));
+                            let header_cells: Vec<AnyValue> = table_headers
+                                .iter()
+                                .map(|h| make_node("tableCell", vec![make_text(h)], serde_json::Map::new()))
+                                .collect();
+                            table_children.push(make_node("tableRow", header_cells, header_attrs));
+                        }
+
+                        // Строки данных
+                        for row in &table_rows {
+                            if let Json::Object(cells) = row {
+                                let cell_nodes: Vec<AnyValue> = cells
+                                    .values()
+                                    .map(|v| make_node("tableCell", vec![make_text(v.as_str().unwrap_or(""))], serde_json::Map::new()))
+                                    .collect();
+                                table_children.push(make_node("tableRow", cell_nodes, serde_json::Map::new()));
+                            }
+                        }
+
+                        root_children.push(make_node("table", table_children, serde_json::Map::new()));
+                    }
+                    pulldown_cmark::TagEnd::TableHead => {
+                        // Сохраняем заголовки и очищаем
+                        table_headers = std::mem::take(&mut table_cells);
+                        in_table_head = false;
+                    }
+                    pulldown_cmark::TagEnd::TableRow => {
+                        let mut row = serde_json::Map::new();
+                        for (i, cell) in table_cells.iter().enumerate() {
+                            let key = if table_headers.is_empty() {
+                                format!("col{}", i)
+                            } else {
+                                table_headers.get(i).cloned().unwrap_or_else(|| format!("col{}", i))
+                            };
+                            row.insert(key, Json::String(cell.clone()));
+                        }
+                        table_rows.push(Json::Object(row));
+                    }
+                    _ => {}
+                }
+            }
+            pulldown_cmark::Event::Text(text) => {
+                if in_table {
+                    table_cells.push(text.to_string());
+                } else {
+                    current_text.push_str(text);
+                }
+            }
             pulldown_cmark::Event::Code(code) => {
-                let mut map = serde_json::Map::new();
-                map.insert("_code".into(), serde_json::Value::String(code.to_string()));
-                sections.push(serde_json::Value::Object(map));
-                current_tag = None;
-            }
-            pulldown_cmark::Event::End(_) => {
-                if !current_text.trim().is_empty() {
-                    let mut map = serde_json::Map::new();
-                    let key = current_tag.as_deref().map(md_tag_to_name).unwrap_or("p".into());
-                    map.insert(key, serde_json::Value::String(current_text.trim().to_string()));
-                    sections.push(serde_json::Value::Object(map));
-                    current_text.clear();
+                if in_table {
+                    table_cells.push(format!("`{}`", code));
+                } else {
+                    let node = json!({"type": "inlineCode", "value": code.to_string()});
+                    if let Some((_, children, _)) = stack.last_mut() {
+                        children.push(node);
+                    } else {
+                        root_children.push(node);
+                    }
                 }
-                current_tag = None;
+            }
+            pulldown_cmark::Event::SoftBreak | pulldown_cmark::Event::HardBreak => {
+                current_text.push(' ');
             }
             _ => {}
         }
     }
-    if !current_text.trim().is_empty() {
-        let mut map = serde_json::Map::new();
-        map.insert("p".into(), serde_json::Value::String(current_text.trim().to_string()));
-        sections.push(serde_json::Value::Object(map));
+
+    flush_text(&mut current_text, &mut root_children);
+
+    if root_children.is_empty() {
+        Ok(json!({"type": "root", "children": []}))
+    } else {
+        Ok(json!({"type": "root", "children": root_children}))
     }
-    if sections.is_empty() { Ok(serde_json::Value::Object(serde_json::Map::new())) }
-    else if sections.len() == 1 { Ok(sections.into_iter().next().unwrap()) }
-    else { Ok(serde_json::Value::Array(sections)) }
 }
 
 fn md_tag_to_name(tag: &str) -> String {
