@@ -1319,6 +1319,7 @@ dependencies = [
  "dirs",
  "flatten-json-object",
  "handlebars",
+ "json-unflattening",
  "json2csv",
  "json_to_table",
  "lazy_static",
@@ -2246,6 +2247,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "863726d7afb6bc2590eeff7135d923545e5e964f004c2ccf8716c25e70a86f08"
 dependencies = [
  "jsonptr",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "json-unflattening"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "964396e7ac82f9bb7c84232afb76cfa325ed03f1fc84b877c8d1b1cebfe196dd"
+dependencies = [
+ "regex",
  "serde",
  "serde_json",
  "thiserror 1.0.69",

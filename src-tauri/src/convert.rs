@@ -8,10 +8,13 @@ use std::io::BufReader;
 use handlebars::{
     Handlebars, Helper, HelperDef, Output, RenderContext, RenderError, RenderErrorReason,
 };
+use serde_json::Map;
 use serde_json::{Value as Json, json};
 use crate::html_convert::convert_to_html;
 use scraper::{Html, ElementRef}; 
-
+// use flatten_json_object::{Flattener, Unflattener};
+use json_unflattening::flattening::flatten;
+use json_unflattening::unflattening::unflatten;
 #[derive(Debug, Serialize)]
 pub struct ConvertResult {
     pub success: bool,
@@ -405,17 +408,6 @@ fn parse_markdown(input: &str) -> Result<AnyValue, String> {
     }
 }
 
-fn md_tag_to_name(tag: &str) -> String {
-    if tag.contains("Heading(1") { "h1" }
-    else if tag.contains("Heading(2") { "h2" }
-    else if tag.contains("Heading(3") { "h3" }
-    else if tag.contains("Heading(4") { "h4" }
-    else if tag.contains("Paragraph") { "p" }
-    else if tag.contains("BlockQuote") { "blockquote" }
-    else if tag.contains("CodeBlock") { "codeblock" }
-    else { "p" }.to_string()
-}
-
 fn parse_xml(input: &str) -> Result<AnyValue, String> {
     let mut reader = quick_xml::Reader::from_str(input);
     let mut buf = Vec::new();
@@ -752,130 +744,56 @@ fn format_ini_value(s: &str) -> String {
     }
 }
 
+
+
+
+
+// INI → JSON
+fn parse_ini(input: &str) -> Result<AnyValue, String> {
+    let flat: Map<String, Json> = serde_ini::from_str(input)
+        .map_err(|e| format!("INI: {e}"))?;
+    
+    unflatten(&flat)
+        .map_err(|e| format!("INI unflatten: {e}"))
+}
+
+// JSON → INI
 fn stringify_ini(value: &AnyValue) -> Result<String, String> {
-    fn process(
-        key: &str,
-        value: &AnyValue,
-        structure: &mut Vec<(String, Vec<(String, String)>)>,
-        current_section: &str,
-    ) {
-        let section = if current_section == "__root__" {
-            "__root__".to_string()
-        } else {
-            current_section.to_string()
+    let flat: Map<String, Json> = flatten(value)
+        .map_err(|e| format!("INI flatten: {e}"))?;
+    
+    let mut result = String::new();
+    let mut sections: std::collections::BTreeMap<String, Vec<(String, String)>> = std::collections::BTreeMap::new();
+    
+    for (key, val) in &flat {
+        let val_str = match val {
+            Json::String(s) => format_ini_value(s),
+            Json::Number(n) => n.to_string(),
+            Json::Bool(b) => if *b { "true".to_string() } else { "false".to_string() },
+            Json::Null => continue,
+            _ => val.to_string(),
         };
-
-        match value {
-            AnyValue::Object(nested) if !nested.is_empty() => {
-                let new_section = if current_section == "__root__" {
-                    key.to_string()
-                } else {
-                    format!("{}.{}", current_section, key)
-                };
-                for (k, v) in nested {
-                    process(k, v, structure, &new_section);
-                }
-            }
-            AnyValue::Object(_) => {
-                // Пустой объект — записываем как "{}"
-                if let Some(pos) = structure.iter().position(|(s, _)| s == &section) {
-                    structure[pos].1.push((key.to_string(), "{}".to_string()));
-                } else {
-                    structure.push((section, vec![(key.to_string(), "{}".to_string())]));
-                }
-            }
-            AnyValue::Array(arr) if !arr.is_empty() => {
-                for item in arr {
-                    let val_str = match item {
-                        AnyValue::Object(_) | AnyValue::Array(_) => {
-                            // Вложенный объект/массив — сериализуем в JSON
-                            format_ini_value(&serde_json::to_string(item).unwrap_or_else(|_| item.to_string()))
-                        }
-                        _ => format_ini_value(item.as_str().unwrap_or(&item.to_string())),
-                    };
-                    let array_key = format!("{}[]", key);
-                    if let Some(pos) = structure.iter().position(|(s, _)| s == &section) {
-                        structure[pos].1.push((array_key, val_str));
-                    } else {
-                        structure.push((section.clone(), vec![(array_key, val_str)]));
-                    }
-                }
-            }
-            AnyValue::Array(_) => {
-                // Пустой массив
-                if let Some(pos) = structure.iter().position(|(s, _)| s == &section) {
-                    structure[pos].1.push((key.to_string(), "[]".to_string()));
-                } else {
-                    structure.push((section, vec![(key.to_string(), "[]".to_string())]));
-                }
-            }
-            AnyValue::String(s) => {
-                let val_str = format_ini_value(s);
-                if let Some(pos) = structure.iter().position(|(s_name, _)| s_name == &section) {
-                    structure[pos].1.push((key.to_string(), val_str));
-                } else {
-                    structure.push((section, vec![(key.to_string(), val_str)]));
-                }
-            }
-            AnyValue::Number(n) => {
-                let val_str = format_ini_value(&n.to_string());
-                if let Some(pos) = structure.iter().position(|(s_name, _)| s_name == &section) {
-                    structure[pos].1.push((key.to_string(), val_str));
-                } else {
-                    structure.push((section, vec![(key.to_string(), val_str)]));
-                }
-            }
-            AnyValue::Bool(b) => {
-                let val_str = if *b { "true" } else { "false" };
-                if let Some(pos) = structure.iter().position(|(s_name, _)| s_name == &section) {
-                    structure[pos].1.push((key.to_string(), val_str.to_string()));
-                } else {
-                    structure.push((section, vec![(key.to_string(), val_str.to_string())]));
-                }
-            }
-            AnyValue::Null => {
-                // null — пропускаем
-            }
+        
+        if let Some(dot_pos) = key.find('.') {
+            let section = key[..dot_pos].to_string();
+            let sub_key = key[dot_pos + 1..].to_string();
+            sections.entry(section).or_default().push((sub_key, val_str));
+        } else {
+            result.push_str(&format!("{} = {}\n", key, val_str));
         }
     }
-
-    let mut ini_structure: Vec<(String, Vec<(String, String)>)> = Vec::new();
-    if let AnyValue::Object(map) = value {
-        for (k, v) in map {
-            process(k, v, &mut ini_structure, "__root__");
+    
+    if !result.is_empty() { result.push('\n'); }
+    
+    for (section, pairs) in &sections {
+        result.push_str(&format!("[{}]\n", section));
+        for (key, val) in pairs {
+            result.push_str(&format!("{} = {}\n", key, val));
         }
-    } else if let AnyValue::Array(arr) = value {
-        // Корневой массив — оборачиваем в секцию "root"
-        process("root", &AnyValue::Array(arr.clone()), &mut ini_structure, "__root__");
-    } else {
-        // Примитив на корне — в глобальную секцию
-        process("value", value, &mut ini_structure, "__root__");
+        result.push('\n');
     }
-
-    let mut ini_str = String::new();
-
-    // Глобальные ключи (секция "__root__") — в начале
-    if let Some(pos) = ini_structure.iter().position(|(s, _)| s == "__root__") {
-        let (_, pairs) = &ini_structure[pos];
-        for (k, v) in pairs {
-            ini_str.push_str(&format!("{}={}\n", k, v));
-        }
-        if !pairs.is_empty() {
-            ini_str.push('\n');
-        }
-        ini_structure.remove(pos);
-    }
-
-    // Остальные секции
-    for (section, pairs) in &ini_structure {
-        ini_str.push_str(&format!("[{}]\n", section));
-        for (k, v) in pairs {
-            ini_str.push_str(&format!("{}={}\n", k, v));
-        }
-        ini_str.push('\n');
-    }
-
-    Ok(ini_str.trim_end().to_string() + "\n")
+    
+    Ok(result.trim_end().to_string() + "\n")
 }
 
 
