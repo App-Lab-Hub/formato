@@ -772,7 +772,7 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
     
     let mut result = String::new();
     let mut sections: IndexMap<String, Vec<(String, String)>> = IndexMap::new();
-    let mut simple_arrays: IndexMap<String, Vec<String>> = IndexMap::new();
+    let mut simple_arrays: IndexMap<String, (String, Vec<String>)> = IndexMap::new();
     
     for (key, val) in &dot_flat {
         let val_str = match val {
@@ -785,22 +785,27 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
         
         if let Some(dot_pos) = key.find('.') {
             let parts: Vec<&str> = key.split('.').collect();
-            
+                            
             if parts.len() >= 2 && parts[parts.len()-1].parse::<usize>().is_ok() {
                 let idx: usize = parts[parts.len()-1].parse().unwrap();
-                let section = parts[..parts.len()-1].join(".");
+                let array_name = parts[parts.len()-2].to_string();
+                let section = if parts.len() >= 3 {
+                    parts[..parts.len()-2].join(".")
+                } else {
+                    continue;
+                };
                 
                 let all_numeric = dot_flat.keys()
-                    .filter(|k| k.starts_with(&format!("{}.", section)))
+                    .filter(|k| k.starts_with(&format!("{}.{}.", section, array_name)))
                     .all(|k| {
-                        let rest = &k[section.len() + 1..];
+                        let rest = &k[section.len() + array_name.len() + 2..];
                         !rest.contains('.') && rest.parse::<usize>().is_ok()
                     });
                 
                 if all_numeric {
-                    let arr = simple_arrays.entry(section.clone()).or_default();
-                    while arr.len() <= idx { arr.push(String::new()); }
-                    arr[idx] = val_str;
+                    let entry = simple_arrays.entry(section.clone()).or_insert_with(|| (array_name.clone(), Vec::new()));
+                    while entry.1.len() <= idx { entry.1.push(String::new()); }
+                    entry.1[idx] = val_str;
                     continue;
                 }
             }
@@ -816,20 +821,22 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
     
     if !result.is_empty() { result.push('\n'); }
     
-    // Собираем ВСЕ секции (и простые массивы, и сложные) в один список
-    let mut all_sections: Vec<(String, bool)> = Vec::new();
-    for key in simple_arrays.keys() { all_sections.push((key.clone(), true)); }
-    for key in sections.keys() { all_sections.push((key.clone(), false)); }
+    // Собираем уникальные секции из обоих map
+    let mut all_sections: Vec<String> = Vec::new();
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    for key in sections.keys().chain(simple_arrays.keys()) {
+        if seen.insert(key.clone()) {
+            all_sections.push(key.clone());
+        }
+    }
     
-    // Определяем порядок корневых ключей из исходного JSON
     let root_order: IndexMap<&str, usize> = if let Json::Object(root) = value {
         root.keys().enumerate().map(|(i, k)| (k.as_str(), i)).collect()
     } else {
         IndexMap::new()
     };
     
-    // Сортируем: сначала по порядку корневого ключа, затем лексикографически
-    all_sections.sort_by(|(a, _), (b, _)| {
+    all_sections.sort_by(|a, b| {
         let a_root = a.split('.').next().unwrap_or("");
         let b_root = b.split('.').next().unwrap_or("");
         let a_order = root_order.get(a_root).unwrap_or(&usize::MAX);
@@ -837,7 +844,6 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
         
         match a_order.cmp(b_order) {
             std::cmp::Ordering::Equal => {
-                // Внутри одной группы — лексикографически (родитель → ребёнок)
                 let a_parts: Vec<&str> = a.split('.').collect();
                 let b_parts: Vec<&str> = b.split('.').collect();
                 let min_len = a_parts.len().min(b_parts.len());
@@ -851,31 +857,33 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
         }
     });
     
-    // Выводим в правильном порядке
-    for (section, is_simple_array) in &all_sections {
-        if *is_simple_array {
-            if let Some(values) = simple_arrays.get(section) {
-                let short_name = section.split('.').last().unwrap_or(section);
-                result.push_str(&format!("[{}]\n", section));
-                for val in values {
-                    result.push_str(&format!("{}[] = {}\n", short_name, val));
-                }
-                result.push('\n');
-            }
-        } else {
+    for section in &all_sections {
+        let has_pairs = sections.get(section).map(|p| !p.is_empty()).unwrap_or(false);
+        let has_array = simple_arrays.contains_key(section);
+        
+        if has_pairs || has_array {
+            result.push_str(&format!("[{}]\n", section));
+            
+            // Сначала обычные ключи
             if let Some(pairs) = sections.get(section) {
-                result.push_str(&format!("[{}]\n", section));
                 for (key, val) in pairs {
                     result.push_str(&format!("{} = {}\n", key, val));
                 }
-                result.push('\n');
             }
+            
+            // Потом простые массивы
+            if let Some((array_name, values)) = simple_arrays.get(section) {
+                for val in values {
+                    result.push_str(&format!("{}[] = {}\n", array_name, val));
+                }
+            }
+            
+            result.push('\n');
         }
     }
     
     Ok(result.trim_end().to_string() + "\n")
 }
-// INI → JSON
 fn parse_ini(input: &str) -> Result<AnyValue, String> {
     let flat: Map<String, Json> = serde_ini::from_str(input)
         .map_err(|e| format!("INI: {e}"))?;
