@@ -8,11 +8,12 @@ use std::io::BufReader;
 use handlebars::{
     Handlebars, Helper, HelperDef, Output, RenderContext, RenderError, RenderErrorReason,
 };
+use indexmap::IndexMap;
 use serde_json::Map;
 use serde_json::{Value as Json, json};
 use crate::html_convert::convert_to_html;
 use scraper::{Html, ElementRef}; 
-
+use std::collections::HashMap;
 use serde_flattened::flatten_json_value::flatten::flattened;
 use serde_flattened::flatten_json_value::unflatten::unflattened;
 #[derive(Debug, Serialize)]
@@ -756,11 +757,11 @@ fn unquote_value(val: &Json) -> Json {
     }
     val.clone()
 }
-// JSON → INI
+
 fn stringify_ini(value: &AnyValue) -> Result<String, String> {
     let flat = flattened(value.clone());
     
-    let dot_flat: Map<String, Json> = flat.into_iter()
+    let dot_flat: IndexMap<String, Json> = flat.into_iter()
         .map(|(k, v)| {
             let clean = k.replace("__", ".")
                          .replace(".idx-", ".")
@@ -770,8 +771,8 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
         .collect();
     
     let mut result = String::new();
-    let mut sections: std::collections::BTreeMap<String, Vec<(String, String)>> = std::collections::BTreeMap::new();
-    let mut simple_arrays: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
+    let mut sections: IndexMap<String, Vec<(String, String)>> = IndexMap::new();
+    let mut simple_arrays: IndexMap<String, Vec<String>> = IndexMap::new();
     
     for (key, val) in &dot_flat {
         let val_str = match val {
@@ -785,7 +786,6 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
         if let Some(dot_pos) = key.find('.') {
             let parts: Vec<&str> = key.split('.').collect();
             
-            // Проверка на простой массив
             if parts.len() >= 2 && parts[parts.len()-1].parse::<usize>().is_ok() {
                 let idx: usize = parts[parts.len()-1].parse().unwrap();
                 let section = parts[..parts.len()-1].join(".");
@@ -816,49 +816,65 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
     
     if !result.is_empty() { result.push('\n'); }
     
-    // Простые массивы через [] — лексикографически (родитель → ребёнок)
-    let mut array_sorted: Vec<_> = simple_arrays.iter().collect();
-    array_sorted.sort_by(|(a, _), (b, _)| {
-        let a_parts: Vec<&str> = a.split('.').collect();
-        let b_parts: Vec<&str> = b.split('.').collect();
-        let min_len = a_parts.len().min(b_parts.len());
-        for i in 0..min_len {
-            let cmp = a_parts[i].cmp(b_parts[i]);
-            if cmp != std::cmp::Ordering::Equal {
-                return cmp;
+    // Собираем ВСЕ секции (и простые массивы, и сложные) в один список
+    let mut all_sections: Vec<(String, bool)> = Vec::new();
+    for key in simple_arrays.keys() { all_sections.push((key.clone(), true)); }
+    for key in sections.keys() { all_sections.push((key.clone(), false)); }
+    
+    // Определяем порядок корневых ключей из исходного JSON
+    let root_order: IndexMap<&str, usize> = if let Json::Object(root) = value {
+        root.keys().enumerate().map(|(i, k)| (k.as_str(), i)).collect()
+    } else {
+        IndexMap::new()
+    };
+    
+    // Сортируем: сначала по порядку корневого ключа, затем лексикографически
+    all_sections.sort_by(|(a, _), (b, _)| {
+        let a_root = a.split('.').next().unwrap_or("");
+        let b_root = b.split('.').next().unwrap_or("");
+        let a_order = root_order.get(a_root).unwrap_or(&usize::MAX);
+        let b_order = root_order.get(b_root).unwrap_or(&usize::MAX);
+        
+        match a_order.cmp(b_order) {
+            std::cmp::Ordering::Equal => {
+                // Внутри одной группы — лексикографически (родитель → ребёнок)
+                let a_parts: Vec<&str> = a.split('.').collect();
+                let b_parts: Vec<&str> = b.split('.').collect();
+                let min_len = a_parts.len().min(b_parts.len());
+                for i in 0..min_len {
+                    let cmp = a_parts[i].cmp(b_parts[i]);
+                    if cmp != std::cmp::Ordering::Equal { return cmp; }
+                }
+                a_parts.len().cmp(&b_parts.len())
             }
+            other => other,
         }
-        a_parts.len().cmp(&b_parts.len())
     });
     
-    // Сложные структуры — сортируем лексикографически (родитель → ребёнок)
-    let mut section_sorted: Vec<_> = sections.iter().collect();
-    section_sorted.sort_by(|(a, _), (b, _)| {
-        let a_parts: Vec<&str> = a.split('.').collect();
-        let b_parts: Vec<&str> = b.split('.').collect();
-        let min_len = a_parts.len().min(b_parts.len());
-        for i in 0..min_len {
-            let cmp = a_parts[i].cmp(b_parts[i]);
-            if cmp != std::cmp::Ordering::Equal {
-                return cmp;
+    // Выводим в правильном порядке
+    for (section, is_simple_array) in &all_sections {
+        if *is_simple_array {
+            if let Some(values) = simple_arrays.get(section) {
+                let short_name = section.split('.').last().unwrap_or(section);
+                result.push_str(&format!("[{}]\n", section));
+                for val in values {
+                    result.push_str(&format!("{}[] = {}\n", short_name, val));
+                }
+                result.push('\n');
+            }
+        } else {
+            if let Some(pairs) = sections.get(section) {
+                result.push_str(&format!("[{}]\n", section));
+                for (key, val) in pairs {
+                    result.push_str(&format!("{} = {}\n", key, val));
+                }
+                result.push('\n');
             }
         }
-        a_parts.len().cmp(&b_parts.len())
-    });
-    
-    for (section, pairs) in &section_sorted {
-        result.push_str(&format!("[{}]\n", section));
-        let mut sorted_pairs = (*pairs).clone();
-        sorted_pairs.sort_by(|a, b| a.0.cmp(&b.0));
-        for (key, val) in &sorted_pairs {
-            result.push_str(&format!("{} = {}\n", key, val));
-        }
-        result.push('\n');
     }
     
     Ok(result.trim_end().to_string() + "\n")
 }
-
 // INI → JSON
 fn parse_ini(input: &str) -> Result<AnyValue, String> {
     let flat: Map<String, Json> = serde_ini::from_str(input)
