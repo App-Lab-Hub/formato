@@ -47,4 +47,5 @@ handlebars = "6.4.1"
 maud = "0.27.0"
 nalgebra = "0.35.0"
 json-unflattening = "0.1.5"
+serde-flattened = "0.1.1"
 

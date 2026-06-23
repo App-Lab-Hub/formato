@@ -12,9 +12,9 @@ use serde_json::Map;
 use serde_json::{Value as Json, json};
 use crate::html_convert::convert_to_html;
 use scraper::{Html, ElementRef}; 
-// use flatten_json_object::{Flattener, Unflattener};
-use json_unflattening::flattening::flatten;
-use json_unflattening::unflattening::unflatten;
+
+use serde_flattened::flatten_json_value::flatten::flattened;
+use serde_flattened::flatten_json_value::unflatten::unflattened;
 #[derive(Debug, Serialize)]
 pub struct ConvertResult {
     pub success: bool,
@@ -69,7 +69,8 @@ fn parse(input: &str, format: &str) -> Result<AnyValue, String> {
         "yaml" | "yml" => serde_yaml::from_str(input).map_err(|e| format!("YAML: {e}")),
         "toml" => toml::from_str(input).map_err(|e| format!("TOML: {e}")),
         "xml" => parse_xml(input),
-        "ini" => serde_ini::from_str(input).map_err(|e| format!("INI: {e}")),
+        // "ini" => serde_ini::from_str(input).map_err(|e| format!("INI: {e}")),
+        "ini" => parse_ini(input),
         "markdown" | "md" => parse_markdown(input),
         "csv" => parse_csv(input),
         "html" => parse_html(input),  // ← добавить
@@ -745,29 +746,36 @@ fn format_ini_value(s: &str) -> String {
 }
 
 
-
-
-
-// INI → JSON
-fn parse_ini(input: &str) -> Result<AnyValue, String> {
-    let flat: Map<String, Json> = serde_ini::from_str(input)
-        .map_err(|e| format!("INI: {e}"))?;
-    
-    unflatten(&flat)
-        .map_err(|e| format!("INI unflatten: {e}"))
+fn unquote_value(val: &Json) -> Json {
+    if let Json::String(s) = val {
+        let trimmed = s.trim();
+        if (trimmed.starts_with('"') && trimmed.ends_with('"')) ||
+           (trimmed.starts_with('\'') && trimmed.ends_with('\'')) {
+            return Json::String(trimmed[1..trimmed.len()-1].to_string());
+        }
+    }
+    val.clone()
 }
-
 // JSON → INI
 fn stringify_ini(value: &AnyValue) -> Result<String, String> {
-    let flat: Map<String, Json> = flatten(value)
-        .map_err(|e| format!("INI flatten: {e}"))?;
+    let flat = flattened(value.clone());
+    
+    let dot_flat: Map<String, Json> = flat.into_iter()
+        .map(|(k, v)| {
+            let clean = k.replace("__", ".")
+                         .replace(".idx-", ".")
+                         .replace("idx-", "");
+            (clean, v)
+        })
+        .collect();
     
     let mut result = String::new();
     let mut sections: std::collections::BTreeMap<String, Vec<(String, String)>> = std::collections::BTreeMap::new();
+    let mut simple_arrays: std::collections::BTreeMap<String, Vec<String>> = std::collections::BTreeMap::new();
     
-    for (key, val) in &flat {
+    for (key, val) in &dot_flat {
         let val_str = match val {
-            Json::String(s) => format_ini_value(s),
+            Json::String(s) => format!("\"{}\"", s.replace('"', "\\\"")),
             Json::Number(n) => n.to_string(),
             Json::Bool(b) => if *b { "true".to_string() } else { "false".to_string() },
             Json::Null => continue,
@@ -775,8 +783,31 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
         };
         
         if let Some(dot_pos) = key.find('.') {
-            let section = key[..dot_pos].to_string();
-            let sub_key = key[dot_pos + 1..].to_string();
+            let parts: Vec<&str> = key.split('.').collect();
+            
+            // Проверка на простой массив
+            if parts.len() >= 2 && parts[parts.len()-1].parse::<usize>().is_ok() {
+                let idx: usize = parts[parts.len()-1].parse().unwrap();
+                let section = parts[..parts.len()-1].join(".");
+                
+                let all_numeric = dot_flat.keys()
+                    .filter(|k| k.starts_with(&format!("{}.", section)))
+                    .all(|k| {
+                        let rest = &k[section.len() + 1..];
+                        !rest.contains('.') && rest.parse::<usize>().is_ok()
+                    });
+                
+                if all_numeric {
+                    let arr = simple_arrays.entry(section.clone()).or_default();
+                    while arr.len() <= idx { arr.push(String::new()); }
+                    arr[idx] = val_str;
+                    continue;
+                }
+            }
+            
+            let sub_key = parts[parts.len()-1].to_string();
+            let section = parts[..parts.len()-1].join(".");
+            
             sections.entry(section).or_default().push((sub_key, val_str));
         } else {
             result.push_str(&format!("{} = {}\n", key, val_str));
@@ -785,15 +816,92 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
     
     if !result.is_empty() { result.push('\n'); }
     
-    for (section, pairs) in &sections {
+    // Простые массивы через [] — лексикографически (родитель → ребёнок)
+    let mut array_sorted: Vec<_> = simple_arrays.iter().collect();
+    array_sorted.sort_by(|(a, _), (b, _)| {
+        let a_parts: Vec<&str> = a.split('.').collect();
+        let b_parts: Vec<&str> = b.split('.').collect();
+        let min_len = a_parts.len().min(b_parts.len());
+        for i in 0..min_len {
+            let cmp = a_parts[i].cmp(b_parts[i]);
+            if cmp != std::cmp::Ordering::Equal {
+                return cmp;
+            }
+        }
+        a_parts.len().cmp(&b_parts.len())
+    });
+    
+    // Сложные структуры — сортируем лексикографически (родитель → ребёнок)
+    let mut section_sorted: Vec<_> = sections.iter().collect();
+    section_sorted.sort_by(|(a, _), (b, _)| {
+        let a_parts: Vec<&str> = a.split('.').collect();
+        let b_parts: Vec<&str> = b.split('.').collect();
+        let min_len = a_parts.len().min(b_parts.len());
+        for i in 0..min_len {
+            let cmp = a_parts[i].cmp(b_parts[i]);
+            if cmp != std::cmp::Ordering::Equal {
+                return cmp;
+            }
+        }
+        a_parts.len().cmp(&b_parts.len())
+    });
+    
+    for (section, pairs) in &section_sorted {
         result.push_str(&format!("[{}]\n", section));
-        for (key, val) in pairs {
+        let mut sorted_pairs = (*pairs).clone();
+        sorted_pairs.sort_by(|a, b| a.0.cmp(&b.0));
+        for (key, val) in &sorted_pairs {
             result.push_str(&format!("{} = {}\n", key, val));
         }
         result.push('\n');
     }
     
     Ok(result.trim_end().to_string() + "\n")
+}
+
+// INI → JSON
+fn parse_ini(input: &str) -> Result<AnyValue, String> {
+    let flat: Map<String, Json> = serde_ini::from_str(input)
+        .map_err(|e| format!("INI: {e}"))?;
+    
+    let mut normalized = Map::new();
+    let mut counters: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    
+    for (key, val) in &flat {
+        let val = unquote_value(val);
+        // Убираем скобки, приводим к точкам
+        let key = key.replace('[', ".").replace(']', "");
+        
+        if key.ends_with('.') {
+            let section = key[..key.len()-1].to_string();
+            let idx = counters.entry(section.clone()).or_insert(0);
+            // Добавляем "idx-" для serde-flattened
+            normalized.insert(format!("{}__idx-{}", section, idx), val);
+            *idx += 1;
+        } else {
+            // Заменяем . на __ и добавляем idx- перед числами
+            let parts: Vec<&str> = key.split('.').collect();
+            let new_key = parts.iter().enumerate().map(|(i, p)| {
+                if i > 0 && p.parse::<usize>().is_ok() {
+                    format!("__idx-{}", p)
+                } else if i > 0 {
+                    format!("__{}", p)
+                } else {
+                    p.to_string()
+                }
+            }).collect::<Vec<_>>().join("");
+            // Если первый же элемент — число
+            let new_key = if new_key.parse::<usize>().is_ok() {
+                format!("idx-{}", new_key)
+            } else {
+                new_key
+            };
+            normalized.insert(new_key, val);
+        }
+    }
+    
+    unflattened(Json::Object(normalized))
+        .map_err(|e| format!("INI unflatten: {:?}", e))
 }
 
 
