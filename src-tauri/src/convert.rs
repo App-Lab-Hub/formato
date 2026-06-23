@@ -694,69 +694,76 @@ pub fn stringify_markdown(value: &Json) -> Result<String, String> {
     Ok(format!("{}{}", MD_CSS, result.trim()))
 }
 
-fn format_ini_value(s: &str) -> String {
-    if s.is_empty() {
-        return String::new();
-    }
-
-    // Уже в кавычках — не трогаем
-    if (s.starts_with('\'') && s.ends_with('\'')) || (s.starts_with('"') && s.ends_with('"')) {
-        return s.to_string();
-    }
-
-    // JSON-объект или массив — не оборачиваем
-    if (s.starts_with('{') && s.ends_with('}')) || (s.starts_with('[') && s.ends_with(']')) {
-        return s.to_string();
-    }
-
-    // Числа: целые, дробные, отрицательные, научная нотация
-    if let Ok(n) = s.parse::<f64>() {
-        if n.is_finite() {
-            return s.to_string();
-        }
-    }
-
-    // Булевы значения
-    if s == "true" || s == "false" {
-        return s.to_string();
-    }
-
-    // null
-    if s == "null" || s == "Null" || s == "NULL" {
-        return s.to_string();
-    }
-
-    // Содержит спецсимволы INI — оборачиваем в кавычки
-    let needs_quoting = s.contains(';')
-        || s.contains('#')
-        || s.contains('\n')
-        || s.contains('\r')
-        || s.contains('\t')
-        || s.contains('\\')
-        || s.starts_with(' ')
-        || s.ends_with(' ')
-        || s.contains('\0');
-
-    if needs_quoting {
-        // Экранируем внутренние кавычки
-        let escaped = s.replace('\'', "\\'");
-        format!("'{}'", escaped)
-    } else {
-        s.to_string()
-    }
-}
-
 
 fn unquote_value(val: &Json) -> Json {
     if let Json::String(s) = val {
         let trimmed = s.trim();
-        if (trimmed.starts_with('"') && trimmed.ends_with('"')) ||
+        let unquoted = if (trimmed.starts_with('"') && trimmed.ends_with('"')) ||
            (trimmed.starts_with('\'') && trimmed.ends_with('\'')) {
-            return Json::String(trimmed[1..trimmed.len()-1].to_string());
+            trimmed[1..trimmed.len()-1].to_string()
+        } else {
+            trimmed.to_string()
+        };
+        
+        if let Ok(n) = unquoted.parse::<i64>() {
+            return Json::Number(n.into());
         }
+        if let Ok(n) = unquoted.parse::<f64>() {
+            if n.is_finite() { return json!(n); }
+        }
+        if unquoted == "true" { return Json::Bool(true); }
+        if unquoted == "false" { return Json::Bool(false); }
+        if unquoted == "null" { return Json::Null; }
+        
+        return Json::String(unquoted);
     }
     val.clone()
 }
+
+
+fn convert_objects_to_arrays(value: &mut Json) {
+    if let Json::Object(map) = value {
+        // Проверяем, все ли ключи числовые
+        let all_numeric = !map.is_empty() && map.keys().all(|k| k.parse::<usize>().is_ok());
+        
+        if all_numeric {
+            let max_idx = map.keys().filter_map(|k| k.parse::<usize>().ok()).max().unwrap_or(0);
+            let mut arr = Vec::new();
+            for i in 0..=max_idx {
+                if let Some(val) = map.remove(&i.to_string()) {
+                    arr.push(val);
+                } else {
+                    arr.push(Json::Null);
+                }
+            }
+            *value = Json::Array(arr);
+            
+            // После превращения в массив — обрабатываем элементы
+            if let Json::Array(arr) = value {
+                for v in arr.iter_mut() {
+                    convert_objects_to_arrays(v);
+                }
+            }
+            return;
+        }
+        
+        // Рекурсивно обрабатываем детей (ключи собираем до итерации)
+        let keys: Vec<String> = map.keys().cloned().collect();
+        for k in keys {
+            if let Some(v) = map.get_mut(&k) {
+                convert_objects_to_arrays(v);
+            }
+        }
+        return;
+    }
+    
+    if let Json::Array(arr) = value {
+        for v in arr.iter_mut() {
+            convert_objects_to_arrays(v);
+        }
+    }
+}
+
 
 fn stringify_ini(value: &AnyValue) -> Result<String, String> {
     let flat = flattened(value.clone());
@@ -884,49 +891,127 @@ fn stringify_ini(value: &AnyValue) -> Result<String, String> {
     
     Ok(result.trim_end().to_string() + "\n")
 }
+
 fn parse_ini(input: &str) -> Result<AnyValue, String> {
-    let flat: Map<String, Json> = serde_ini::from_str(input)
-        .map_err(|e| format!("INI: {e}"))?;
+    let mut raw_map: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
+    let mut current_section = String::new();
     
-    let mut normalized = Map::new();
-    let mut counters: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
-    
-    for (key, val) in &flat {
-        let val = unquote_value(val);
-        // Убираем скобки, приводим к точкам
-        let key = key.replace('[', ".").replace(']', "");
-        
-        if key.ends_with('.') {
-            let section = key[..key.len()-1].to_string();
-            let idx = counters.entry(section.clone()).or_insert(0);
-            // Добавляем "idx-" для serde-flattened
-            normalized.insert(format!("{}__idx-{}", section, idx), val);
-            *idx += 1;
-        } else {
-            // Заменяем . на __ и добавляем idx- перед числами
-            let parts: Vec<&str> = key.split('.').collect();
-            let new_key = parts.iter().enumerate().map(|(i, p)| {
-                if i > 0 && p.parse::<usize>().is_ok() {
-                    format!("__idx-{}", p)
-                } else if i > 0 {
-                    format!("__{}", p)
-                } else {
-                    p.to_string()
-                }
-            }).collect::<Vec<_>>().join("");
-            // Если первый же элемент — число
-            let new_key = if new_key.parse::<usize>().is_ok() {
-                format!("idx-{}", new_key)
+    // Первый проход: собираем ВСЕ значения для каждого ключа (включая дубликаты)
+    for line in input.lines() {
+        let line = line.trim();
+        if line.is_empty() || line.starts_with('#') || line.starts_with(';') {
+            continue;
+        }
+        if line.starts_with('[') && line.ends_with(']') {
+            current_section = line[1..line.len()-1].trim().to_string();
+            continue;
+        }
+        if let Some(eq_pos) = line.find('=') {
+            let key = line[..eq_pos].trim().to_string();
+            let val = line[eq_pos + 1..].trim().to_string();
+            let full_key = if current_section.is_empty() {
+                key.clone()
             } else {
-                new_key
+                format!("{}.{}", current_section, key)
             };
-            normalized.insert(new_key, val);
+            raw_map.entry(full_key).or_default().push(val);
         }
     }
     
-    unflattened(Json::Object(normalized))
-        .map_err(|e| format!("INI unflatten: {:?}", e))
+    let raw: Json = serde_ini::from_str(input)
+        .map_err(|e| format!("INI: {e}"))?;
+    
+    let mut flat: Map<String, Json> = Map::new();
+    flatten_value(&raw, String::new(), &mut flat);
+    
+    let mut fixed: Map<String, Json> = Map::new();
+    
+    for (flat_key, flat_val) in &flat {
+        // Очищаем ключ от [] и [N]
+        let clean_key = flat_key
+            .replace('[', ".")
+            .replace(']', "");
+        let clean_key = clean_key.strip_suffix('.').unwrap_or(&clean_key).to_string();
+        
+        // Определяем, является ли это [] массивом (не [N] с числом!)
+        // Проверяем оригинальный ключ: если заканчивается на [], это простой массив
+        let is_bracket_array = flat_key.ends_with("[]");
+        
+        if is_bracket_array {
+            // Ищем в raw_map все значения для этого ключа
+            if let Some(entries) = raw_map.get(flat_key.as_str()) {
+                if entries.len() >= 1 {
+                    let arr: Vec<Json> = entries.iter()
+                        .map(|s| unquote_value(&Json::String(s.clone())))
+                        .collect();
+                    fixed.insert(clean_key, Json::Array(arr));
+                    continue;
+                }
+            }
+        }
+        
+        // Для обычных ключей (включая 0.label) — берём одно значение
+        // Если в raw_map несколько значений (дубликаты ключей), берём ПЕРВОЕ
+        if let Some(entries) = raw_map.get(flat_key.as_str()) {
+            if entries.len() >= 1 && !is_bracket_array {
+                // Берём первое значение (не делаем массив для числовых ключей)
+                fixed.insert(clean_key, unquote_value(&Json::String(entries[0].clone())));
+                continue;
+            }
+        }
+        
+        // Fallback: используем значение из flat
+        fixed.insert(clean_key, unquote_value(flat_val));
+    }
+    
+    let has_nesting = fixed.keys().any(|k| k.contains('.'));
+    
+    if !has_nesting {
+        let mut result = serde_json::Map::new();
+        for (key, val) in &fixed {
+            result.insert(key.clone(), val.clone());
+        }
+        return Ok(Json::Object(result));
+    }
+    
+    // Используем json_unflattening для восстановления структуры
+    let dot_flat: Map<String, Json> = fixed.clone();
+    
+    let mut result = json_unflattening::unflattening::unflatten(&dot_flat)
+        .map_err(|e| format!("INI unflatten: {}", e))?;
+    
+    // Превращаем {"0": {...}, "1": {...}} в [{...}, {...}]
+    convert_objects_to_arrays(&mut result);
+    
+    Ok(result)
 }
+
+
+
+fn flatten_value(value: &Json, prefix: String, result: &mut Map<String, Json>) {
+    match value {
+        Json::Object(map) => {
+            for (key, val) in map {
+                let new_prefix = if prefix.is_empty() {
+                    key.clone()
+                } else {
+                    format!("{}.{}", prefix, key)
+                };
+                flatten_value(val, new_prefix, result);
+            }
+        }
+        Json::Array(arr) => {
+            for (i, val) in arr.iter().enumerate() {
+                let new_prefix = format!("{}[{}]", prefix, i);
+                flatten_value(val, new_prefix, result);
+            }
+        }
+        _ => {
+            result.insert(prefix, value.clone());
+        }
+    }
+}
+
 
 
 fn stringify_xml(value: &AnyValue) -> Result<String, String> {
