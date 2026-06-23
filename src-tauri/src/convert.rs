@@ -469,7 +469,19 @@ fn stringify(value: &AnyValue, format: &str) -> Result<String, String> {
     match format {
         "json" | "json5" | "hjson" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}")),
         "yaml" | "yml" => serde_yaml::to_string(value).map_err(|e| format!("YAML: {e}")),
-        "toml" => toml::to_string_pretty(value).map_err(|e| format!("TOML: {e}")),
+        // "toml" => toml::to_string_pretty(value).map_err(|e| format!("TOML: {e}")),
+        "toml" => {
+            // TOML не поддерживает корневые массивы — оборачиваем в объект
+            let value_for_toml = match value {
+                AnyValue::Array(arr) => {
+                    let mut map = serde_json::Map::new();
+                    map.insert("data".to_string(), AnyValue::Array(arr.clone()));
+                    AnyValue::Object(map)
+                }
+                _ => value.clone(),
+            };
+            toml::to_string_pretty(&value_for_toml).map_err(|e| format!("TOML: {e}"))
+        }
         "xml" => stringify_xml(value).map_err(|e| format!("XML: {e}")),
         "csv" => stringify_csv(value),
         "ini" => stringify_ini(value), // Лаконичный вызов внешней функции
