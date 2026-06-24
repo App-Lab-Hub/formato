@@ -13,9 +13,8 @@ use serde_json::Map;
 use serde_json::{Value as Json, json};
 use crate::html_convert::convert_to_html;
 use scraper::{Html, ElementRef}; 
-use std::collections::HashMap;
 use serde_flattened::flatten_json_value::flatten::flattened;
-use serde_flattened::flatten_json_value::unflatten::unflattened;
+
 #[derive(Debug, Serialize)]
 pub struct ConvertResult {
     pub success: bool,
@@ -70,7 +69,6 @@ fn parse(input: &str, format: &str) -> Result<AnyValue, String> {
         "yaml" | "yml" => serde_yaml::from_str(input).map_err(|e| format!("YAML: {e}")),
         "toml" => toml::from_str(input).map_err(|e| format!("TOML: {e}")),
         "xml" => parse_xml(input),
-        // "ini" => serde_ini::from_str(input).map_err(|e| format!("INI: {e}")),
         "ini" => parse_ini(input),
         "markdown" | "md" => parse_markdown(input),
         "csv" => parse_csv(input),
@@ -459,6 +457,7 @@ fn stringify_csv(value: &AnyValue) -> Result<String, String> {
     
     String::from_utf8(output).map_err(|e| format!("CSV: {e}"))
 }
+
 // ============================================================
 // СЕРИАЛИЗАТОРЫ
 // ============================================================
@@ -491,274 +490,7 @@ fn stringify(value: &AnyValue, format: &str) -> Result<String, String> {
     }
 }
 
-
-const MD_CSS: &str = r#"<span style="display:none"></span>
-
-<style>
-  /* --- 0. БАЗОВЫЕ СБРОСЫ --- */
-  body {
-    margin: 0 !important;
-    padding: 40px 60px !important;
-    background: #1e1e1e !important;
-    white-space: nowrap !important;
-    overflow-x: auto !important;
-    min-height: 100vh !important;
-    box-sizing: border-box !important;
-  }
-
-  /* --- 1. КАСКАДНАЯ ПОДСВЕТКА (И в VS Code, и на сайтах) --- */
-  .markdown-preview blockquote, blockquote { 
-    border-left: 2px solid #3f3f46 !important; 
-    padding-left: 12px !important; 
-    margin: 4px 0 !important; 
-    background: transparent !important; 
-    transition: border-color 0.15s ease !important; 
-  }
-  
-  .markdown-preview blockquote:hover, blockquote:hover { 
-    border-left-color: #9cdcfe !important; 
-  }
-  
-  blockquote blockquote { border-left-color: #3f3f46 !important; }
-  blockquote blockquote blockquote { border-left-color: #3f3f46 !important; }
-  blockquote blockquote:hover { border-left-color: #9cdcfe !important; }
-  blockquote blockquote blockquote:hover { border-left-color: #9cdcfe !important; }
-
-  /* Безопасная поддержка списков (> -) через строгую вложенность */
-  blockquote:has(ul:hover), blockquote:has(li:hover) { border-left-color: #9cdcfe !important; }
-  blockquote blockquote:has(ul:hover), blockquote blockquote:has(li:hover) { border-left-color: #9cdcfe !important; }
-
-
-  /* --- 2. МАССИВЫ И ИНДЕКСЫ ([0]) --- */
-  blockquote h2, .markdown-preview h2, h2 {
-    color: #52525b !important; 
-    font-size: 1.4em !important; 
-    font-weight: 600 !important;
-    margin: 12px 0 6px 0 !important;
-    white-space: nowrap !important;
-  }
-
-
-  /* --- 3. НАЗВАНИЯ ПАРАМЕТРОВ / КЛЮЧИ (Синие) --- */
-  blockquote strong, p strong, .markdown-preview strong, strong {
-    color: #4fc1ff !important; 
-    font-weight: 600 !important;
-    white-space: nowrap !important;
-  }
-
-
-  /* --- 4. ЗНАЧЕНИЯ В КОДЕ (`code`) --- */
-  .markdown-preview code, code {
-    font-family: monospace !important;
-    background-color: #1e1e1e !important; 
-    color: #ce9178 !important;            
-    padding: 3px 7px !important;
-    border-radius: 3px !important;
-    border: 1px solid #2d2d2d !important;
-    font-size: 1em !important;
-    white-space: nowrap !important;
-  }
-  
-  strong code {
-    color: #b5cea8 !important;            
-    font-weight: bold !important;
-    white-space: nowrap !important;
-  }
-
-
-  /* --- 5. ТЕКСТ И ЗАГОЛОВКИ СЕКЦИЙ --- */
-  .markdown-preview h3, h3 {
-    color: #f4f4f5 !important;
-    font-size: 1.3em !important;
-    margin: 22px 0 8px 0 !important;
-    border: none !important;
-    white-space: nowrap !important;
-  }
-
-  /* РЕШЕНИЕ: Точный изолированный селектор для списков внутри цитат */
-  blockquote ul, blockquote li {
-    color: #a1a1aa !important;
-    white-space: nowrap !important;
-  }
-
-  /* ВСЕ ЭЛЕМЕНТЫ БЕЗ ПЕРЕНОСА */
-  * {
-    white-space: nowrap !important;
-  }
-
-  /* --- 6. ПОСЛЕДНИЙ ЭЛЕМЕНТ - ОТСТУП СПРАВА --- */
-  blockquote:last-child,
-  .markdown-preview blockquote:last-child,
-  blockquote > *:last-child,
-  li:last-child {
-    padding-right: 350px !important;
-  }
-
-  /* --- 7. АДАПТИВНЫЕ РАЗМЕРЫ ТЕКСТА --- */
-  @media screen and (max-width: 1200px) {
-    body {
-      font-size: 16px !important;
-      padding: 35px 50px !important;
-    }
-    blockquote h2, .markdown-preview h2, h2 {
-      font-size: 1.3em !important;
-    }
-    .markdown-preview h3, h3 {
-      font-size: 1.2em !important;
-    }
-    .markdown-preview code, code {
-      font-size: 0.95em !important;
-    }
-    blockquote:last-child,
-    .markdown-preview blockquote:last-child,
-    blockquote > *:last-child,
-    li:last-child {
-      padding-right: 300px !important;
-    }
-  }
-
-  @media screen and (max-width: 992px) {
-    body {
-      font-size: 15px !important;
-      padding: 30px 40px !important;
-    }
-    blockquote h2, .markdown-preview h2, h2 {
-      font-size: 1.2em !important;
-      margin: 10px 0 5px 0 !important;
-    }
-    .markdown-preview h3, h3 {
-      font-size: 1.1em !important;
-      margin: 18px 0 6px 0 !important;
-    }
-    .markdown-preview code, code {
-      font-size: 0.9em !important;
-      padding: 2px 6px !important;
-    }
-    blockquote {
-      padding-left: 10px !important;
-    }
-    blockquote:last-child,
-    .markdown-preview blockquote:last-child,
-    blockquote > *:last-child,
-    li:last-child {
-      padding-right: 250px !important;
-    }
-  }
-
-  @media screen and (max-width: 768px) {
-    body {
-      font-size: 14px !important;
-      padding: 25px 30px !important;
-    }
-    blockquote h2, .markdown-preview h2, h2 {
-      font-size: 1.1em !important;
-      margin: 8px 0 4px 0 !important;
-    }
-    .markdown-preview h3, h3 {
-      font-size: 1.0em !important;
-      margin: 15px 0 5px 0 !important;
-    }
-    .markdown-preview code, code {
-      font-size: 0.85em !important;
-      padding: 2px 5px !important;
-    }
-    blockquote {
-      padding-left: 8px !important;
-      margin: 3px 0 !important;
-    }
-    blockquote:last-child,
-    .markdown-preview blockquote:last-child,
-    blockquote > *:last-child,
-    li:last-child {
-      padding-right: 220px !important;
-    }
-  }
-
-  @media screen and (max-width: 480px) {
-    body {
-      font-size: 13px !important;
-      padding: 20px 25px !important;
-    }
-    blockquote h2, .markdown-preview h2, h2 {
-      font-size: 1.0em !important;
-      margin: 6px 0 3px 0 !important;
-    }
-    .markdown-preview h3, h3 {
-      font-size: 0.9em !important;
-      margin: 12px 0 4px 0 !important;
-    }
-    .markdown-preview code, code {
-      font-size: 0.8em !important;
-      padding: 1px 4px !important;
-    }
-    blockquote {
-      padding-left: 6px !important;
-      margin: 2px 0 !important;
-    }
-    blockquote:last-child,
-    .markdown-preview blockquote:last-child,
-    blockquote > *:last-child,
-    li:last-child {
-      padding-right: 250px !important;
-    }
-  }
-
-  @media screen and (max-width: 360px) {
-    body {
-      font-size: 12px !important;
-      padding: 15px 20px !important;
-    }
-    blockquote h2, .markdown-preview h2, h2 {
-      font-size: 0.9em !important;
-      margin: 5px 0 2px 0 !important;
-    }
-    .markdown-preview h3, h3 {
-      font-size: 0.8em !important;
-      margin: 10px 0 3px 0 !important;
-    }
-    .markdown-preview code, code {
-      font-size: 0.7em !important;
-      padding: 1px 3px !important;
-    }
-    blockquote {
-      padding-left: 5px !important;
-      margin: 2px 0 !important;
-    }
-    blockquote:last-child,
-    .markdown-preview blockquote:last-child,
-    blockquote > *:last-child,
-    li:last-child {
-      padding-right: 187px !important;
-    }
-  }
-
-  /* --- 8. СКРОЛЛБАР --- */
-  ::-webkit-scrollbar {
-    height: 10px !important;
-    width: 10px !important;
-  }
-
-  ::-webkit-scrollbar-track {
-    background: #2d2d2d !important;
-  }
-
-  ::-webkit-scrollbar-thumb {
-    background: #4fc1ff !important;
-    border-radius: 5px !important;
-  }
-
-  ::-webkit-scrollbar-thumb:hover {
-    background: #9cdcfe !important;
-  }
-
-  /* Для Firefox */
-  * {
-    scrollbar-width: thin !important;
-    scrollbar-color: #4fc1ff #2d2d2d !important;
-  }
-</style>
-
-"#;
+const MD_CSS: &str = include_str!("../assets/md_styles.css");
 
 const ENTRY_TEMPLATE: &str = "{{{md _value _key _depth}}}";
 
@@ -884,11 +616,14 @@ pub fn stringify_markdown(value: &Json) -> Result<String, String> {
     let mut reg = Handlebars::new();
     reg.register_escape_fn(handlebars::no_escape);
     reg.register_helper("md", Box::new(MdHelper));
+    
     let result = match value {
         Json::Object(_) | Json::Array(_) => render_entry(&reg, value, "", 0),
         _ => format_primitive_md(value),
     };
-    Ok(format!("{}{}", MD_CSS, result.trim()))
+    
+    // Стили вставляем здесь, в начало результата
+    Ok(format!("<span style=\"display:none\"></span>\n\n<style>{}</style>\n\n{}", MD_CSS, result.trim()))
 }
 
 
