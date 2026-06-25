@@ -1,5 +1,6 @@
+<!-- src/lib/components/convert/TargetFormatGrid.svelte -->
 <script lang="ts">
-  import type { Format } from '$lib/data/formats';
+  import type { Format } from '$lib/types/format';
 
   let {
     formats,

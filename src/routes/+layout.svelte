@@ -1,9 +1,11 @@
+<!-- src/routes/+layout.svelte -->
 <script lang="ts">
   import "../app.css";
   import SplashScreen from '$lib/components/SplashScreen.svelte';
   import { onMount } from 'svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { browser } from '$app/environment';
+  import { loadFormats } from '$lib/services/formats';
 
   let { children } = $props();
 
@@ -14,6 +16,9 @@
   let splashDone = $state(appReady);
 
   onMount(() => {
+    // Загружаем форматы ТОЛЬКО 1 раз при старте приложения
+    loadFormats();
+    
     if (!appReady) {
       invoke('app_ready').catch(console.error);
       
@@ -25,7 +30,6 @@
   
   async function setAppBackground() {
     try {
-      // oklch(0.18 0.06 295) ≈ rgb(20, 10, 41)
       await invoke('set_window_background', { r: 20, g: 10, b: 41, a: 255 });
     } catch (e) {
       console.warn('Failed to set background:', e);

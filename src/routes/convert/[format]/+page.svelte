@@ -1,8 +1,10 @@
+<!-- src/routes/convert/[format]/+page.svelte -->
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { ArrowLeft } from 'lucide-svelte';
-  import { formats, type Format } from '$lib/data/formats';
+  import { formats, selectedFormat } from '$lib/stores/formats';
+  import { getFormatById } from '$lib/services/formats';
   import { invoke } from '@tauri-apps/api/core';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import 'overlayscrollbars/overlayscrollbars.css';
@@ -13,19 +15,36 @@
   import FileDropZone from '$lib/components/convert/FileDropZone.svelte';
   import { save } from '@tauri-apps/plugin-dialog';
   import { writeTextFile } from '@tauri-apps/plugin-fs';
+  import { onMount } from 'svelte';
 
   const sourceFormatId: string = page.params.format!;
-  const sourceFormat: Format | undefined = formats.find(f => f.id === sourceFormatId);
-  const targetFormats = $derived(formats.filter(f => f.id !== sourceFormatId));
+  
+  let sourceFormat = $derived(
+    $selectedFormat || $formats.find(f => f.id === sourceFormatId)
+  );
+  
+  onMount(async () => {
+    if (!sourceFormat) {
+      const format = await getFormatById(sourceFormatId);
+      if (format) {
+        selectedFormat.set(format);
+        sourceFormat = format;
+      } else {
+        goto('/');
+      }
+    }
+  });
 
-  let selectedTarget = $state<Format | null>(null);
+  const targetFormats = $derived($formats.filter(f => f.id !== sourceFormatId));
+
+  let selectedTarget = $state<any | null>(null);
   let files = $state<{ path: string; name: string; id: string }[]>([]);
   let convertingFiles = $state<Set<string>>(new Set());
   let convertedFiles = $state<Map<string, string>>(new Map());
   let counter = $state(0);
 
   function goBack() { goto('/'); }
-  function selectTarget(format: Format) { selectedTarget = format; }
+  function selectTarget(format: any) { selectedTarget = format; }
   function handleFilesChange(newFiles: typeof files) { files = newFiles; }
 
   async function convertOne(index: number) {

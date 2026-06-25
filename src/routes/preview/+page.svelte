@@ -1,3 +1,4 @@
+<!-- src/routes/preview/+page.svelte -->
 <script lang="ts">
   import { onMount } from 'svelte';
   import * as monaco from 'monaco-editor';
@@ -5,20 +6,19 @@
 
   let monacoContainer = $state<HTMLElement>();
 
-function fixFindWidgetHeight() {
-  const findWidget = document.querySelector('.monaco-editor .find-widget') as HTMLElement;
-  if (!findWidget) return;
-  
-  const isReplaceToggled = findWidget.classList.contains('replaceToggled');
-  const currentHeight = parseInt(findWidget.style.height);
-  
-  if (isReplaceToggled) {
-    // Replace открыт
-    if (currentHeight <= 70) findWidget.style.height = '67px';
-  } else {
-    if (currentHeight <= 41) findWidget.style.height = '40px';
+  function fixFindWidgetHeight() {
+    const findWidget = document.querySelector('.monaco-editor .find-widget') as HTMLElement;
+    if (!findWidget) return;
+    
+    const isReplaceToggled = findWidget.classList.contains('replaceToggled');
+    const currentHeight = parseInt(findWidget.style.height);
+    
+    if (isReplaceToggled) {
+      if (currentHeight <= 70) findWidget.style.height = '67px';
+    } else {
+      if (currentHeight <= 41) findWidget.style.height = '40px';
+    }
   }
-}
 
   onMount(async () => {
     console.log('[Preview Page] Mounted');
@@ -146,17 +146,16 @@ function fixFindWidgetHeight() {
         let isMouseDown = false;
         let activeTextarea: HTMLTextAreaElement | null = null;
         let scrollInterval: number | null = null;
-        let scrollXDirection = 0; // -1 = влево, 1 = вправо, 0 = стоп
-        let scrollYDirection = 0; // -1 = вверх, 1 = вниз, 0 = стоп
+        let scrollXDirection = 0;
+        let scrollYDirection = 0;
 
         const startAutoscroll = () => {
           if (scrollInterval) return;
           scrollInterval = window.setInterval(() => {
             if (!activeTextarea) return;
-            // Двигаем горизонтальную и вертикальную оси независимо
             if (scrollXDirection !== 0) activeTextarea.scrollLeft += scrollXDirection * 8;
             if (scrollYDirection !== 0) activeTextarea.scrollTop += scrollYDirection * 6;
-          }, 16); // ~60 FPS
+          }, 16);
         };
 
         const stopAutoscroll = () => {
@@ -183,7 +182,6 @@ function fixFindWidgetHeight() {
             const rect = activeTextarea.getBoundingClientRect();
             let needsScroll = false;
 
-            // 1. Проверяем горизонтальные границы (Влево / Вправо)
             if (e.clientX > rect.right) {
               scrollXDirection = 1;
               needsScroll = true;
@@ -194,7 +192,6 @@ function fixFindWidgetHeight() {
               scrollXDirection = 0;
             }
 
-            // 2. Проверяем вертикальные границы (Вверх / Вниз)
             if (e.clientY > rect.bottom) {
               scrollYDirection = 1;
               needsScroll = true;
@@ -205,7 +202,6 @@ function fixFindWidgetHeight() {
               scrollYDirection = 0;
             }
 
-            // Запускаем или останавливаем таймер в зависимости от координат мыши
             if (needsScroll) {
               startAutoscroll();
             } else {

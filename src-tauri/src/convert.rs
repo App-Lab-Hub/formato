@@ -12,6 +12,7 @@ use indexmap::IndexMap;
 use serde_json::Map;
 use serde_json::{Value as Json, json};
 use crate::html_convert::convert_to_html;
+use crate::paths::converted_dir;
 use scraper::{Html, ElementRef}; 
 use serde_flattened::flatten_json_value::flatten::flattened;
 
@@ -44,11 +45,12 @@ pub fn save_to_app_dir(content: &str, original_path: &str, to: &str) -> Result<S
         "markdown" | "md" => "md",
         _ => "txt",
     };
-    let data_dir = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
-    let output_dir = data_dir.join("formato");
-    std::fs::create_dir_all(&output_dir).map_err(|e| format!("Cannot create directory: {e}"))?;
+    
+    // Используем converted_dir() из paths.rs
+    let output_dir = converted_dir();
     let output_path = output_dir.join(format!("{}.{}", stem, ext));
     std::fs::write(&output_path, content).map_err(|e| format!("Cannot write file: {e}"))?;
+    
     Ok(output_path.to_string_lossy().to_string())
 }
 
