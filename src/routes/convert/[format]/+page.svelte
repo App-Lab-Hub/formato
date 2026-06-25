@@ -25,9 +25,55 @@
   let loadError = $state<string | null>(null);
   let targetFormats = $state<Format[]>([]);
 
-  // Восстанавливаем выбранный таргет из sessionStorage
+  // Восстанавливаем состояние из sessionStorage
   let savedTargetId = browser ? sessionStorage.getItem('selectedTargetId') : null;
   let selectedTarget = $state<Format | null>(null);
+  
+  // Восстанавливаем файлы
+  let files = $state<{ path: string; name: string; id: string }[]>([]);
+  let convertedFiles = $state<Map<string, string>>(new Map());
+  let convertingFiles = $state<Set<string>>(new Set());
+  let counter = $state(0);
+
+  // Загружаем сохранённые файлы
+  function loadFilesFromStorage() {
+    if (!browser) return;
+    try {
+      const saved = sessionStorage.getItem('convertFiles');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        files = parsed;
+      }
+      
+      const savedConverted = sessionStorage.getItem('convertedFiles');
+      if (savedConverted) {
+        const parsed = JSON.parse(savedConverted);
+        convertedFiles = new Map(parsed);
+      }
+      
+      const savedCounter = sessionStorage.getItem('fileCounter');
+      if (savedCounter) {
+        counter = parseInt(savedCounter);
+      }
+    } catch (e) {
+      console.warn('Failed to load files from sessionStorage', e);
+    }
+  }
+
+  // Сохраняем файлы в sessionStorage
+  function saveFilesToStorage() {
+    if (!browser) return;
+    try {
+      sessionStorage.setItem('convertFiles', JSON.stringify(files));
+      sessionStorage.setItem('convertedFiles', JSON.stringify(Array.from(convertedFiles.entries())));
+      sessionStorage.setItem('fileCounter', String(counter));
+    } catch (e) {
+      console.warn('Failed to save files to sessionStorage', e);
+    }
+  }
+
+  // Загружаем сохранённые файлы при старте
+  loadFilesFromStorage();
 
   onMount(() => {
     // Если формат уже есть — показываем сразу
@@ -80,21 +126,23 @@
     }
   });
 
-  let files = $state<{ path: string; name: string; id: string }[]>([]);
-  let convertingFiles = $state<Set<string>>(new Set());
-  let convertedFiles = $state<Map<string, string>>(new Map());
-  let counter = $state(0);
+  // Сохраняем состояние при изменении
+  $effect(() => {
+    saveFilesToStorage();
+  });
 
   function goBack() { 
-    // Очищаем сохранённый таргет при выходе
+    // Очищаем sessionStorage при выходе
     if (browser) {
       sessionStorage.removeItem('selectedTargetId');
+      sessionStorage.removeItem('convertFiles');
+      sessionStorage.removeItem('convertedFiles');
+      sessionStorage.removeItem('fileCounter');
     }
     goto('/'); 
   }
   
   function selectTarget(format: Format) {
-    // Если кликнули на уже выбранный — снимаем выделение
     if (selectedTarget?.id === format.id) {
       selectedTarget = null;
       if (browser) {
@@ -103,14 +151,15 @@
       return;
     }
     
-    // Иначе выбираем новый
     selectedTarget = format;
     if (browser) {
       sessionStorage.setItem('selectedTargetId', format.id);
     }
   }
   
-  function handleFilesChange(newFiles: typeof files) { files = newFiles; }
+  function handleFilesChange(newFiles: typeof files) { 
+    files = newFiles; 
+  }
 
   async function convertOne(index: number) {
     const file = files[index];
@@ -120,13 +169,23 @@
       const result = await invoke<{ success: boolean; content: string; error: string | null }>(
         'convert_file', { path: file.path, from: sourceFormatId, to: selectedTarget.id }
       );
-      if (result.success) convertedFiles = new Map(convertedFiles.set(file.id, result.content));
+      if (result.success) {
+        convertedFiles = new Map(convertedFiles.set(file.id, result.content));
+      }
     } catch (e) { console.error(`Conversion failed: ${file.name}`, e); }
     finally { convertingFiles.delete(file.id); }
   }
 
   async function convertAll() { for (let i = 0; i < files.length; i++) await convertOne(i); }
-  function clearAll() { files = []; convertedFiles = new Map(); }
+  
+  function clearAll() { 
+    files = []; 
+    convertedFiles = new Map();
+    if (browser) {
+      sessionStorage.removeItem('convertFiles');
+      sessionStorage.removeItem('convertedFiles');
+    }
+  }
 
   async function downloadFile(fileId: string) {
     const savedPath = convertedFiles.get(fileId);
