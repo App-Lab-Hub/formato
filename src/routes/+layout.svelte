@@ -5,7 +5,7 @@
   import { onMount } from 'svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { browser } from '$app/environment';
-  import { loadFormats } from '$lib/services/formats';
+  import { loadFormatsData } from '$lib/data/formats';
 
   let { children } = $props();
 
@@ -16,8 +16,8 @@
   let splashDone = $state(appReady);
 
   onMount(() => {
-    // Загружаем форматы ТОЛЬКО 1 раз при старте приложения
-    loadFormats();
+    // Загружаем форматы 1 раз при старте
+    loadFormatsData();
     
     if (!appReady) {
       invoke('app_ready').catch(console.error);

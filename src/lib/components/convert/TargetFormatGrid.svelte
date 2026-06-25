@@ -25,8 +25,8 @@
     <button
       onclick={() => onselect(target)}
       class="cursor-pointer group flex flex-col items-center justify-center gap-4 rounded-2xl border-2 p-5 w-full aspect-[4/5] transition-all duration-300
-             {selectedTarget?.id === target.id ? 'border-primary bg-primary/5 scale-105' : 'border-border bg-card hover:border-primary/40 hover:scale-[1.02]'}
-             {target.glow} {selectedTarget?.id === target.id ? 'shadow-xl' : ''}"
+             {selectedTarget?.id === target.id ? 'border-primary bg-primary/5 scale-105 shadow-xl' : 'border-border bg-card hover:border-primary/40 hover:scale-[1.02]'}
+             {target.glow}"
     >
       <div class="relative rounded-2xl bg-gradient-to-br p-5 {target.color}">
         <div class="absolute inset-0 rounded-2xl bg-gradient-to-br opacity-30 blur-2xl {target.color}"></div>

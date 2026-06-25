@@ -4,7 +4,7 @@
   // @ts-ignore
   import '@splidejs/svelte-splide/css/sea-green';
   import '$lib/styles/splide.css';
-  import { formats, formatsLoading, formatsError, selectedFormat } from '$lib/stores/formats';
+  import { getFormats, isFormatsLoaded } from '$lib/data/formats';
   import { customScroll } from '$lib/actions/scroll';
   import { goto } from '$app/navigation';
   import { LoaderCircle } from 'lucide-svelte';
@@ -32,47 +32,28 @@
     }
   };
 
-  let showLoader = $state(true);
-  let loaderTimer: ReturnType<typeof setTimeout> | null = null;
-
-  let isLoading = $derived($formatsLoading);
-  let hasError = $derived($formatsError);
-  let hasFormats = $derived($formats.length > 0);
+  let formats = $state(getFormats());
+  let isLoading = $state(!isFormatsLoaded() && formats.length === 0);
 
   onMount(() => {
-    if (!isLoading) {
-      loaderTimer = setTimeout(() => {
-        showLoader = false;
-      }, 200);
-    }
-  });
-
-  $effect(() => {
-    if (!isLoading && !hasError && hasFormats) {
-      // Загрузка завершена — скрываем лоадер через 10 секунд (для теста)
-      if (loaderTimer) clearTimeout(loaderTimer);
-      loaderTimer = setTimeout(() => {
-        showLoader = false;
-      }, 200);
-    } else if (isLoading) {
-      // Загрузка началась — показываем лоадер
-      showLoader = true;
-      if (loaderTimer) {
-        clearTimeout(loaderTimer);
-        loaderTimer = null;
-      }
-    } else if (hasError) {
-      // Ошибка — скрываем лоадер
-      showLoader = false;
-      if (loaderTimer) {
-        clearTimeout(loaderTimer);
-        loaderTimer = null;
-      }
+    // Если данные ещё не загружены — ждём
+    if (!isFormatsLoaded() && formats.length === 0) {
+      const checkFormats = setInterval(() => {
+        const f = getFormats();
+        if (f.length > 0) {
+          formats = f;
+          isLoading = false;
+          clearInterval(checkFormats);
+        }
+      }, 100);
+      
+      return () => clearInterval(checkFormats);
+    } else {
+      isLoading = false;
     }
   });
 
   function goToConvert(format: any) {
-    selectedFormat.set(format);
     goto(`/convert/${format.id}`);
   }
 </script>
@@ -97,30 +78,18 @@
         </h2>
       </div>
 
-      <!-- Лоадер из lucide — показываем если загрузка идёт ИЛИ showLoader (для теста) -->
-      {#if isLoading || showLoader}
+      {#if isLoading}
         <div class="flex flex-col items-center justify-center gap-4 py-20">
           <LoaderCircle class="h-16 w-16 text-primary animate-spin" />
-          <span class="text-sm text-muted-foreground">
-            {#if isLoading}
-              Загрузка форматов...
-            {:else}
-              Подготовка...
-            {/if}
-          </span>
+          <span class="text-sm text-muted-foreground">Загрузка форматов...</span>
         </div>
-      {:else if hasError}
-        <div class="text-center text-red-400 py-10">
-          <p>Ошибка загрузки форматов</p>
-          <p class="text-sm text-muted-foreground">{hasError}</p>
-        </div>
-      {:else if hasFormats}
+      {:else if formats.length > 0}
         <Splide
           options={splideOptions}
           aria-label="Выбор формата"
           class="w-full max-w-[1700px] mx-auto"
         >
-          {#each $formats as format}
+          {#each formats as format}
             {@const Icon = format.icon}
             <SplideSlide>
               <div
@@ -142,7 +111,7 @@
             </SplideSlide>
           {/each}
         </Splide>
-      {:else if !hasFormats && !isLoading && !hasError}
+      {:else}
         <div class="text-center text-muted-foreground py-10">
           Нет доступных форматов
         </div>
