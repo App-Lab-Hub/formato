@@ -4,11 +4,8 @@
   // @ts-ignore
   import '@splidejs/svelte-splide/css/sea-green';
   import '$lib/styles/splide.css';
-  import { getFormats, isFormatsLoaded } from '$lib/data/formats';
-  import { customScroll } from '$lib/actions/scroll';
+  import { getFormats } from '$lib/data/formats';
   import { goto } from '$app/navigation';
-  import { LoaderCircle } from 'lucide-svelte';
-  import { onMount } from 'svelte';
 
   const splideOptions = {
     type: 'loop' as const,
@@ -32,33 +29,14 @@
     }
   };
 
-  let formats = $state(getFormats());
-  let isLoading = $state(!isFormatsLoaded() && formats.length === 0);
-
-  onMount(() => {
-    // Если данные ещё не загружены — ждём
-    if (!isFormatsLoaded() && formats.length === 0) {
-      const checkFormats = setInterval(() => {
-        const f = getFormats();
-        if (f.length > 0) {
-          formats = f;
-          isLoading = false;
-          clearInterval(checkFormats);
-        }
-      }, 100);
-      
-      return () => clearInterval(checkFormats);
-    } else {
-      isLoading = false;
-    }
-  });
+  let formats = getFormats();
 
   function goToConvert(format: any) {
     goto(`/convert/${format.id}`);
   }
 </script>
 
-<div class="h-screen w-screen overflow-hidden" use:customScroll>
+<div class="h-screen w-screen">
   <div class="flex flex-col bg-background text-foreground min-h-full">
     <main class="flex flex-col items-center gap-8 px-8 py-16">
 
@@ -78,12 +56,7 @@
         </h2>
       </div>
 
-      {#if isLoading}
-        <div class="flex flex-col items-center justify-center gap-4 py-20">
-          <LoaderCircle class="h-16 w-16 text-primary animate-spin" />
-          <span class="text-sm text-muted-foreground">Загрузка форматов...</span>
-        </div>
-      {:else if formats.length > 0}
+      {#if formats.length > 0}
         <Splide
           options={splideOptions}
           aria-label="Выбор формата"
