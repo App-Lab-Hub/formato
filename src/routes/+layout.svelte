@@ -1,6 +1,7 @@
 <!-- src/routes/+layout.svelte -->
 <script lang="ts">
   import "../app.css";
+  import "$lib/styles/scroll.css"; // ← добавить
   import SplashScreen from '$lib/components/SplashScreen.svelte';
   import { onMount } from 'svelte';
   import { invoke } from "@tauri-apps/api/core";

@@ -1,0 +1,45 @@
+/* src/lib/styles/scroll.css */
+
+/* Для Chrome, Safari, Edge */
+::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-track {
+  background: oklch(0.58 0.22 300 / 0.1) !important;
+  border-radius: 9999px !important;
+  margin: 4px 0 !important;
+}
+
+::-webkit-scrollbar-track:hover {
+  background: oklch(0.58 0.22 300 / 0.15) !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background: oklch(0.58 0.22 300 / 0.5) !important;
+  border-radius: 9999px !important;
+  border: 2px solid transparent !important;
+  background-clip: padding-box !important;
+  min-height: 40px !important;
+  transition: background 0.2s ease !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.58 0.22 300 / 0.7) !important;
+  border: 1px solid transparent !important;
+  background-clip: padding-box !important;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: oklch(0.58 0.22 300 / 0.9) !important;
+  border: 1px solid transparent !important;
+  background-clip: padding-box !important;
+}
+
+/* Для Firefox */
+* {
+  scrollbar-width: thin !important;
+  scrollbar-color: oklch(0.58 0.22 300 / 0.5) oklch(0.58 0.22 300 / 0.1) !important;
+}

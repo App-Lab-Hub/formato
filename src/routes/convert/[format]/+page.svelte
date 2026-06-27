@@ -7,7 +7,6 @@
   import { invoke } from '@tauri-apps/api/core';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   import 'overlayscrollbars/overlayscrollbars.css';
-  import { customScroll } from '$lib/actions/scroll';
   import TooltipProvider from '$lib/components/ui/tooltip/tooltip-provider.svelte';
   import SourceFormatHeader from '$lib/components/convert/SourceFormatHeader.svelte';
   import TargetFormatGrid from '$lib/components/convert/TargetFormatGrid.svelte';
@@ -257,9 +256,8 @@
   </div>
 {:else if sourceFormat}
   <TooltipProvider>
-    <div class="flex flex-col bg-background text-foreground h-screen" >
+    <div class="flex flex-col bg-background text-foreground h-screen px-0! mx-0!" >
       <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
-
         <button onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
           <ArrowLeft class="h-5 w-5" />
           <span class="text-sm">Back</span>
