@@ -16,6 +16,7 @@
   import { onMount } from 'svelte';
   import type { Format } from '$lib/types/format';
   import { browser } from '$app/environment';
+  import { customScroll } from '$lib/actions/scroll';
 
   const sourceFormatId: string = page.params.format!;
   
@@ -256,7 +257,7 @@
   </div>
 {:else if sourceFormat}
   <TooltipProvider>
-    <div class="flex flex-col bg-background text-foreground h-screen px-0! mx-0!" >
+    <div class="flex flex-col bg-background text-foreground h-screen px-0! mx-0!" use:customScroll>
       <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
         <button onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
           <ArrowLeft class="h-5 w-5" />
