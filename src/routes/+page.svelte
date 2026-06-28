@@ -38,13 +38,29 @@
   let splideInstance: any = null;
   let isRestoring = false;
 
-  function goToConvert(format: any) {
-    // Сохраняем индекс активного слайда перед переходом
-    if (splideInstance && browser) {
-      const index = splideInstance.index;
+  // Храним соответствие между индексом и форматом
+  const formatMap = new Map<number, any>();
+  formats.forEach((f, i) => formatMap.set(i, f));
+
+  // Функция для нормализации индекса (работает с отрицательными и большими числами)
+  function normalizeIndex(index: number): number {
+    if (index < 0) {
+      // Для отрицательных индексов (клон слева)
+      return (index % formats.length + formats.length) % formats.length;
+    } else {
+      // Для положительных индексов (включая клоны справа)
+      return index % formats.length;
+    }
+  }
+
+  function goToConvert(formatId: string, index: number) {
+    console.log('[goToConvert] Переход:', formatId, 'индекс:', index);
+    
+    if (browser && index >= 0) {
       sessionStorage.setItem(SPLIDE_INDEX_KEY, String(index));
     }
-    goto(`/convert/${format.id}`);
+    
+    goto(`/convert/${formatId}`);
   }
 
   function restoreSplidePosition() {
@@ -56,12 +72,8 @@
         const index = parseInt(savedIndex);
         if (index >= 0 && index < formats.length) {
           isRestoring = true;
-          
-          // Мгновенный переход без анимации
-          // Второй параметр 0 - это скорость анимации (0 = мгновенно)
           splideInstance.go(index, 0);
-          console.log('[Splide] Мгновенный переход к слайду:', index);
-          
+          console.log('[restoreSplidePosition] Восстанавливаем индекс:', index);
           isRestoring = false;
         }
       }
@@ -71,11 +83,8 @@
   }
 
   onMount(() => {
-    // Если при загрузке страницы есть сохраненный индекс - удаляем его
-    // чтобы при следующем входе на главную без перехода с convert было с начала
-    // Но только если мы не вернулись с convert
     const navigationType = performance?.navigation?.type;
-    if (navigationType === 1) { // TYPE_RELOAD - перезагрузка страницы
+    if (navigationType === 1) {
       sessionStorage.removeItem(SPLIDE_INDEX_KEY);
     }
   });
@@ -108,15 +117,31 @@
           class="w-full max-w-[1700px] mx-auto"
           on:mounted={(e) => {
             splideInstance = e.detail.splide;
-            // Восстанавливаем позицию сразу после монтирования
+            
+            // Подписываемся на событие click от Splide
+            if (splideInstance) {
+              splideInstance.on('click', (Slide: any, event: MouseEvent) => {
+                // Получаем индекс слайда (может быть отрицательным для клонов слева)
+                const slideIndex = Slide.index;
+                // Нормализуем индекс
+                const realIndex = normalizeIndex(slideIndex);
+                const format = formatMap.get(realIndex);
+                
+                console.log('[Splide click] Слайд индекс:', slideIndex, 'реальный:', realIndex, 'формат:', format?.id);
+                
+                if (format) {
+                  goToConvert(format.id, realIndex);
+                }
+              });
+            }
+            
             restoreSplidePosition();
           }}
         >
-          {#each formats as format}
+          {#each formats as format, index}
             {@const Icon = format.icon}
             <SplideSlide>
               <div
-                on:click={() => goToConvert(format)}
                 class="group block rounded-2xl border-2 border-border bg-card p-10 transition-all duration-300 hover:scale-[1.05] {format.borderHover} {format.glow} hover:shadow-2xl hover:-translate-y-2 mx-auto cursor-pointer"
                 style="max-width: 320px;"
               >
