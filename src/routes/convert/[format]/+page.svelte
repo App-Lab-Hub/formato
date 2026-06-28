@@ -20,13 +20,18 @@
 
   const sourceFormatId: string = page.params.format!;
   
+  // Генерация уникальных ключей для каждого формата в sessionStorage
+  function getStorageKey(base: string): string {
+    return `convert_${sourceFormatId}_${base}`;
+  }
+  
   let sourceFormat = $state<Format | undefined>(getFormatById(sourceFormatId));
   let isLoading = $state(!isFormatsLoaded() && !sourceFormat);
   let loadError = $state<string | null>(null);
   let targetFormats = $state<Format[]>([]);
 
   // Восстанавливаем состояние из sessionStorage
-  let savedTargetId = browser ? sessionStorage.getItem('selectedTargetId') : null;
+  let savedTargetId = browser ? sessionStorage.getItem(getStorageKey('selectedTargetId')) : null;
   let selectedTarget = $state<Format | null>(null);
   
   // Восстанавливаем файлы
@@ -39,19 +44,19 @@
   function loadFilesFromStorage() {
     if (!browser) return;
     try {
-      const saved = sessionStorage.getItem('convertFiles');
+      const saved = sessionStorage.getItem(getStorageKey('files'));
       if (saved) {
         const parsed = JSON.parse(saved);
         files = parsed;
       }
       
-      const savedConverted = sessionStorage.getItem('convertedFiles');
+      const savedConverted = sessionStorage.getItem(getStorageKey('converted'));
       if (savedConverted) {
         const parsed = JSON.parse(savedConverted);
         convertedFiles = new Map(parsed);
       }
       
-      const savedCounter = sessionStorage.getItem('fileCounter');
+      const savedCounter = sessionStorage.getItem(getStorageKey('counter'));
       if (savedCounter) {
         counter = parseInt(savedCounter);
       }
@@ -64,9 +69,9 @@
   function saveFilesToStorage() {
     if (!browser) return;
     try {
-      sessionStorage.setItem('convertFiles', JSON.stringify(files));
-      sessionStorage.setItem('convertedFiles', JSON.stringify(Array.from(convertedFiles.entries())));
-      sessionStorage.setItem('fileCounter', String(counter));
+      sessionStorage.setItem(getStorageKey('files'), JSON.stringify(files));
+      sessionStorage.setItem(getStorageKey('converted'), JSON.stringify(Array.from(convertedFiles.entries())));
+      sessionStorage.setItem(getStorageKey('counter'), String(counter));
     } catch (e) {
       console.warn('Failed to save files to sessionStorage', e);
     }
@@ -132,13 +137,8 @@
   });
 
   function goBack() { 
-    // Очищаем sessionStorage при выходе
-    if (browser) {
-      sessionStorage.removeItem('selectedTargetId');
-      sessionStorage.removeItem('convertFiles');
-      sessionStorage.removeItem('convertedFiles');
-      sessionStorage.removeItem('fileCounter');
-    }
+    // НЕ ОЧИЩАЕМ данные при выходе!
+    // Они сохранятся в sessionStorage до закрытия приложения
     goto('/'); 
   }
   
@@ -146,14 +146,14 @@
     if (selectedTarget?.id === format.id) {
       selectedTarget = null;
       if (browser) {
-        sessionStorage.removeItem('selectedTargetId');
+        sessionStorage.removeItem(getStorageKey('selectedTargetId'));
       }
       return;
     }
     
     selectedTarget = format;
     if (browser) {
-      sessionStorage.setItem('selectedTargetId', format.id);
+      sessionStorage.setItem(getStorageKey('selectedTargetId'), format.id);
     }
   }
   
@@ -182,8 +182,8 @@
     files = []; 
     convertedFiles = new Map();
     if (browser) {
-      sessionStorage.removeItem('convertFiles');
-      sessionStorage.removeItem('convertedFiles');
+      sessionStorage.removeItem(getStorageKey('files'));
+      sessionStorage.removeItem(getStorageKey('converted'));
     }
   }
 
