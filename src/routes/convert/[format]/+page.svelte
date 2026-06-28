@@ -16,88 +16,54 @@
   import { onMount } from 'svelte';
   import type { Format } from '$lib/types/format';
   import { browser } from '$app/environment';
-  import { customScroll } from '$lib/actions/scroll';
+  import ScrollContainer from '$lib/components/ScrollContainer.svelte';
+  import { getConvertStore, clearConvertStore } from '$lib/stores/convertStore';
 
   const sourceFormatId: string = page.params.format!;
   
-  // Генерация уникальных ключей для каждого формата в sessionStorage
-  function getStorageKey(base: string): string {
-    return `convert_${sourceFormatId}_${base}`;
-  }
+  const convertStore = getConvertStore(sourceFormatId);
   
   let sourceFormat = $state<Format | undefined>(getFormatById(sourceFormatId));
   let isLoading = $state(!isFormatsLoaded() && !sourceFormat);
   let loadError = $state<string | null>(null);
   let targetFormats = $state<Format[]>([]);
 
-  // Восстанавливаем состояние из sessionStorage
-  let savedTargetId = browser ? sessionStorage.getItem(getStorageKey('selectedTargetId')) : null;
   let selectedTarget = $state<Format | null>(null);
-  
-  // Восстанавливаем файлы
   let files = $state<{ path: string; name: string; id: string }[]>([]);
   let convertedFiles = $state<Map<string, string>>(new Map());
   let convertingFiles = $state<Set<string>>(new Set());
   let counter = $state(0);
 
-  // Загружаем сохранённые файлы
-  function loadFilesFromStorage() {
-    if (!browser) return;
-    try {
-      const saved = sessionStorage.getItem(getStorageKey('files'));
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        files = parsed;
-      }
-      
-      const savedConverted = sessionStorage.getItem(getStorageKey('converted'));
-      if (savedConverted) {
-        const parsed = JSON.parse(savedConverted);
-        convertedFiles = new Map(parsed);
-      }
-      
-      const savedCounter = sessionStorage.getItem(getStorageKey('counter'));
-      if (savedCounter) {
-        counter = parseInt(savedCounter);
-      }
-    } catch (e) {
-      console.warn('Failed to load files from sessionStorage', e);
-    }
-  }
+  onMount(() => {
+    const unsubscribe = convertStore.subscribe(state => {
+      selectedTarget = state.selectedTarget;
+      files = state.files;
+      convertedFiles = state.convertedFiles;
+      convertingFiles = state.convertingFiles;
+      counter = state.counter;
+    });
 
-  // Сохраняем файлы в sessionStorage
-  function saveFilesToStorage() {
-    if (!browser) return;
-    try {
-      sessionStorage.setItem(getStorageKey('files'), JSON.stringify(files));
-      sessionStorage.setItem(getStorageKey('converted'), JSON.stringify(Array.from(convertedFiles.entries())));
-      sessionStorage.setItem(getStorageKey('counter'), String(counter));
-    } catch (e) {
-      console.warn('Failed to save files to sessionStorage', e);
-    }
-  }
+    return () => unsubscribe();
+  });
 
-  // Загружаем сохранённые файлы при старте
-  loadFilesFromStorage();
+  $effect(() => {
+    convertStore.update(state => ({
+      ...state,
+      selectedTarget,
+      files,
+      convertedFiles,
+      convertingFiles,
+      counter,
+    }));
+  });
 
   onMount(() => {
-    // Если формат уже есть — показываем сразу
     if (sourceFormat) {
       targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
-      
-      // Восстанавливаем выбранный таргет
-      if (savedTargetId) {
-        const found = targetFormats.find(f => f.id === savedTargetId);
-        if (found) {
-          selectedTarget = found;
-        }
-      }
-      
       isLoading = false;
       return;
     }
 
-    // Если данные ещё не загружены — ждём
     if (!isFormatsLoaded()) {
       const checkFormats = setInterval(() => {
         if (isFormatsLoaded()) {
@@ -105,15 +71,6 @@
           if (f) {
             sourceFormat = f;
             targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
-            
-            // Восстанавливаем выбранный таргет
-            if (savedTargetId) {
-              const found = targetFormats.find(f => f.id === savedTargetId);
-              if (found) {
-                selectedTarget = found;
-              }
-            }
-            
             isLoading = false;
           } else {
             loadError = `Формат "${sourceFormatId}" не найден`;
@@ -125,36 +82,22 @@
       
       return () => clearInterval(checkFormats);
     } else {
-      // Данные загружены, но формат не найден
       loadError = `Формат "${sourceFormatId}" не найден`;
       isLoading = false;
     }
   });
 
-  // Сохраняем состояние при изменении
-  $effect(() => {
-    saveFilesToStorage();
-  });
-
   function goBack() { 
-    // НЕ ОЧИЩАЕМ данные при выходе!
-    // Они сохранятся в sessionStorage до закрытия приложения
+    clearConvertStore(sourceFormatId);
     goto('/'); 
   }
   
   function selectTarget(format: Format) {
     if (selectedTarget?.id === format.id) {
       selectedTarget = null;
-      if (browser) {
-        sessionStorage.removeItem(getStorageKey('selectedTargetId'));
-      }
       return;
     }
-    
     selectedTarget = format;
-    if (browser) {
-      sessionStorage.setItem(getStorageKey('selectedTargetId'), format.id);
-    }
   }
   
   function handleFilesChange(newFiles: typeof files) { 
@@ -181,10 +124,6 @@
   function clearAll() { 
     files = []; 
     convertedFiles = new Map();
-    if (browser) {
-      sessionStorage.removeItem(getStorageKey('files'));
-      sessionStorage.removeItem(getStorageKey('converted'));
-    }
   }
 
   async function downloadFile(fileId: string) {
@@ -244,47 +183,48 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-{#if isLoading}
-  <div class="flex items-center justify-center h-screen bg-background">
-    <LoaderCircle class="h-16 w-16 text-primary animate-spin" />
-  </div>
-{:else if loadError}
-  <div class="flex flex-col items-center justify-center h-screen bg-background gap-4">
-    <p class="text-red-400 text-xl">{loadError}</p>
-    <button onclick={() => goto('/')} class="text-primary hover:underline text-sm">
-      Вернуться на главную
-    </button>
-  </div>
-{:else if sourceFormat}
+<ScrollContainer>
   <TooltipProvider>
-    <div class="flex flex-col bg-background text-foreground h-screen px-0! mx-0!">
-      <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
-        <button onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
-          <ArrowLeft class="h-5 w-5" />
-          <span class="text-sm">Back</span>
-        </button>
+    <div class="flex flex-col bg-background text-foreground min-h-screen">
+      {#if isLoading}
+        <div class="flex items-center justify-center flex-1">
+          <LoaderCircle class="h-16 w-16 text-primary animate-spin" />
+        </div>
+      {:else if loadError}
+        <div class="flex flex-col items-center justify-center flex-1 gap-4">
+          <p class="text-red-400 text-xl">{loadError}</p>
+          <button onclick={() => goto('/')} class="text-primary hover:underline text-sm">
+            Вернуться на главную
+          </button>
+        </div>
+      {:else if sourceFormat}
+        <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
+          <button onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
+            <ArrowLeft class="h-5 w-5" />
+            <span class="text-sm">Back</span>
+          </button>
 
-        <SourceFormatHeader format={sourceFormat} />
-        <TargetFormatGrid formats={targetFormats} {selectedTarget} onselect={selectTarget} />
-        
-        <FileDropZone
-          sourceFormatId={sourceFormatId}
-          sourceFormatName={sourceFormat?.name ?? ''}
-          sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
-          {selectedTarget}
-          {files}
-          {convertingFiles}
-          {convertedFiles}
-          {counter}
-          onfileschange={handleFilesChange}
-          onconvertone={convertOne}
-          onconvertall={convertAll}
-          onclearall={clearAll}
-          onpreview={previewFileFn}
-          ondownload={downloadFile}
-        />
-
-      </main>
+          <SourceFormatHeader format={sourceFormat} />
+          <TargetFormatGrid formats={targetFormats} {selectedTarget} onselect={selectTarget} />
+          
+          <FileDropZone
+            sourceFormatId={sourceFormatId}
+            sourceFormatName={sourceFormat?.name ?? ''}
+            sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
+            {selectedTarget}
+            {files}
+            {convertingFiles}
+            {convertedFiles}
+            {counter}
+            onfileschange={handleFilesChange}
+            onconvertone={convertOne}
+            onconvertall={convertAll}
+            onclearall={clearAll}
+            onpreview={previewFileFn}
+            ondownload={downloadFile}
+          />
+        </main>
+      {/if}
     </div>
   </TooltipProvider>
-{/if}
+</ScrollContainer>

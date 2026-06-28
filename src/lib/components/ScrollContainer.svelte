@@ -14,7 +14,7 @@
     try {
       const all = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
       const path = window.location.pathname;
-      const key = path === '/' ? 'main' : path.replace(/\//g, '_');
+      const key = path.replace(/\//g, '_') || 'root';
       return all[key] ?? 0;
     } catch {
       return 0;
@@ -25,7 +25,7 @@
     try {
       const all = JSON.parse(sessionStorage.getItem(STORAGE_KEY) || '{}');
       const path = window.location.pathname;
-      const key = path === '/' ? 'main' : path.replace(/\//g, '_');
+      const key = path.replace(/\//g, '_') || 'root';
       all[key] = y;
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(all));
     } catch {}
@@ -41,13 +41,29 @@
     }
   }
 
+  function getMaxScroll(): number {
+    if (!instance || instance.state().destroyed) return 0;
+    try {
+      const el = instance.elements().scrollOffsetElement;
+      if (!el) return 0;
+      return Math.max(0, el.scrollHeight - el.clientHeight);
+    } catch {
+      return 0;
+    }
+  }
+
   function restorePosition() {
     const y = getSavedPosition();
+    const maxY = getMaxScroll();
+    
     if (instance && !instance.state().destroyed) {
       try {
         const el = instance.elements().scrollOffsetElement;
-        if (el) {
-          el.scrollTop = y;
+        if (el && y > 0 && maxY > 0) {
+          const targetY = Math.min(y, maxY);
+          if (Math.abs(el.scrollTop - targetY) > 5) {
+            el.scrollTop = targetY;
+          }
         }
       } catch {}
     }
@@ -67,16 +83,21 @@
       if (saveTimeout) clearTimeout(saveTimeout);
       saveTimeout = window.setTimeout(() => {
         const y = getCurrentPosition();
-        savePosition(y);
+        if (y > 0) {
+          savePosition(y);
+        }
       }, 200);
     });
 
-    restorePosition();
+    // Восстанавливаем без задержки, но после рендера
+    requestAnimationFrame(() => {
+      restorePosition();
+    });
   });
 
   onDestroy(() => {
     const y = getCurrentPosition();
-    savePosition(y);
+    if (y > 0) savePosition(y);
     if (saveTimeout) clearTimeout(saveTimeout);
     instance?.destroy();
   });
@@ -84,8 +105,7 @@
 
 <div 
   bind:this={container} 
-  class="h-full w-full"
-  style="overflow: hidden; height: 100vh; width: 100vw;"
+  class="h-screen w-screen overflow-hidden"
 >
   <slot />
 </div>
