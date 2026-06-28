@@ -7,6 +7,10 @@
   import { getFormats } from '$lib/data/formats';
   import { goto } from '$app/navigation';
   import { customScroll } from '$lib/actions/scroll';
+  import { browser } from '$app/environment';
+  import { onMount } from 'svelte';
+
+  const SPLIDE_INDEX_KEY = 'splide_active_index';
 
   const splideOptions = {
     type: 'loop' as const,
@@ -31,10 +35,50 @@
   };
 
   let formats = getFormats();
+  let splideInstance: any = null;
+  let isRestoring = false;
 
   function goToConvert(format: any) {
+    // Сохраняем индекс активного слайда перед переходом
+    if (splideInstance && browser) {
+      const index = splideInstance.index;
+      sessionStorage.setItem(SPLIDE_INDEX_KEY, String(index));
+    }
     goto(`/convert/${format.id}`);
   }
+
+  function restoreSplidePosition() {
+    if (!splideInstance || isRestoring) return;
+    
+    try {
+      const savedIndex = sessionStorage.getItem(SPLIDE_INDEX_KEY);
+      if (savedIndex) {
+        const index = parseInt(savedIndex);
+        if (index >= 0 && index < formats.length) {
+          isRestoring = true;
+          
+          // Мгновенный переход без анимации
+          // Второй параметр 0 - это скорость анимации (0 = мгновенно)
+          splideInstance.go(index, 0);
+          console.log('[Splide] Мгновенный переход к слайду:', index);
+          
+          isRestoring = false;
+        }
+      }
+    } catch (e) {
+      isRestoring = false;
+    }
+  }
+
+  onMount(() => {
+    // Если при загрузке страницы есть сохраненный индекс - удаляем его
+    // чтобы при следующем входе на главную без перехода с convert было с начала
+    // Но только если мы не вернулись с convert
+    const navigationType = performance?.navigation?.type;
+    if (navigationType === 1) { // TYPE_RELOAD - перезагрузка страницы
+      sessionStorage.removeItem(SPLIDE_INDEX_KEY);
+    }
+  });
 </script>
 
 <div class="h-screen w-screen" use:customScroll>
@@ -62,6 +106,11 @@
           options={splideOptions}
           aria-label="Выбор формата"
           class="w-full max-w-[1700px] mx-auto"
+          on:mounted={(e) => {
+            splideInstance = e.detail.splide;
+            // Восстанавливаем позицию сразу после монтирования
+            restoreSplidePosition();
+          }}
         >
           {#each formats as format}
             {@const Icon = format.icon}
