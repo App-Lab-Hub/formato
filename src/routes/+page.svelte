@@ -6,9 +6,9 @@
   import '$lib/styles/splide.css';
   import { getFormats } from '$lib/data/formats';
   import { goto } from '$app/navigation';
-  import { customScroll } from '$lib/actions/scroll';
   import { browser } from '$app/environment';
   import { onMount } from 'svelte';
+  import ScrollContainer from '$lib/components/ScrollContainer.svelte';
 
   const SPLIDE_INDEX_KEY = 'splide_active_index';
 
@@ -38,17 +38,13 @@
   let splideInstance: any = null;
   let isRestoring = false;
 
-  // Храним соответствие между индексом и форматом
   const formatMap = new Map<number, any>();
   formats.forEach((f, i) => formatMap.set(i, f));
 
-  // Функция для нормализации индекса (работает с отрицательными и большими числами)
   function normalizeIndex(index: number): number {
     if (index < 0) {
-      // Для отрицательных индексов (клон слева)
       return (index % formats.length + formats.length) % formats.length;
     } else {
-      // Для положительных индексов (включая клоны справа)
       return index % formats.length;
     }
   }
@@ -68,6 +64,8 @@
     
     try {
       const savedIndex = sessionStorage.getItem(SPLIDE_INDEX_KEY);
+      console.log('[restoreSplidePosition] Сохраненный индекс:', savedIndex);
+      
       if (savedIndex) {
         const index = parseInt(savedIndex);
         if (index >= 0 && index < formats.length) {
@@ -83,14 +81,19 @@
   }
 
   onMount(() => {
+    console.log('[onMount] Главная страница загружена');
+    
     const navigationType = performance?.navigation?.type;
+    console.log('[onMount] Тип навигации:', navigationType);
+    
     if (navigationType === 1) {
       sessionStorage.removeItem(SPLIDE_INDEX_KEY);
     }
   });
 </script>
 
-<div class="h-screen w-screen" use:customScroll>
+<!-- Используем компонент-обертку вместо use:customScroll -->
+<ScrollContainer>
   <div class="flex flex-col bg-background text-foreground min-h-full">
     <main class="flex flex-col items-center gap-8 px-8 py-16">
 
@@ -116,14 +119,13 @@
           aria-label="Выбор формата"
           class="w-full max-w-[1700px] mx-auto"
           on:mounted={(e) => {
+            console.log('[Splide] on:mounted событие');
             splideInstance = e.detail.splide;
+            console.log('[Splide] Экземпляр получен:', !!splideInstance);
             
-            // Подписываемся на событие click от Splide
             if (splideInstance) {
               splideInstance.on('click', (Slide: any, event: MouseEvent) => {
-                // Получаем индекс слайда (может быть отрицательным для клонов слева)
                 const slideIndex = Slide.index;
-                // Нормализуем индекс
                 const realIndex = normalizeIndex(slideIndex);
                 const format = formatMap.get(realIndex);
                 
@@ -166,4 +168,4 @@
       {/if}
     </main>
   </div>
-</div>
+</ScrollContainer>

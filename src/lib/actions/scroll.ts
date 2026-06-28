@@ -5,7 +5,7 @@ import {
 } from "overlayscrollbars";
 import "overlayscrollbars/overlayscrollbars.css";
 
-const SCROLL_STORAGE_KEY = "scroll_position";
+const SCROLL_STORAGE_KEY_PREFIX = "scroll_pos_";
 
 export function customScroll(node: HTMLElement) {
   let instance: OverlayScrollbarsType | undefined;
@@ -19,6 +19,13 @@ export function customScroll(node: HTMLElement) {
   let restoreTimeoutId: number | null = null;
   // Флаг, что восстановление уже было выполнено
   let hasRestored = false;
+
+  // Определяем текущий путь и создаем уникальный ключ
+  const currentPath = window.location.pathname;
+  // Для главной страницы используем 'main', для остальных - путь без слешей
+  const pageKey =
+    currentPath === "/" ? "main" : currentPath.replace(/\//g, "_");
+  const storageKey = `${SCROLL_STORAGE_KEY_PREFIX}${pageKey}`;
 
   // Инициализация
   instance = OverlayScrollbars(node, {
@@ -70,7 +77,7 @@ export function customScroll(node: HTMLElement) {
     try {
       const y = getScrollPosition();
       if (y >= 0) {
-        sessionStorage.setItem(SCROLL_STORAGE_KEY, String(y));
+        sessionStorage.setItem(storageKey, String(y));
         currentScrollY = y;
       }
     } catch (e) {
@@ -100,7 +107,7 @@ export function customScroll(node: HTMLElement) {
     }
 
     try {
-      const saved = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+      const saved = sessionStorage.getItem(storageKey);
 
       if (saved) {
         const y = parseFloat(saved);
@@ -168,7 +175,7 @@ export function customScroll(node: HTMLElement) {
             }
 
             restoreTimeoutId = null;
-          }, 300); // Уменьшил задержку до 300ms
+          }, 300);
         }
       }
     } catch (e) {
@@ -244,6 +251,13 @@ export function customScroll(node: HTMLElement) {
   setTimeout(() => {
     restoreScrollPosition();
   }, 1000);
+
+  // Для главной страницы дополнительные попытки (ждем загрузку карусели)
+  if (currentPath === "/") {
+    setTimeout(() => {
+      restoreScrollPosition();
+    }, 2000);
+  }
 
   return {
     destroy() {
