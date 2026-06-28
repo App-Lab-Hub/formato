@@ -7,6 +7,7 @@
   let container: HTMLElement;
   let instance: any;
   let saveTimeout: number | null = null;
+  let isRestoring = false;
 
   const STORAGE_KEY = 'scroll_positions';
 
@@ -59,10 +60,14 @@
     if (instance && !instance.state().destroyed) {
       try {
         const el = instance.elements().scrollOffsetElement;
-        if (el && y > 0 && maxY > 0) {
+        if (el && y >= 0 && maxY > 0) {
           const targetY = Math.min(y, maxY);
           if (Math.abs(el.scrollTop - targetY) > 5) {
+            isRestoring = true;
             el.scrollTop = targetY;
+            setTimeout(() => {
+              isRestoring = false;
+            }, 100);
           }
         }
       } catch {}
@@ -83,21 +88,19 @@
       if (saveTimeout) clearTimeout(saveTimeout);
       saveTimeout = window.setTimeout(() => {
         const y = getCurrentPosition();
-        if (y > 0) {
+        // Сохраняем любую позицию, если это не процесс восстановления
+        if (!isRestoring) {
           savePosition(y);
         }
       }, 200);
     });
 
-    // Восстанавливаем без задержки, но после рендера
     requestAnimationFrame(() => {
       restorePosition();
     });
   });
 
   onDestroy(() => {
-    const y = getCurrentPosition();
-    if (y > 0) savePosition(y);
     if (saveTimeout) clearTimeout(saveTimeout);
     instance?.destroy();
   });
