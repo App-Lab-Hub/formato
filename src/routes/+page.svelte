@@ -6,6 +6,7 @@
   import '$lib/styles/splide.css';
   import { getFormats } from '$lib/data/formats';
   import { goto } from '$app/navigation';
+  import { customScroll } from '$lib/actions/scroll';
 
   const splideOptions = {
     type: 'loop' as const,
@@ -36,7 +37,7 @@
   }
 </script>
 
-<div class="h-screen w-screen">
+<div class="h-screen w-screen" use:customScroll>
   <div class="flex flex-col bg-background text-foreground min-h-full">
     <main class="flex flex-col items-center gap-8 px-8 py-16">
 
