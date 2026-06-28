@@ -7,6 +7,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { browser } from '$app/environment';
   import { loadFormatsData } from '$lib/data/formats';
+  import ScrollContainer from "$lib/components/ScrollContainer.svelte";
 
   let { children } = $props();
 
@@ -50,6 +51,7 @@
 {#if showSplash && !splashDone}
   <SplashScreen onComplete={onSplashComplete} />
 {/if}
+
 
 <div class="bg-background text-foreground">
   {@render children?.()}

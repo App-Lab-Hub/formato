@@ -50,12 +50,9 @@
   }
 
   function goToConvert(formatId: string, index: number) {
-    console.log('[goToConvert] Переход:', formatId, 'индекс:', index);
-    
     if (browser && index >= 0) {
       sessionStorage.setItem(SPLIDE_INDEX_KEY, String(index));
     }
-    
     goto(`/convert/${formatId}`);
   }
 
@@ -64,14 +61,11 @@
     
     try {
       const savedIndex = sessionStorage.getItem(SPLIDE_INDEX_KEY);
-      console.log('[restoreSplidePosition] Сохраненный индекс:', savedIndex);
-      
       if (savedIndex) {
         const index = parseInt(savedIndex);
         if (index >= 0 && index < formats.length) {
           isRestoring = true;
           splideInstance.go(index, 0);
-          console.log('[restoreSplidePosition] Восстанавливаем индекс:', index);
           isRestoring = false;
         }
       }
@@ -81,18 +75,13 @@
   }
 
   onMount(() => {
-    console.log('[onMount] Главная страница загружена');
-    
     const navigationType = performance?.navigation?.type;
-    console.log('[onMount] Тип навигации:', navigationType);
-    
     if (navigationType === 1) {
       sessionStorage.removeItem(SPLIDE_INDEX_KEY);
     }
   });
 </script>
 
-<!-- Используем компонент-обертку вместо use:customScroll -->
 <ScrollContainer>
   <div class="flex flex-col bg-background text-foreground min-h-full">
     <main class="flex flex-col items-center gap-8 px-8 py-16">
@@ -119,17 +108,13 @@
           aria-label="Выбор формата"
           class="w-full max-w-[1700px] mx-auto"
           on:mounted={(e) => {
-            console.log('[Splide] on:mounted событие');
             splideInstance = e.detail.splide;
-            console.log('[Splide] Экземпляр получен:', !!splideInstance);
             
             if (splideInstance) {
-              splideInstance.on('click', (Slide: any, event: MouseEvent) => {
+              splideInstance.on('click', (Slide: any) => {
                 const slideIndex = Slide.index;
                 const realIndex = normalizeIndex(slideIndex);
                 const format = formatMap.get(realIndex);
-                
-                console.log('[Splide click] Слайд индекс:', slideIndex, 'реальный:', realIndex, 'формат:', format?.id);
                 
                 if (format) {
                   goToConvert(format.id, realIndex);
