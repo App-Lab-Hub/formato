@@ -4,6 +4,9 @@
   "description": "",
   "type": "module",
   "scripts": {
+    "copy-deps": "cp package.json static/ && cp src-tauri/Cargo.toml static/",
+    "predev": "npm run copy-deps",
+    "prebuild": "npm run copy-deps",
     "dev": "vite dev",
     "build": "vite build",
     "preview": "vite preview",
