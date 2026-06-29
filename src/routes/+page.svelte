@@ -9,6 +9,7 @@
   import { browser } from '$app/environment';
   import { onMount } from 'svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
+  import { Settings, Info } from 'lucide-svelte';
 
   const SPLIDE_INDEX_KEY = 'splide_active_index';
 
@@ -86,11 +87,29 @@
   <div class="flex flex-col bg-background text-foreground min-h-full">
     <main class="flex flex-col items-center gap-3 px-8 py-16">
 
-<img
-  src="/favicon.svg"
-  alt="Formato logo"
-  class="w-24 h-24 sm:w-28 sm:h-28"
-/>
+      <!-- Шапка с навигацией -->
+      <div class="w-full max-w-[1700px] flex justify-end gap-4 px-4 mb-4">
+        <button 
+          onclick={() => goto('/about')}
+          class="flex items-center gap-2 text-muted-foreground/60 hover:text-primary transition-colors text-sm"
+        >
+          <Info class="h-4 w-4" />
+          <span>О нас</span>
+        </button>
+        <button 
+          onclick={() => goto('/settings')}
+          class="flex items-center gap-2 text-muted-foreground/60 hover:text-primary transition-colors text-sm"
+        >
+          <Settings class="h-4 w-4" />
+          <span>Настройки</span>
+        </button>
+      </div>
+
+      <img
+        src="/favicon.svg"
+        alt="Formato logo"
+        class="w-24 h-24 sm:w-28 sm:h-28"
+      />
 
       <div class="text-center max-w-2xl">
         <p class="text-sm sm:text-base text-muted-foreground/60 tracking-wide">
@@ -151,6 +170,24 @@
           Нет доступных форматов
         </div>
       {/if}
+
+      <!-- Нижняя навигация -->
+      <div class="mt-8 flex gap-6 text-xs text-muted-foreground/40">
+        <button 
+          onclick={() => goto('/about')}
+          class="hover:text-primary/60 transition-colors"
+        >
+          О приложении
+        </button>
+        <button 
+          onclick={() => goto('/settings')}
+          class="hover:text-primary/60 transition-colors"
+        >
+          Настройки
+        </button>
+        <span>v0.1.0</span>
+      </div>
+
     </main>
   </div>
 </ScrollContainer>
