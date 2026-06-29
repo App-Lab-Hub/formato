@@ -84,13 +84,13 @@
 
 <ScrollContainer>
   <div class="flex flex-col bg-background text-foreground min-h-full">
-    <main class="flex flex-col items-center gap-8 px-8 py-16">
+    <main class="flex flex-col items-center gap-3 px-8 py-16">
 
-      <img
-        src="/logo.svg"
-        alt="Formato logo"
-        class="w-16 h-16 sm:w-20 sm:h-20"
-      />
+<img
+  src="/favicon.svg"
+  alt="Formato logo"
+  class="w-24 h-24 sm:w-28 sm:h-28"
+/>
 
       <div class="text-center max-w-2xl">
         <p class="text-sm sm:text-base text-muted-foreground/60 tracking-wide">
