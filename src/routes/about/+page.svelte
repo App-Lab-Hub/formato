@@ -114,21 +114,24 @@
             </div>
           </div>
 
-          <!-- Стек технологий -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8 mb-8">
-            <div class="flex items-center gap-3 mb-4">
-              <Code class="h-5 w-5 text-primary" />
-              <h2 class="text-xl font-semibold">Стек технологий</h2>
-            </div>
-            <div class="flex flex-wrap gap-3">
-              <span class="px-4 py-2 bg-primary/10 rounded-full text-sm text-primary border border-primary/20">Tauri</span>
-              <span class="px-4 py-2 bg-cyan-500/10 rounded-full text-sm text-cyan-400 border border-cyan-400/20">Rust</span>
-              <span class="px-4 py-2 bg-yellow-500/10 rounded-full text-sm text-yellow-400 border border-yellow-400/20">SvelteKit</span>
-              <span class="px-4 py-2 bg-blue-500/10 rounded-full text-sm text-blue-400 border border-blue-400/20">TypeScript</span>
-              <span class="px-4 py-2 bg-purple-500/10 rounded-full text-sm text-purple-400 border border-purple-400/20">Tailwind CSS</span>
-              <span class="px-4 py-2 bg-pink-500/10 rounded-full text-sm text-pink-400 border border-pink-400/20">OverlayScrollbars</span>
-            </div>
+        <!-- Стек технологий -->
+        <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8 mb-8">
+          <div class="flex items-center gap-3 mb-4">
+            <Code class="h-5 w-5 text-primary" />
+            <h2 class="text-xl font-semibold">Стек технологий</h2>
           </div>
+          <div class="flex flex-wrap gap-3">
+            <span class="px-4 py-2 bg-primary/10 rounded-full text-sm text-primary border border-primary/20">Tauri</span>
+            <span class="px-4 py-2 bg-cyan-500/10 rounded-full text-sm text-cyan-400 border border-cyan-400/20">Rust</span>
+            <span class="px-4 py-2 bg-yellow-500/10 rounded-full text-sm text-yellow-400 border border-yellow-400/20">SvelteKit</span>
+            <span class="px-4 py-2 bg-blue-500/10 rounded-full text-sm text-blue-400 border border-blue-400/20">TypeScript</span>
+            <span class="px-4 py-2 bg-purple-500/10 rounded-full text-sm text-purple-400 border border-purple-400/20">Tailwind CSS</span>
+            <span class="px-4 py-2 bg-pink-500/10 rounded-full text-sm text-pink-400 border border-pink-400/20">OverlayScrollbars</span>
+            <span class="px-4 py-2 bg-orange-500/10 rounded-full text-sm text-orange-400 border border-orange-400/20">Monaco Editor</span>
+            <span class="px-4 py-2 bg-green-500/10 rounded-full text-sm text-green-400 border border-green-400/20">Lucide Icons</span>
+            <span class="px-4 py-2 bg-red-500/10 rounded-full text-sm text-red-400 border border-red-400/20">Splide</span>
+          </div>
+        </div>
 
           <!-- Технические детали / Зависимости -->
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8 mb-8">
