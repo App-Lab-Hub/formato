@@ -1,7 +1,7 @@
 <!-- src/routes/about/+page.svelte -->
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { ArrowLeft, Info, Zap, Shield, Users, Code, Sparkles } from 'lucide-svelte';
+  import { ArrowLeft, Info, Zap, Shield, Users, Code, Sparkles, Package } from 'lucide-svelte';
   // @ts-ignore
   import { FaGithub } from 'svelte-icons/fa';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
@@ -54,6 +54,7 @@
         </div>
 
         <div class="max-w-4xl mx-auto">
+          <!-- О приложении -->
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8 mb-8">
             <div class="flex items-center gap-3 mb-4">
               <Info class="h-5 w-5 text-primary" />
@@ -70,6 +71,7 @@
             </p>
           </div>
 
+          <!-- Преимущества -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <div class="bg-card/30 backdrop-blur-sm rounded-xl border border-border p-6">
               <div class="flex items-center gap-3 mb-3">
@@ -112,6 +114,7 @@
             </div>
           </div>
 
+          <!-- Стек технологий -->
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8 mb-8">
             <div class="flex items-center gap-3 mb-4">
               <Code class="h-5 w-5 text-primary" />
@@ -127,6 +130,25 @@
             </div>
           </div>
 
+          <!-- Технические детали / Зависимости -->
+          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8 mb-8">
+            <div class="flex items-center gap-3 mb-4">
+              <Package class="h-5 w-5 text-primary" />
+              <h2 class="text-xl font-semibold">Технические детали</h2>
+            </div>
+            <p class="text-muted-foreground leading-relaxed mb-4">
+              Посмотрите полное дерево зависимостей проекта — все NPM и Cargo пакеты, используемые в Formato.
+            </p>
+            <a 
+              href="/dependencies" 
+              class="inline-flex items-center gap-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 rounded-lg text-primary transition-colors border border-primary/20"
+            >
+              <Package class="h-4 w-4" />
+              <span>Посмотреть зависимости</span>
+            </a>
+          </div>
+
+          <!-- GitHub -->
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8">
             <div class="flex items-center gap-3 mb-4">
               <div class="h-5 w-5 text-primary">
