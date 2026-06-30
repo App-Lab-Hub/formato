@@ -1,4 +1,3 @@
-<!-- src/routes/+page.svelte -->
 <script lang="ts">
   import { Splide, SplideSlide } from '@splidejs/svelte-splide';
   // @ts-ignore
@@ -9,34 +8,33 @@
   import { browser } from '$app/environment';
   import { onMount } from 'svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
-  import { Settings, Info, Heart } from 'lucide-svelte';
-  // @ts-ignore
-  import { FaGithub } from 'svelte-icons/fa';
+  import Header from '$lib/components/Header.svelte';
+  import Footer from '$lib/components/Footer.svelte';
 
   const SPLIDE_INDEX_KEY = 'splide_active_index';
 
-const splideOptions = {
-  type: 'loop' as const,
-  perPage: 3,
-  perMove: 1,
-  gap: '2rem',
-  padding: '2rem',
-  pagination: true,
-  arrows: false,
-  wheel: true,
-  waitForTransition: false,
-  wheelSleep: 100,
-  wheelMinThreshold: 1,
-  focus: 'center' as const,
-  trimSpace: true,
-  omitEnd: true,
-  speed: 300,
-  breakpoints: {
-    1200: { perPage: 3, gap: '1.75rem', padding: '1.5rem' },
-    900:  { perPage: 2, gap: '1.75rem', padding: '1.25rem' },
-    650:  { perPage: 1, gap: '1.25rem', padding: '1rem' },
-  }
-};
+  const splideOptions = {
+    type: 'loop' as const,
+    perPage: 3,
+    perMove: 1,
+    gap: '2rem',
+    padding: '2rem',
+    pagination: true,
+    arrows: false,
+    wheel: true,
+    waitForTransition: false,
+    wheelSleep: 100,
+    wheelMinThreshold: 1,
+    focus: 'center' as const,
+    trimSpace: true,
+    omitEnd: true,
+    speed: 300,
+    breakpoints: {
+      1200: { perPage: 3, gap: '1.75rem', padding: '1.5rem' },
+      900:  { perPage: 2, gap: '1.75rem', padding: '1.25rem' },
+      650:  { perPage: 1, gap: '1.25rem', padding: '1rem' },
+    }
+  };
 
   let formats = getFormats();
   let splideInstance: any = null;
@@ -88,66 +86,34 @@ const splideOptions = {
 
 <ScrollContainer>
   <div class="min-h-full flex flex-col bg-background text-foreground">
-    <!-- HEADER -->
-    <header class="w-full border-b border-border/30 bg-background/50 backdrop-blur-sm">
-      <div class="flex justify-between items-center px-4 sm:px-6 py-3 max-w-[1700px] mx-auto">
-        <div class="flex items-center gap-2.5">
-          <img
-            src="/favicon.svg"
-            alt="Formato"
-            class="w-7 h-7 sm:w-9 sm:h-9 opacity-80"
-          />
-          <span class="text-sm sm:text-base font-medium text-muted-foreground/60">Formato</span>
-        </div>
-        <div class="flex items-center gap-1.5 sm:gap-2">
-          <a 
-            href="/about" 
-            class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm text-muted-foreground/60 hover:text-primary hover:bg-primary/10 transition-all duration-200"
-          >
-            <Info class="h-3.5 w-3.5" />
-            <span class="hidden sm:inline">О нас</span>
-          </a>
-          <a 
-            href="/settings" 
-            class="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm text-muted-foreground/60 hover:text-primary hover:bg-primary/10 transition-all duration-200"
-          >
-            <Settings class="h-3.5 w-3.5" />
-            <span class="hidden sm:inline">Настройки</span>
-          </a>
-        </div>
-      </div>
-    </header>
+    <Header />
     
-    <!-- MAIN CONTENT -->
     <main class="flex-1 flex flex-col items-center justify-start w-full max-w-[1700px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
       <div class="w-full">
-        <!-- Логотип и заголовок -->
-        <div class="text-center mb-6 sm:mb-8">
-          <div class="relative inline-block mb-3">
+        <div class="text-center mb-8 sm:mb-10">
+          <div class="relative inline-block mb-4">
             <div class="absolute inset-0 blur-2xl bg-gradient-to-r from-cyan-400/20 via-purple-400/20 to-pink-400/20 rounded-full"></div>
             <img
               src="/favicon.svg"
               alt="Formato logo"
-              class="relative w-20 h-20 sm:w-28 sm:h-28 mx-auto transition-transform hover:scale-105 duration-300"
+              class="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto transition-transform hover:scale-105 duration-300"
             />
           </div>
-          
-          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+                  
+        <h1 class="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight mb-3">
+          <span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
             Formato
-          </h1>
-          <p class="text-xs sm:text-sm text-muted-foreground/60 max-w-md mx-auto">
+          </span>
+        </h1>
+          
+          <div class="mt-3 h-px w-20 sm:w-28 mx-auto bg-gradient-to-r from-transparent via-purple-400/40 to-transparent"></div>
+
+          <p class="mt-3 text-sm sm:text-base text-purple-300/50 max-w-md mx-auto font-light tracking-wide">
             Универсальный конвертер данных — быстро, локально, без лишнего
           </p>
-          <div class="mt-3 h-px w-20 sm:w-28 mx-auto bg-gradient-to-r from-transparent via-border to-transparent"></div>
-          <h2 class="mt-3 text-sm sm:text-base lg:text-lg font-light tracking-[0.3em] uppercase bg-gradient-to-r from-primary to-primary/50 bg-clip-text text-transparent">
-            Convert from
-          </h2>
         </div>
-
-        <!-- Карусель -->
         {#if formats.length > 0}
           <Splide
-          
             options={splideOptions}
             aria-label="Выбор формата"
             class="w-full"
@@ -198,51 +164,6 @@ const splideOptions = {
       </div>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="w-full border-t border-border/30 bg-background/50 backdrop-blur-sm mt-auto">
-      <div class="flex flex-col sm:flex-row items-center justify-between gap-2 px-4 sm:px-6 py-3 max-w-[1700px] mx-auto">
-        <div class="flex items-center gap-3 text-xs sm:text-sm text-muted-foreground/40">
-          <span>v0.1.0</span>
-          <span class="hidden sm:inline">•</span>
-          <span class="flex items-center gap-2">
-            Сделано с <Heart class="h-3 w-3 text-red-400/60 fill-red-400/20" />
-          </span>
-        </div>
-        <div class="flex items-center gap-2 text-xs sm:text-sm">
-          <a 
-            href="/about" 
-            class="text-muted-foreground/40 hover:text-primary/70 transition-colors duration-200"
-          >
-            О нас
-          </a>
-          <span class="text-muted-foreground/20">|</span>
-          <a 
-            href="/settings" 
-            class="text-muted-foreground/40 hover:text-primary/70 transition-colors duration-200"
-          >
-            Настройки
-          </a>
-          <span class="text-muted-foreground/20">|</span>
-          <a 
-            href="/dependencies" 
-            class="text-muted-foreground/40 hover:text-primary/70 transition-colors duration-200"
-          >
-            Зависимости
-          </a>
-          <span class="text-muted-foreground/20">|</span>
-          <a 
-            href="https://github.com/yourusername/formato" 
-            target="_blank"
-            rel="noopener noreferrer"
-            class="flex items-center gap-1 text-muted-foreground/40 hover:text-primary/70 transition-colors duration-200"
-          >
-            <div class="h-3.5 w-3.5">
-              <FaGithub />
-            </div>
-            <span>GitHub</span>
-          </a>
-        </div>
-      </div>
-    </footer>
+    <Footer />
   </div>
-</ScrollContainer> 
+</ScrollContainer>
