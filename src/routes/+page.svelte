@@ -87,7 +87,7 @@ const splideOptions = {
 </script>
 
 <ScrollContainer>
-  <div class="min-h-screen flex flex-col bg-background text-foreground">
+  <div class="min-h-full flex flex-col bg-background text-foreground">
     <!-- HEADER -->
     <header class="w-full border-b border-border/30 bg-background/50 backdrop-blur-sm">
       <div class="flex justify-between items-center px-4 sm:px-6 py-3 max-w-[1700px] mx-auto">
@@ -119,7 +119,7 @@ const splideOptions = {
     </header>
     
     <!-- MAIN CONTENT -->
-    <main class="flex-1 flex flex-col items-center justify-center w-full max-w-[1700px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
+    <main class="flex-1 flex flex-col items-center justify-start w-full max-w-[1700px] mx-auto px-4 sm:px-6 py-4 sm:py-8">
       <div class="w-full">
         <!-- Логотип и заголовок -->
         <div class="text-center mb-6 sm:mb-8">
