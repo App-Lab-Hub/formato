@@ -173,17 +173,17 @@ const splideOptions = {
               {@const Icon = format.icon}
               <SplideSlide>
                 <div
-                  class="group block rounded-2xl border-2 border-border bg-card/50 backdrop-blur-sm p-6 sm:p-10 transition-all duration-300 hover:scale-[1.05] {format.borderHover} {format.glow} hover:shadow-2xl hover:-translate-y-2 mx-auto cursor-pointer"
+                  class="group block rounded-2xl border-2 border-border bg-card/50 backdrop-blur-sm p-10 transition-all duration-300 hover:scale-[1.05] {format.borderHover} {format.glow} hover:shadow-2xl hover:-translate-y-2 mx-auto cursor-pointer"
                   style="max-width: 320px;"
                 >
-                  <div class="flex flex-col items-center gap-4 sm:gap-6 text-center">
-                    <div class="relative rounded-3xl bg-gradient-to-br p-6 sm:p-8 {format.color}">
+                  <div class="flex flex-col items-center gap-6 text-center">
+                    <div class="relative rounded-3xl bg-gradient-to-br p-8 {format.color}">
                       <div class="absolute inset-0 rounded-3xl bg-gradient-to-br opacity-30 blur-2xl {format.color}"></div>
-                      <Icon class="relative h-14 w-14 sm:h-16 sm:w-16 {format.textColor}" />
+                      <Icon class="relative h-16 w-16 {format.textColor}" />
                     </div>
                     <div class="w-full min-w-0">
-                      <h3 class="text-lg sm:text-xl lg:text-2xl font-bold">{format.name}</h3>
-                      <p class="mt-1.5 text-xs sm:text-sm text-muted-foreground truncate">{format.description}</p>
+                      <h3 class="text-xl lg:text-2xl font-bold">{format.name}</h3>
+                      <p class="mt-1.5 text-sm text-muted-foreground truncate">{format.description}</p>
                     </div>
                   </div>
                 </div>
