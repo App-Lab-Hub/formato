@@ -69,13 +69,16 @@
 
       <div class="w-full max-w-[1700px]">
         <div class="text-center mb-12">
-          <h1 class="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Настройки
+          <h1 class="text-3xl sm:text-4xl font-bold mb-3">
+            <span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Настройки
+            </span>
           </h1>
+          <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-border to-transparent"></div>
           <p class="text-muted-foreground/60 text-sm mt-2">
             Настройте приложение под себя
           </p>
-          <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-border to-transparent"></div>
+          
         </div>
 
         <div class="space-y-6 max-w-3xl mx-auto">

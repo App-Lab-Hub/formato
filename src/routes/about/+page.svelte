@@ -7,6 +7,7 @@
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { onMount } from 'svelte';
   import { getFormats } from '$lib/data/formats';
+  import FormatoLogo from '$lib/components/FormatoLogo.svelte';
 
   let formats = getFormats();
 
@@ -38,21 +39,7 @@
       </div>
 
       <div class="w-full max-w-[1700px]">
-        <div class="text-center mb-12">
-          <img
-            src="/favicon.svg"
-            alt="Formato logo"
-            class="w-20 h-20 mx-auto mb-4"
-          />
-          <h1 class="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Formato
-          </h1>
-          <p class="text-muted-foreground/60 text-lg mt-2">
-            Универсальный конвертер данных
-          </p>
-          <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-border to-transparent"></div>
-        </div>
-
+        <FormatoLogo/>
         <div class="max-w-4xl mx-auto">
           <!-- О приложении -->
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8 mb-8">
@@ -177,7 +164,7 @@
           </div>
 
           <div class="text-center mt-8 text-xs text-muted-foreground/40">
-            v0.1.0 • Сделано с ❤️
+            v0.1.0
           </div>
         </div>
       </div>
