@@ -1,12 +1,15 @@
 /* src/lib/styles/splide.css */
+.splide {
+  padding: 5px !important;
+}
 
 .splide__track {
   padding-top: 1rem;
-  padding-bottom: 3rem;
+  padding-bottom: 3.5rem;
 }
 
 .splide__pagination {
-  bottom: 0.5rem;
+  /* bottom: 3.5rem; */
   gap: 0.5rem;
   display: flex;
 }
