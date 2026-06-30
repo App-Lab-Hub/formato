@@ -109,7 +109,7 @@
           <div class="mt-3 h-px w-20 sm:w-28 mx-auto bg-gradient-to-r from-transparent via-purple-400/40 to-transparent"></div>
 
           <p class="mt-3 text-sm sm:text-base text-purple-300/50 max-w-md mx-auto font-light tracking-wide">
-            Универсальный конвертер данных — быстро, локально, без лишнего
+            Универсальный конвертер данных
           </p>
         </div>
         {#if formats.length > 0}
