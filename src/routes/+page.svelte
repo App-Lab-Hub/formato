@@ -33,10 +33,8 @@ const splideOptions = {
   speed: 300,
   breakpoints: {
     1200: { perPage: 3, gap: '1.75rem', padding: '1.5rem' },
-    // 900:  { perPage: 2, gap: '2rem', padding: '1rem' },
-    900:  { perPage: 2 },
-
-    600:  { perPage: 1, gap: '1.25rem', padding: '0.75rem' },
+    900:  { perPage: 2, gap: '1.75rem', padding: '1.25rem' },
+    650:  { perPage: 1, gap: '1.25rem', padding: '1rem' },
   }
 };
 
