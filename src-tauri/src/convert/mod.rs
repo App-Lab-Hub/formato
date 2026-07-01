@@ -3,24 +3,29 @@ mod csv;
 mod xml;
 mod ini;
 mod md;
-
+use crate::AppState;
 use serde::{ Serialize};
 use std::{path::PathBuf};
 
+use std::fs::File;
+use std::io::Read;
+use xxhash_rust::xxh3::Xxh3;
 
 use serde_json::{Value as Json};
 use crate::convert::csv::{parse_csv, stringify_csv};
 use crate::convert::ini::{parse_ini, stringify_ini};
 use crate::convert::md::{parse_markdown, stringify_markdown};
 use crate::convert::xml::{parse_xml, stringify_xml};
+use crate::db;
 use crate::html_convert::{convert_to_html,parse_html};
 use crate::paths::converted_dir;
-
+use memmap2::Mmap;
 
 #[derive(Debug, Serialize)]
 pub struct ConvertResult {
     pub success: bool,
     pub content: String,
+    pub hash: Option<String>,
     pub error: Option<String>,
 }
 
@@ -42,11 +47,74 @@ pub fn save_to_app_dir(content: &str, original_path: &str, to: &str) -> Result<S
     Ok(output_path.to_string_lossy().to_string())
 }
 
+
 #[tauri::command]
-pub fn convert_file(path: String, from: String, to: String) -> Result<ConvertResult, String> {
-    let output = convert(&path, &from, &to)?;
+pub async fn convert_file(
+    state: tauri::State<'_, AppState>,
+    path: String,
+    from: String,
+    to: String,
+) -> Result<ConvertResult, String> {
+    let input_hash = calculate_conversion_hash(&path, &from, &to)
+        .map_err(|e| format!("Cannot read file: {e}"))?;
+    
+    let db_guard = state.db.lock().await;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    
+    if let Some(existing_path) = db::find_conversion(db, &input_hash).await {
+        return Ok(ConvertResult {
+            success: true,
+            content: existing_path,
+            hash: Some(input_hash),
+            error: None,
+        });
+    }
+    
+    let (path_clone, from_clone, to_clone) = (path.clone(), from.clone(), to.clone());
+    let output = tokio::task::spawn_blocking(move || {
+        convert(&path_clone, &from_clone, &to_clone)
+    }).await.map_err(|e| format!("Task join error: {e}"))??;
+    
     let saved_path = save_to_app_dir(&output, &path, &to)?;
-    Ok(ConvertResult { success: true, content: saved_path, error: None })
+    
+    db::save_conversion(db, &input_hash, &saved_path).await?;
+    
+    Ok(ConvertResult {
+        success: true,
+        content: saved_path,
+        hash: Some(input_hash),
+        error: None,
+    })
+}
+
+
+fn calculate_conversion_hash(path: &str, from: &str, to: &str) -> std::io::Result<String> {
+    let file = File::open(path)?;
+    let mut hasher = Xxh3::new();
+
+    // Пробуем mmap
+    match unsafe { Mmap::map(&file) } {
+        Ok(mmap) => {
+            hasher.update(&mmap);
+        }
+        Err(_) => {
+            // Fallback на буфер
+            let mut file = file;
+            let mut buffer = [0; 65536];
+            loop {
+                let bytes_read = file.read(&mut buffer)?;
+                if bytes_read == 0 {
+                    break;
+                }
+                hasher.update(&buffer[..bytes_read]);
+            }
+        }
+    }
+
+    hasher.update(from.as_bytes());
+    hasher.update(to.as_bytes());
+
+    Ok(format!("{:x}", hasher.digest()))
 }
 
 // ============================================================

@@ -113,79 +113,6 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
     Ok(())
 }
 
-// ============================================================
-// CRUD ДЛЯ КОНВЕРТАЦИЙ
-// ============================================================
-
-pub async fn save_conversion(
-    db: &DatabaseConnection,
-    file_hash: &str,
-    original_format: &str,
-    target_format: &str,
-    original_path: &str,
-    converted_path: &str,
-    content: &str,
-) -> Result<(), DbErr> {
-    let now = chrono::Utc::now();
-    
-    let new_conv = ConversionActiveModel {
-        file_hash: Set(file_hash.to_string()),
-        original_format: Set(original_format.to_string()),
-        target_format: Set(target_format.to_string()),
-        original_path: Set(original_path.to_string()),
-        converted_path: Set(converted_path.to_string()),
-        content: Set(content.to_string()),
-        created_at: Set(now),
-        ..Default::default()
-    };
-    
-    new_conv.insert(db).await?;
-    println!("✅ Conversion saved: {} -> {}", original_format, target_format);
-    Ok(())
-}
-
-pub async fn get_conversion(
-    db: &DatabaseConnection,
-    file_hash: &str,
-    target_format: &str,
-) -> Result<Option<ConversionModel>, DbErr> {
-    let conv = Conversions::find()
-        .filter(ConversionColumn::FileHash.eq(file_hash))
-        .filter(ConversionColumn::TargetFormat.eq(target_format))
-        .one(db)
-        .await?;
-    
-    Ok(conv)
-}
-
-pub async fn get_conversions_by_hash(
-    db: &DatabaseConnection,
-    file_hash: &str,
-) -> Result<Vec<ConversionModel>, DbErr> {
-    let convs = Conversions::find()
-        .filter(ConversionColumn::FileHash.eq(file_hash))
-        .all(db)
-        .await?;
-    
-    Ok(convs)
-}
-
-pub async fn delete_conversion(
-    db: &DatabaseConnection,
-    id: i32,
-) -> Result<(), DbErr> {
-    let conv = Conversions::find_by_id(id)
-        .one(db)
-        .await?;
-    
-    if let Some(model) = conv {
-        let am: ConversionActiveModel = model.into();
-        am.delete(db).await?;
-        println!("✅ Conversion deleted: id={}", id);
-    }
-    
-    Ok(())
-}
 
 // ============================================================
 // CRUD ДЛЯ ФОРМАТОВ (экспортируемые функции)
@@ -205,4 +132,45 @@ pub async fn get_format_by_id(
         .filter(FormatColumn::FormatId.eq(format_id))
         .one(db)
         .await
+}
+
+
+
+
+
+
+
+// src/db/conversions.rs
+
+use chrono::Utc;
+use crate::db::models::conversions;
+use conversions::{Entity, Column};
+pub async fn find_conversion(
+    db: &DatabaseConnection,
+    file_hash: &str,
+) -> Option<String> {
+  
+    
+    let result = Entity::find()
+        .filter(Column::FileHash.eq(file_hash))
+        .one(db)
+        .await
+        .ok()??;
+    
+    Some(result.converted_path)
+}
+
+pub async fn save_conversion(
+    db: &DatabaseConnection,
+    file_hash: &str,
+    converted_path: &str,
+) -> Result<(), String> {
+    let model = conversions::ActiveModel {
+        file_hash: Set(file_hash.to_string()),
+        converted_path: Set(converted_path.to_string()),
+        created_at: Set(Utc::now()),
+    };
+    
+    model.insert(db).await.map_err(|e| format!("DB insert error: {e}"))?;
+    Ok(())
 }
