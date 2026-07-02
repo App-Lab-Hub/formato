@@ -1,7 +1,7 @@
 // src-tauri/src/paths.rs
 
 use std::path::PathBuf;
-use dirs;
+// use dirs;
 
 const APP_NAME: &str = "formato";
 

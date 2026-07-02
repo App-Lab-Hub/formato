@@ -49,11 +49,9 @@ pub fn run() {
         
         // Setup
         .setup(|app| {
-            // ✅ Клонируем app_handle ДО spawn
             let app_handle = app.handle().clone();
             
-            // Инициализируем БД в фоне при старте
-            tauri::async_runtime::spawn(async move {
+            tauri::async_runtime::block_on(async {
                 match db::db_init().await {
                     Ok(db) => {
                         let state = app_handle.state::<AppState>();
