@@ -3,23 +3,22 @@
 // See: https://svelte.dev/docs/kit/single-page-apps
 // See: https://v2.tauri.app/start/frontend/sveltekit/ for more info
 export const ssr = false;
-export const prerender = false; // Важно для динамических приложений в Tauri
+export const prerender = false;
 
-// src/routes/+layout.ts
 import {
   loadFormatsData,
   getFormats,
   isFormatsLoaded,
 } from "$lib/data/formats";
+import { loadSettings, getSettings } from "$lib/data/settings";
 import type { LayoutLoad } from "./$types";
 
 export const load: LayoutLoad = async () => {
-  // Загружаем форматы ДО рендера
-  if (!isFormatsLoaded()) {
-    await loadFormatsData();
-  }
+  if (!isFormatsLoaded()) await loadFormatsData();
+  await loadSettings();
 
   return {
     formats: getFormats(),
+    settings: getSettings(),
   };
 };

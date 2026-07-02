@@ -6,6 +6,7 @@ mod macros;
 mod db;
 mod paths;
 mod utils;
+mod settings;
 
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
@@ -45,6 +46,9 @@ pub fn run() {
             utils::get_db_status,
             utils::get_formats,
             utils::get_format_by_id,
+            // settings
+            settings::get_settings,
+            settings::save_settings,
         ])
         
         // Setup
