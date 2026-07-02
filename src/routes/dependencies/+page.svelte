@@ -17,64 +17,53 @@
   let npmAnimating = $state(false);
   let cargoAnimating = $state(false);
 
-  function toggleNpm() {
-    if (npmAnimating || !npmContent) return;
-    npmAnimating = true;
-    const content = npmContent;
-    
-    if (npmOpen) {
-      content.style.height = content.scrollHeight + 'px';
-      animate(content, { height: [content.scrollHeight, 0], opacity: [1, 0] }, { duration: 0.3, easing: 'ease-in-out' }).finished.then(() => {
-        npmOpen = false;
-        content.style.height = '0';
-        content.style.opacity = '0';
-        npmAnimating = false;
-      });
-    } else {
-      npmOpen = true;
-      content.style.height = '0';
-      content.style.opacity = '0';
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          animate(content, { height: [0, content.scrollHeight], opacity: [0, 1] }, { duration: 0.3, easing: 'ease-out' }).finished.then(() => {
-            content.style.height = 'auto';
-            content.style.opacity = '1';
-            npmAnimating = false;
-          });
-        });
-      });
-    }
+function toggleNpm() {
+  if (npmAnimating || !npmContent) return;
+  npmAnimating = true;
+  const content = npmContent;
+  
+  if (npmOpen) {
+    animate(content, 
+      { height: [content.scrollHeight, 0], opacity: [1, 0] }, 
+      { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
+    ).finished.then(() => {
+      npmOpen = false;
+      npmAnimating = false;
+    });
+  } else {
+    npmOpen = true;
+    animate(content, 
+      { height: [0, content.scrollHeight], opacity: [0, 1] }, 
+      { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
+    ).finished.then(() => {
+      npmAnimating = false;
+    });
   }
+}
 
-  function toggleCargo() {
-    if (cargoAnimating || !cargoContent) return;
-    cargoAnimating = true;
-    const content = cargoContent;
-    
-    if (cargoOpen) {
-      content.style.height = content.scrollHeight + 'px';
-      animate(content, { height: [content.scrollHeight, 0], opacity: [1, 0] }, { duration: 0.3, easing: 'ease-in-out' }).finished.then(() => {
-        cargoOpen = false;
-        content.style.height = '0';
-        content.style.opacity = '0';
-        cargoAnimating = false;
-      });
-    } else {
-      cargoOpen = true;
-      content.style.height = '0';
-      content.style.opacity = '0';
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          animate(content, { height: [0, content.scrollHeight], opacity: [0, 1] }, { duration: 0.3, easing: 'ease-out' }).finished.then(() => {
-            content.style.height = 'auto';
-            content.style.opacity = '1';
-            cargoAnimating = false;
-          });
-        });
-      });
-    }
+function toggleCargo() {
+  if (cargoAnimating || !cargoContent) return;
+  cargoAnimating = true;
+  const content = cargoContent;
+  
+  if (cargoOpen) {
+    animate(content, 
+      { height: [content.scrollHeight, 0], opacity: [1, 0] }, 
+      { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
+    ).finished.then(() => {
+      cargoOpen = false;
+      cargoAnimating = false;
+    });
+  } else {
+    cargoOpen = true;
+    animate(content, 
+      { height: [0, content.scrollHeight], opacity: [0, 1] }, 
+      { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
+    ).finished.then(() => {
+      cargoAnimating = false;
+    });
   }
-
+}
   function goBack() { goto('/'); }
 
   function hasDependencies(group: any[]): boolean { return group && group.length > 0; }
