@@ -22,16 +22,16 @@ function toggleNpm() {
   npmAnimating = true;
   const content = npmContent;
   
-  if (npmOpen) {
+  npmOpen = !npmOpen;
+  
+  if (!npmOpen) {
     animate(content, 
       { height: [content.scrollHeight, 0], opacity: [1, 0] }, 
       { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
     ).finished.then(() => {
-      npmOpen = false;
       npmAnimating = false;
     });
   } else {
-    npmOpen = true;
     animate(content, 
       { height: [0, content.scrollHeight], opacity: [0, 1] }, 
       { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
@@ -46,16 +46,16 @@ function toggleCargo() {
   cargoAnimating = true;
   const content = cargoContent;
   
-  if (cargoOpen) {
+  cargoOpen = !cargoOpen;
+  
+  if (!cargoOpen) {
     animate(content, 
       { height: [content.scrollHeight, 0], opacity: [1, 0] }, 
       { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
     ).finished.then(() => {
-      cargoOpen = false;
       cargoAnimating = false;
     });
   } else {
-    cargoOpen = true;
     animate(content, 
       { height: [0, content.scrollHeight], opacity: [0, 1] }, 
       { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
@@ -64,6 +64,7 @@ function toggleCargo() {
     });
   }
 }
+
   function goBack() { goto('/'); }
 
   function hasDependencies(group: any[]): boolean { return group && group.length > 0; }
@@ -151,7 +152,7 @@ function toggleCargo() {
                       {getNpmGroups(deps).reduce((acc, g) => acc + g.data.length, 0)} пакетов
                     </span>
                   </div>
-                  <ChevronDown class="h-5 w-5 text-muted-foreground transition-transform duration-300" style="transform: rotate({npmOpen ? 180 : 0}deg)" />
+                <ChevronDown class="chevron-npm h-5 w-5 text-muted-foreground transition-transform duration-400" style="transform: rotate({npmOpen ? 180 : 0}deg)" />
                 </button>
                 
                 <div bind:this={npmContent} class="border-t border-border overflow-hidden" style="height: {npmOpen ? 'auto' : '0'}; opacity: {npmOpen ? 1 : 0}">
@@ -190,7 +191,7 @@ function toggleCargo() {
                       {getCargoGroups(deps).reduce((acc, g) => acc + g.data.length, 0)} пакетов
                     </span>
                   </div>
-                  <ChevronDown class="h-5 w-5 text-muted-foreground transition-transform duration-300" style="transform: rotate({cargoOpen ? 180 : 0}deg)" />
+                <ChevronDown class="chevron-cargo h-5 w-5 text-muted-foreground transition-transform duration-400" style="transform: rotate({cargoOpen ? 180 : 0}deg)" />
                 </button>
                 
                 <div bind:this={cargoContent} class="border-t border-border overflow-hidden" style="height: {cargoOpen ? 'auto' : '0'}; opacity: {cargoOpen ? 1 : 0}">
