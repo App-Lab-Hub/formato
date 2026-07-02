@@ -1,4 +1,3 @@
-<!-- src/routes/convert/[format]/+page.svelte -->
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
@@ -20,7 +19,6 @@
 
   const sourceFormatId: string = page.params.format!;
   
-  // Генерация уникальных ключей для каждого формата в sessionStorage
   function getStorageKey(base: string): string {
     return `convert_${sourceFormatId}_${base}`;
   }
@@ -30,74 +28,59 @@
   let loadError = $state<string | null>(null);
   let targetFormats = $state<Format[]>([]);
 
-  // Восстанавливаем состояние из sessionStorage
   let savedTargetId = browser ? sessionStorage.getItem(getStorageKey('selectedTargetId')) : null;
   let selectedTarget = $state<Format | null>(null);
   
-  // Восстанавливаем файлы
   let files = $state<{ path: string; name: string; id: string }[]>([]);
-  let convertedFiles = $state<Map<string, string>>(new Map());
+  let convertedFiles = $state<Map<string, { path: string; format: string }>>(new Map());
   let convertingFiles = $state<Set<string>>(new Set());
   let counter = $state(0);
+  let fileHashes = $state<Map<string, string>>(new Map());
 
-  // Загружаем сохранённые файлы
   function loadFilesFromStorage() {
     if (!browser) return;
     try {
       const saved = sessionStorage.getItem(getStorageKey('files'));
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        files = parsed;
-      }
+      if (saved) files = JSON.parse(saved);
       
       const savedConverted = sessionStorage.getItem(getStorageKey('converted'));
-      if (savedConverted) {
-        const parsed = JSON.parse(savedConverted);
-        convertedFiles = new Map(parsed);
-      }
+      if (savedConverted) convertedFiles = new Map(JSON.parse(savedConverted));
       
       const savedCounter = sessionStorage.getItem(getStorageKey('counter'));
-      if (savedCounter) {
-        counter = parseInt(savedCounter);
-      }
+      if (savedCounter) counter = parseInt(savedCounter);
+
+      const savedHashes = sessionStorage.getItem(getStorageKey('hashes'));
+      if (savedHashes) fileHashes = new Map(JSON.parse(savedHashes));
     } catch (e) {
       console.warn('Failed to load files from sessionStorage', e);
     }
   }
 
-  // Сохраняем файлы в sessionStorage
   function saveFilesToStorage() {
     if (!browser) return;
     try {
       sessionStorage.setItem(getStorageKey('files'), JSON.stringify(files));
       sessionStorage.setItem(getStorageKey('converted'), JSON.stringify(Array.from(convertedFiles.entries())));
       sessionStorage.setItem(getStorageKey('counter'), String(counter));
+      sessionStorage.setItem(getStorageKey('hashes'), JSON.stringify(Array.from(fileHashes.entries())));
     } catch (e) {
       console.warn('Failed to save files to sessionStorage', e);
     }
   }
 
-  // Загружаем сохранённые файлы при старте
   loadFilesFromStorage();
 
   onMount(() => {
-    // Если формат уже есть — показываем сразу
     if (sourceFormat) {
       targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
-      
-      // Восстанавливаем выбранный таргет
       if (savedTargetId) {
         const found = targetFormats.find(f => f.id === savedTargetId);
-        if (found) {
-          selectedTarget = found;
-        }
+        if (found) selectedTarget = found;
       }
-      
       isLoading = false;
       return;
     }
 
-    // Если данные ещё не загружены — ждём
     if (!isFormatsLoaded()) {
       const checkFormats = setInterval(() => {
         if (isFormatsLoaded()) {
@@ -105,15 +88,10 @@
           if (f) {
             sourceFormat = f;
             targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
-            
-            // Восстанавливаем выбранный таргет
             if (savedTargetId) {
               const found = targetFormats.find(f => f.id === savedTargetId);
-              if (found) {
-                selectedTarget = found;
-              }
+              if (found) selectedTarget = found;
             }
-            
             isLoading = false;
           } else {
             loadError = `Формат "${sourceFormatId}" не найден`;
@@ -122,43 +100,37 @@
           clearInterval(checkFormats);
         }
       }, 100);
-      
       return () => clearInterval(checkFormats);
     } else {
-      // Данные загружены, но формат не найден
       loadError = `Формат "${sourceFormatId}" не найден`;
       isLoading = false;
     }
   });
 
-  // Сохраняем состояние при изменении
   $effect(() => {
     saveFilesToStorage();
   });
 
   function goBack() { 
-    // НЕ ОЧИЩАЕМ данные при выходе!
-    // Они сохранятся в sessionStorage до закрытия приложения
     goto('/'); 
   }
   
   function selectTarget(format: Format) {
     if (selectedTarget?.id === format.id) {
       selectedTarget = null;
-      if (browser) {
-        sessionStorage.removeItem(getStorageKey('selectedTargetId'));
-      }
+      if (browser) sessionStorage.removeItem(getStorageKey('selectedTargetId'));
       return;
     }
-    
     selectedTarget = format;
-    if (browser) {
-      sessionStorage.setItem(getStorageKey('selectedTargetId'), format.id);
-    }
+    if (browser) sessionStorage.setItem(getStorageKey('selectedTargetId'), format.id);
   }
   
-  function handleFilesChange(newFiles: typeof files) { 
-    files = newFiles; 
+  function handleFilesChange(newFiles: typeof files) {
+    const newIds = new Set(newFiles.map(f => f.id));
+    for (const id of fileHashes.keys()) {
+      if (!newIds.has(id)) fileHashes.delete(id);
+    }
+    files = newFiles;
   }
 
   async function convertOne(index: number) {
@@ -170,28 +142,35 @@
         'convert_file', { path: file.path, from: sourceFormatId, to: selectedTarget.id }
       );
       if (result.success) {
-        convertedFiles = new Map(convertedFiles.set(file.id, result.content));
+        convertedFiles = new Map(convertedFiles.set(file.id, {
+          path: result.content,
+          format: selectedTarget.id
+        }));
       }
     } catch (e) { console.error(`Conversion failed: ${file.name}`, e); }
     finally { convertingFiles.delete(file.id); }
   }
 
-  async function convertAll() { for (let i = 0; i < files.length; i++) await convertOne(i); }
+  async function convertAll() { 
+    for (let i = 0; i < files.length; i++) await convertOne(i); 
+  }
   
   function clearAll() { 
     files = []; 
     convertedFiles = new Map();
+    fileHashes = new Map();
     if (browser) {
       sessionStorage.removeItem(getStorageKey('files'));
       sessionStorage.removeItem(getStorageKey('converted'));
+      sessionStorage.removeItem(getStorageKey('hashes'));
     }
   }
 
   async function downloadFile(fileId: string) {
-    const savedPath = convertedFiles.get(fileId);
-    if (!savedPath) return;
-    const content = await invoke<string>('read_file_content', { path: savedPath });
-    const convertedFileName = savedPath.split('/').pop() || 'file.txt';
+    const converted = convertedFiles.get(fileId);
+    if (!converted) return;
+    const content = await invoke<string>('read_file_content', { path: converted.path });
+    const convertedFileName = converted.path.split('/').pop() || 'file.txt';
     try {
       const filePath = await save({
         defaultPath: convertedFileName,
@@ -213,11 +192,12 @@
   }
 
   async function previewFileFn(fileId: string) {
-    const savedPath = convertedFiles.get(fileId) ?? files.find(f => f.id === fileId)?.path;
+    const converted = convertedFiles.get(fileId);
+    const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
     if (!savedPath) return;
     try {
       const raw = await invoke<string>('read_file_content', { path: savedPath });
-      const lang = getMonacoLang(selectedTarget?.id ?? sourceFormatId);
+      const lang = getMonacoLang(converted?.format ?? sourceFormatId);
       const name = files.find(f => f.id === fileId)?.name ?? 'file';
       const windowId = `preview-${Date.now()}`;
       const webview = new WebviewWindow(windowId, {
@@ -267,23 +247,24 @@
 
           <SourceFormatHeader format={sourceFormat} />
           <TargetFormatGrid formats={targetFormats} {selectedTarget} onselect={selectTarget} />
-          
-          <FileDropZone
-            sourceFormatId={sourceFormatId}
-            sourceFormatName={sourceFormat?.name ?? ''}
-            sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
-            {selectedTarget}
-            {files}
-            {convertingFiles}
-            {convertedFiles}
-            {counter}
-            onfileschange={handleFilesChange}
-            onconvertone={convertOne}
-            onconvertall={convertAll}
-            onclearall={clearAll}
-            onpreview={previewFileFn}
-            ondownload={downloadFile}
-          />
+                
+      <FileDropZone
+        sourceFormatId={sourceFormatId}
+        sourceFormatName={sourceFormat?.name ?? ''}
+        sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
+        {selectedTarget}
+        {files}
+        {convertingFiles}
+        {convertedFiles}
+        {counter}
+        {fileHashes}
+        onfileschange={handleFilesChange}
+        onconvertone={convertOne}
+        onconvertall={convertAll}
+        onclearall={clearAll}
+        onpreview={previewFileFn}
+        ondownload={downloadFile}
+      />
         </main>
       </div>
     </TooltipProvider>

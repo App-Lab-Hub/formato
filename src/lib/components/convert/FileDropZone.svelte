@@ -3,6 +3,7 @@
   import { getCurrentWebview } from '@tauri-apps/api/webview';
   import { onMount } from 'svelte';
   import { tick } from 'svelte';
+  import { invoke } from '@tauri-apps/api/core';
   import { Upload, Play, X, FileText, Zap, ListX, LoaderCircle, Eye, Download, ArrowRight } from 'lucide-svelte';
   import Tooltip from '$lib/components/ui/tooltip/tooltip.svelte';
   import TooltipTrigger from '$lib/components/ui/tooltip/tooltip-trigger.svelte';
@@ -17,6 +18,7 @@
     convertingFiles = new Set(),
     convertedFiles = new Map(),
     counter = 0,
+    fileHashes = new Map(),
     onfileschange,
     onconvertone,
     onconvertall,
@@ -30,8 +32,9 @@
     selectedTarget: { id: string } | null;
     files: { path: string; name: string; id: string }[];
     convertingFiles: Set<string>;
-    convertedFiles: Map<string, string>;
+    convertedFiles: Map<string, { path: string; format: string }>;
     counter: number;
+    fileHashes: Map<string, string>;
     onfileschange: (files: { path: string; name: string; id: string }[]) => void;
     onconvertone: (index: number) => void;
     onconvertall: () => void;
@@ -44,6 +47,10 @@
   let isDragOver = $state(false);
   let dropzoneEl = $state<HTMLElement | null>(null);
 
+  async function hashFilePath(path: string): Promise<string> {
+    return await invoke<string>('hash_file', { path });
+  }
+
   async function processAndAddPaths(paths: string[]) {
     const validPaths = paths.filter(path => {
       const ext = path.split('.').pop()?.toLowerCase();
@@ -52,12 +59,33 @@
 
     if (validPaths.length === 0) return;
 
-    const ids = validPaths.map(() => `${_counter++}-${Date.now()}`);
-    const newFiles = validPaths.map((path, idx) => ({
-      path,
-      name: path.split('/').pop() || path.split('\\').pop() || path,
-      id: ids[idx],
-    }));
+    const knownHashes = new Set(fileHashes.values());
+
+    const newPaths: { path: string; hash: string }[] = [];
+    for (const path of validPaths) {
+      try {
+        const hash = await hashFilePath(path);
+        if (!knownHashes.has(hash)) {
+          knownHashes.add(hash);
+          newPaths.push({ path, hash });
+        }
+      } catch (e) {
+        console.warn(`Failed to hash file: ${path}`, e);
+      }
+    }
+
+    if (newPaths.length === 0) return;
+
+    const ids = newPaths.map(() => `${_counter++}-${Date.now()}`);
+    const newFiles = newPaths.map(({ path, hash }, idx) => {
+      const id = ids[idx];
+      fileHashes.set(id, hash);
+      return {
+        path,
+        name: path.split('/').pop() || path.split('\\').pop() || path,
+        id,
+      };
+    });
 
     onfileschange([...files, ...newFiles]);
     await tick();
@@ -219,12 +247,12 @@
       {#each files as file, i (file.id)}
         {@const isConverting = convertingFiles.has(file.id)}
         {@const savedPath = convertedFiles.get(file.id)}
-        <div
-          data-file-item
-          data-file-id={file.id}
-          class="group relative flex items-center gap-4 rounded-xl border bg-card p-3.5 transition-all duration-200 hover:shadow-md hover:border-violet-500/30 hover:bg-violet-500/[0.02]"
-          class:opacity-70={isConverting}
-        >
+          <div
+            data-file-item
+            data-file-id={file.id}
+            class="group relative flex items-center gap-4 rounded-xl border border-border/50 bg-card/50 p-3.5 transition-all duration-200 hover:bg-violet-500/5 hover:border-violet-500/20 hover:shadow-sm"
+            class:opacity-70={isConverting}
+          >
           <div class="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-secondary/50 text-muted-foreground group-hover:text-violet-500 transition-colors">
             <FileText class="h-5 w-5" />
           </div>

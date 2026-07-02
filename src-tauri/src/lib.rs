@@ -35,6 +35,7 @@ pub fn run() {
             convert::convert_file,
             convert::read_file_content,
             convert::open_file,
+            convert::hash_file,
             
             // Window
             utils::app_ready,
@@ -43,7 +44,7 @@ pub fn run() {
             // Database
             utils::get_db_status,
             utils::get_formats,
-            utils::get_format_by_id
+            utils::get_format_by_id,
         ])
         
         // Setup

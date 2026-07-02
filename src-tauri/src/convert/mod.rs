@@ -116,6 +116,35 @@ fn calculate_conversion_hash(path: &str, from: &str, to: &str) -> std::io::Resul
 
     Ok(format!("{:x}", hasher.digest()))
 }
+#[tauri::command]
+pub async fn hash_file(path: String) -> Result<String, String> {
+    calculate_file_hash(&path).map_err(|e| format!("Cannot hash file: {e}"))
+}
+
+fn calculate_file_hash(path: &str) -> std::io::Result<String> {
+    let file = File::open(path)?;
+    let mut hasher = Xxh3::new();
+
+    match unsafe { Mmap::map(&file) } {
+        Ok(mmap) => {
+            hasher.update(&mmap);
+        }
+        Err(_) => {
+            let mut file = file;
+            let mut buffer = [0; 65536];
+            loop {
+                let bytes_read = file.read(&mut buffer)?;
+                if bytes_read == 0 {
+                    break;
+                }
+                hasher.update(&buffer[..bytes_read]);
+            }
+        }
+    }
+
+    Ok(format!("{:x}", hasher.digest()))
+}
+
 
 // ============================================================
 // ПАРСЕРЫ

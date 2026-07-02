@@ -1,8 +1,7 @@
 // src/lib/types/format.ts
 
-import type { ComponentType } from "svelte";
+import type { Component } from "svelte";
 
-// Тип с бекенда (уже готовый JSON)
 export interface FormatDB {
   format_id: string;
   name: string;
@@ -15,13 +14,12 @@ export interface FormatDB {
   border_hover: string;
 }
 
-// Тип для фронтенда (с Svelte компонентами)
 export interface Format {
   id: string;
   name: string;
   extensions: string[];
   description: string;
-  icon: ComponentType;
+  icon: Component;
   color: string;
   glow: string;
   textColor: string;
