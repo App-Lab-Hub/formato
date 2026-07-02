@@ -133,23 +133,23 @@
     files = newFiles;
   }
 
-  async function convertOne(index: number) {
-    const file = files[index];
-    if (!selectedTarget || convertingFiles.has(file.id)) return;
-    convertingFiles.add(file.id);
-    try {
-      const result = await invoke<{ success: boolean; content: string; error: string | null }>(
-        'convert_file', { path: file.path, from: sourceFormatId, to: selectedTarget.id }
-      );
-      if (result.success) {
-        convertedFiles = new Map(convertedFiles.set(file.id, {
-          path: result.content,
-          format: selectedTarget.id
-        }));
-      }
-    } catch (e) { console.error(`Conversion failed: ${file.name}`, e); }
-    finally { convertingFiles.delete(file.id); }
-  }
+async function convertOne(index: number) {
+  const file = files[index];
+  if (!selectedTarget || convertingFiles.has(file.id)) return;
+  convertingFiles.add(file.id);
+  try {
+    const result = await invoke<{ success: boolean; content: string; extension: string | null; error: string | null }>(
+      'convert_file', { path: file.path, from: sourceFormatId, to: selectedTarget.id }
+    );
+    if (result.success) {
+      convertedFiles = new Map(convertedFiles.set(file.id, {
+        path: result.content,
+        format: result.extension || selectedTarget.id
+      }));
+    }
+  } catch (e) { console.error(`Conversion failed: ${file.name}`, e); }
+  finally { convertingFiles.delete(file.id); }
+}
 
   async function convertAll() { 
     for (let i = 0; i < files.length; i++) await convertOne(i); 
@@ -170,7 +170,9 @@
     const converted = convertedFiles.get(fileId);
     if (!converted) return;
     const content = await invoke<string>('read_file_content', { path: converted.path });
-    const convertedFileName = converted.path.split('/').pop() || 'file.txt';
+    const file = files.find(f => f.id === fileId);
+    const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
+    const convertedFileName = `${baseName}.${converted.format}`;
     try {
       const filePath = await save({
         defaultPath: convertedFileName,
@@ -181,15 +183,7 @@
     } catch (e) { console.error('[Download] Failed:', e); }
   }
 
-  function getMonacoLang(format: string): string {
-    const map: Record<string, string> = {
-      json: 'json', json5: 'json', yaml: 'yaml', yml: 'yaml',
-      xml: 'xml', toml: 'ini', csv: 'plaintext', tsv: 'plaintext',
-      ini: 'ini', properties: 'ini', markdown: 'markdown', md: 'markdown',
-      html: 'html', hjson: 'json',
-    };
-    return map[format] ?? 'plaintext';
-  }
+
 
   async function previewFileFn(fileId: string) {
     const converted = convertedFiles.get(fileId);
@@ -197,12 +191,14 @@
     if (!savedPath) return;
     try {
       const raw = await invoke<string>('read_file_content', { path: savedPath });
-      const lang = getMonacoLang(converted?.format ?? sourceFormatId);
-      const name = files.find(f => f.id === fileId)?.name ?? 'file';
+      const format = converted?.format ?? sourceFormatId;
+      const file = files.find(f => f.id === fileId);
+      const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
+      const title = converted ? `${baseName}.${format}` : file?.name ?? 'file';
       const windowId = `preview-${Date.now()}`;
       const webview = new WebviewWindow(windowId, {
-        url: `/preview?windowId=${windowId}&title=${encodeURIComponent(name)}`,
-        title: name,
+        url: `/preview?windowId=${windowId}&title=${encodeURIComponent(title)}`,
+        title,
         width: 900, height: 700,
         resizable: true, center: true,
         maximizable: true, minimizable: true, closable: true,
@@ -212,7 +208,7 @@
         minWidth: 400, minHeight: 300
       });
       await webview.once('preview-ready', async () => {
-        await webview.emit('preview-data', { content: raw, lang, title: name });
+        await webview.emit('preview-data', { content: raw, lang: format, title });
       });
     } catch (e) { console.error('Preview failed:', e); }
   }

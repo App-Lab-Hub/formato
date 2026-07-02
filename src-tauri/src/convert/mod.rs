@@ -26,6 +26,7 @@ pub struct ConvertResult {
     pub success: bool,
     pub content: String,
     pub hash: Option<String>,
+    pub extension: Option<String>,
     pub error: Option<String>,
 }
 
@@ -48,6 +49,8 @@ pub fn save_to_app_dir(content: &str, original_path: &str, to: &str) -> Result<S
 }
 
 
+use std::path::Path;
+
 #[tauri::command]
 pub async fn convert_file(
     state: tauri::State<'_, AppState>,
@@ -62,10 +65,16 @@ pub async fn convert_file(
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
     
     if let Some(existing_path) = db::find_conversion(db, &input_hash).await {
+        let extension = Path::new(&existing_path)
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_string());
+
         return Ok(ConvertResult {
             success: true,
             content: existing_path,
             hash: Some(input_hash),
+            extension,
             error: None,
         });
     }
@@ -76,13 +85,18 @@ pub async fn convert_file(
     }).await.map_err(|e| format!("Task join error: {e}"))??;
     
     let saved_path = save_to_app_dir(&output, &path, &to)?;
-    
+    let extension = Path::new(&saved_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_string());
+
     db::save_conversion(db, &input_hash, &saved_path).await?;
-    
+
     Ok(ConvertResult {
         success: true,
         content: saved_path,
         hash: Some(input_hash),
+        extension,
         error: None,
     })
 }
@@ -152,14 +166,14 @@ fn calculate_file_hash(path: &str) -> std::io::Result<String> {
 
 fn parse(input: &str, format: &str) -> Result<Json, String> {
     match format {
-        "json" | "json5" | "hjson" => serde_json::from_str(input).map_err(|e| format!("JSON: {e}")),
+        "json" => serde_json::from_str(input).map_err(|e| format!("JSON: {e}")),
         "yaml" | "yml" => serde_yaml::from_str(input).map_err(|e| format!("YAML: {e}")),
         "toml" => toml::from_str(input).map_err(|e| format!("TOML: {e}")),
         "xml" => parse_xml(input),
         "ini" => parse_ini(input),
-        "markdown" | "md" => parse_markdown(input),
+        "md" => parse_markdown(input),
         "csv" => parse_csv(input),
-        "html" => parse_html(input),  // ← добавить
+        "html" => parse_html(input),
         _ => Err(format!("Unsupported: {format}")),
     }
 }
@@ -174,14 +188,10 @@ fn parse(input: &str, format: &str) -> Result<Json, String> {
 // ============================================================
 
 fn stringify(value: &Json, format: &str) -> Result<String, String> {
-    // let json_str = || serde_json::to_string(value).map_err(|e| format!("JSON: {e}"));
-    
     match format {
-        "json" | "json5" | "hjson" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}")),
+        "json" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}")),
         "yaml" | "yml" => serde_yaml::to_string(value).map_err(|e| format!("YAML: {e}")),
-        // "toml" => toml::to_string_pretty(value).map_err(|e| format!("TOML: {e}")),
         "toml" => {
-            // TOML не поддерживает корневые массивы — оборачиваем в объект
             let value_for_toml = match value {
                 Json::Array(arr) => {
                     let mut map = serde_json::Map::new();
@@ -194,14 +204,12 @@ fn stringify(value: &Json, format: &str) -> Result<String, String> {
         }
         "xml" => stringify_xml(value).map_err(|e| format!("XML: {e}")),
         "csv" => stringify_csv(value),
-        "ini" => stringify_ini(value), // Лаконичный вызов внешней функции
+        "ini" => stringify_ini(value),
         "html" => Ok(convert_to_html(value)),
-        "markdown" | "md" => stringify_markdown(value),
+        "md" => stringify_markdown(value),
         _ => Err(format!("Unsupported: {format}")),
     }
 }
-
-
 
 
 #[tauri::command]
