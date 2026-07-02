@@ -257,16 +257,23 @@
             <FileText class="h-5 w-5" />
           </div>
 
-          <div class="flex flex-col flex-1 min-w-0 gap-0.5">
-            <span class="text-base font-medium text-foreground truncate pr-2" title={file.name}>{file.name}</span>
-            {#if selectedTarget}
-              <div class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground/80">
-                <span class="uppercase tracking-wide opacity-70">{sourceFormatId}</span>
-                <ArrowRight class="h-3.5 w-3.5 text-violet-500" />
-                <span class="uppercase tracking-wide text-violet-600 dark:text-violet-400">{selectedTarget.id}</span>
-              </div>
-            {/if}
-          </div>
+<div class="flex flex-col flex-1 min-w-0 gap-0.5">
+  <div class="flex items-center gap-2">
+    <span class="text-base font-medium text-foreground truncate" title={file.name}>{file.name}</span>
+    {#if savedPath}
+      <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded-md">
+        {savedPath.format}
+      </span>
+    {/if}
+  </div>
+  {#if selectedTarget}
+    <div class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground/80">
+      <span class="uppercase tracking-wide opacity-70">{sourceFormatId}</span>
+      <ArrowRight class="h-3.5 w-3.5 text-violet-500" />
+      <span class="uppercase tracking-wide text-violet-600 dark:text-violet-400">{selectedTarget.id}</span>
+    </div>
+  {/if}
+</div>
 
           <div class="flex items-center gap-1 shrink-0 pl-3 border-l border-border/50 ml-2">
             <Tooltip>
