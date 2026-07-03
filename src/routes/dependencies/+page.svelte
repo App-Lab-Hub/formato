@@ -11,9 +11,22 @@
 
   let npmOpen = $state(true);
   let cargoOpen = $state(true);
+  let npmAnimating = $state(false);
+  let cargoAnimating = $state(false);
 
-  function toggleNpm() { npmOpen = !npmOpen; }
-  function toggleCargo() { cargoOpen = !cargoOpen; }
+  function toggleNpm() {
+    if (npmAnimating) return;
+    npmAnimating = true;
+    npmOpen = !npmOpen;
+    setTimeout(() => npmAnimating = false, 600);
+  }
+
+  function toggleCargo() {
+    if (cargoAnimating) return;
+    cargoAnimating = true;
+    cargoOpen = !cargoOpen;
+    setTimeout(() => cargoAnimating = false, 600);
+  }
 
   function goBack() { goto('/'); }
 
