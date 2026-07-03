@@ -4,7 +4,7 @@
   import { ArrowLeft, Package, Cpu, BookOpen, ChevronDown } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { DependenciesData } from '$lib/services/dependencies';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { animate, stagger } from '@motionone/dom';
 
   let { data }: { data: { deps: DependenciesData } } = $props();
@@ -12,58 +12,80 @@
 
   let npmOpen = $state(true);
   let cargoOpen = $state(true);
+  let npmContentVisible = $state(true);
+  let cargoContentVisible = $state(true);
   let npmContent: HTMLElement;
   let cargoContent: HTMLElement;
   let npmAnimating = $state(false);
   let cargoAnimating = $state(false);
 
-function toggleNpm() {
-  if (npmAnimating || !npmContent) return;
-  npmAnimating = true;
-  const content = npmContent;
-  
-  npmOpen = !npmOpen;
-  
-  if (!npmOpen) {
-    animate(content, 
-      { height: [content.scrollHeight, 0], opacity: [1, 0] }, 
-      { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
-    ).finished.then(() => {
-      npmAnimating = false;
-    });
-  } else {
-    animate(content, 
-      { height: [0, content.scrollHeight], opacity: [0, 1] }, 
-      { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
-    ).finished.then(() => {
-      npmAnimating = false;
-    });
+  async function toggleNpm() {
+    if (npmAnimating) return;
+    
+    if (!npmOpen) {
+      npmOpen = true;
+      npmContentVisible = true;
+      await tick();
+      
+      if (!npmContent) return;
+      npmAnimating = true;
+      const content = npmContent;
+      
+      animate(content, 
+        { height: [0, content.scrollHeight], opacity: [0, 1] }, 
+        { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
+      ).finished.then(() => {
+        npmAnimating = false;
+      });
+    } else {
+      if (!npmContent) return;
+      npmAnimating = true;
+      const content = npmContent;
+      
+      npmOpen = false;
+      animate(content, 
+        { height: [content.scrollHeight, 0], opacity: [1, 0] }, 
+        { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
+      ).finished.then(() => {
+        npmContentVisible = false;
+        npmAnimating = false;
+      });
+    }
   }
-}
 
-function toggleCargo() {
-  if (cargoAnimating || !cargoContent) return;
-  cargoAnimating = true;
-  const content = cargoContent;
-  
-  cargoOpen = !cargoOpen;
-  
-  if (!cargoOpen) {
-    animate(content, 
-      { height: [content.scrollHeight, 0], opacity: [1, 0] }, 
-      { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
-    ).finished.then(() => {
-      cargoAnimating = false;
-    });
-  } else {
-    animate(content, 
-      { height: [0, content.scrollHeight], opacity: [0, 1] }, 
-      { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
-    ).finished.then(() => {
-      cargoAnimating = false;
-    });
+  async function toggleCargo() {
+    if (cargoAnimating) return;
+    
+    if (!cargoOpen) {
+      cargoOpen = true;
+      cargoContentVisible = true;
+      await tick();
+      
+      if (!cargoContent) return;
+      cargoAnimating = true;
+      const content = cargoContent;
+      
+      animate(content, 
+        { height: [0, content.scrollHeight], opacity: [0, 1] }, 
+        { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
+      ).finished.then(() => {
+        cargoAnimating = false;
+      });
+    } else {
+      if (!cargoContent) return;
+      cargoAnimating = true;
+      const content = cargoContent;
+      
+      cargoOpen = false;
+      animate(content, 
+        { height: [content.scrollHeight, 0], opacity: [1, 0] }, 
+        { duration: 0.5, easing: [0.4, 0, 0.2, 1] }
+      ).finished.then(() => {
+        cargoContentVisible = false;
+        cargoAnimating = false;
+      });
+    }
   }
-}
 
   function goBack() { goto('/'); }
 
@@ -152,29 +174,31 @@ function toggleCargo() {
                       {getNpmGroups(deps).reduce((acc, g) => acc + g.data.length, 0)} пакетов
                     </span>
                   </div>
-                <ChevronDown class="chevron-npm h-5 w-5 text-muted-foreground transition-transform duration-400" style="transform: rotate({npmOpen ? 180 : 0}deg)" />
+                  <ChevronDown class="chevron-npm h-5 w-5 text-muted-foreground transition-transform duration-400" style="transform: rotate({npmOpen ? 180 : 0}deg)" />
                 </button>
                 
-                <div bind:this={npmContent} class="border-t border-border overflow-hidden" style="height: {npmOpen ? 'auto' : '0'}; opacity: {npmOpen ? 1 : 0}">
-                  <div class="p-6 space-y-6">
-                    {#each getNpmGroups(deps) as group}
-                      <div>
-                        <h3 class="text-sm font-medium text-muted-foreground mb-3">
-                          {group.label}
-                          <span class="text-xs text-muted-foreground/40 ml-1">({group.data.length})</span>
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {#each group.data as dep}
-                            <div class="flex items-center justify-between px-4 py-2 bg-background/50 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-background/80 transition-all duration-200">
-                              <span class="text-sm font-mono">{dep.name}</span>
-                              <span class="text-xs text-muted-foreground/60 font-mono">{dep.version}</span>
-                            </div>
-                          {/each}
+                {#if npmContentVisible}
+                  <div bind:this={npmContent} class="border-t border-border overflow-hidden">
+                    <div class="p-6 space-y-6">
+                      {#each getNpmGroups(deps) as group}
+                        <div>
+                          <h3 class="text-sm font-medium text-muted-foreground mb-3">
+                            {group.label}
+                            <span class="text-xs text-muted-foreground/40 ml-1">({group.data.length})</span>
+                          </h3>
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {#each group.data as dep}
+                              <div class="flex items-center justify-between px-4 py-2 bg-background/50 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-background/80 transition-all duration-200">
+                                <span class="text-sm font-mono">{dep.name}</span>
+                                <span class="text-xs text-muted-foreground/60 font-mono">{dep.version}</span>
+                              </div>
+                            {/each}
+                          </div>
                         </div>
-                      </div>
-                    {/each}
+                      {/each}
+                    </div>
                   </div>
-                </div>
+                {/if}
               </div>
             {/if}
 
@@ -191,29 +215,31 @@ function toggleCargo() {
                       {getCargoGroups(deps).reduce((acc, g) => acc + g.data.length, 0)} пакетов
                     </span>
                   </div>
-                <ChevronDown class="chevron-cargo h-5 w-5 text-muted-foreground transition-transform duration-400" style="transform: rotate({cargoOpen ? 180 : 0}deg)" />
+                  <ChevronDown class="chevron-cargo h-5 w-5 text-muted-foreground transition-transform duration-400" style="transform: rotate({cargoOpen ? 180 : 0}deg)" />
                 </button>
                 
-                <div bind:this={cargoContent} class="border-t border-border overflow-hidden" style="height: {cargoOpen ? 'auto' : '0'}; opacity: {cargoOpen ? 1 : 0}">
-                  <div class="p-6 space-y-6">
-                    {#each getCargoGroups(deps) as group}
-                      <div>
-                        <h3 class="text-sm font-medium text-muted-foreground mb-3">
-                          {group.label}
-                          <span class="text-xs text-muted-foreground/40 ml-1">({group.data.length})</span>
-                        </h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-                          {#each group.data as dep}
-                            <div class="flex items-center justify-between px-4 py-2 bg-background/50 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-background/80 transition-all duration-200">
-                              <span class="text-sm font-mono">{dep.name}</span>
-                              <span class="text-xs text-muted-foreground/60 font-mono">{dep.version}</span>
-                            </div>
-                          {/each}
+                {#if cargoContentVisible}
+                  <div bind:this={cargoContent} class="border-t border-border overflow-hidden">
+                    <div class="p-6 space-y-6">
+                      {#each getCargoGroups(deps) as group}
+                        <div>
+                          <h3 class="text-sm font-medium text-muted-foreground mb-3">
+                            {group.label}
+                            <span class="text-xs text-muted-foreground/40 ml-1">({group.data.length})</span>
+                          </h3>
+                          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {#each group.data as dep}
+                              <div class="flex items-center justify-between px-4 py-2 bg-background/50 rounded-lg border border-border/50 hover:border-primary/30 hover:bg-background/80 transition-all duration-200">
+                                <span class="text-sm font-mono">{dep.name}</span>
+                                <span class="text-xs text-muted-foreground/60 font-mono">{dep.version}</span>
+                              </div>
+                            {/each}
+                          </div>
                         </div>
-                      </div>
-                    {/each}
+                      {/each}
+                    </div>
                   </div>
-                </div>
+                {/if}
               </div>
             {/if}
 
