@@ -4,6 +4,7 @@
   import { ArrowLeft, Package, Cpu, BookOpen, ChevronDown } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { DependenciesData } from '$lib/services/dependencies';
+  import { fly,slide } from 'svelte/transition';
 
   let { data }: { data: { deps: DependenciesData } } = $props();
   let deps = $state(data.deps);
@@ -97,7 +98,7 @@
                 </button>
                 
                 {#if npmOpen}
-                  <div class="border-t border-border p-6 space-y-6">
+                  <div class="border-t border-border p-6 space-y-6" transition:slide|local={{ duration: 300 }}>
                     {#each getNpmGroups(deps) as group}
                       <div>
                         <h3 class="text-sm font-medium text-muted-foreground mb-3">
@@ -136,7 +137,7 @@
                 </button>
                 
                 {#if cargoOpen}
-                  <div class="border-t border-border p-6 space-y-6">
+                  <div class="border-t border-border p-6 space-y-6" transition:slide|local={{ duration: 300 }}>
                     {#each getCargoGroups(deps) as group}
                       <div>
                         <h3 class="text-sm font-medium text-muted-foreground mb-3">
