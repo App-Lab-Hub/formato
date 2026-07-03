@@ -7,6 +7,7 @@ mod db;
 mod paths;
 mod utils;
 mod settings;
+mod archive;
 
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
@@ -49,6 +50,7 @@ pub fn run() {
             // settings
             settings::get_settings,
             settings::save_settings,
+            archive::archive_file,
         ])
         
         // Setup

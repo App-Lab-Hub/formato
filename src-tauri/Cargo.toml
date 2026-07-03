@@ -53,4 +53,5 @@ sea-orm = { version = "2.0.0-rc", features = ["sqlx-sqlite", "runtime-tokio-rust
 chrono = "0.4.45"
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 memmap2 = "0.9.11"
+libarchive2 = "0.2.1"
 
