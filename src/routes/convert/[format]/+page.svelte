@@ -18,7 +18,7 @@
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
 
   const sourceFormatId: string = page.params.format!;
-  
+  let settings = $derived(page.data.settings);
   function getStorageKey(base: string): string {
     return `convert_${sourceFormatId}_${base}`;
   }
@@ -133,26 +133,30 @@
     files = newFiles;
   }
 
-async function convertOne(index: number) {
-  const file = files[index];
-  if (!selectedTarget || convertingFiles.has(file.id)) return;
-  convertingFiles.add(file.id);
-  try {
-    const result = await invoke<{ success: boolean; content: string; extension: string | null; error: string | null }>(
-      'convert_file', { path: file.path, from: sourceFormatId, to: selectedTarget.id }
-    );
-    if (result.success) {
-      convertedFiles = new Map(convertedFiles.set(file.id, {
-        path: result.content,
-        format: result.extension || selectedTarget.id
-      }));
-    }
-  } catch (e) { console.error(`Conversion failed: ${file.name}`, e); }
-  finally { convertingFiles.delete(file.id); }
-}
+  async function convertOne(index: number, skipPreview = false) {
+    const file = files[index];
+    if (!selectedTarget || convertingFiles.has(file.id)) return;
+    convertingFiles.add(file.id);
+    try {
+      const result = await invoke<{ success: boolean; content: string; extension: string | null; error: string | null }>(
+        'convert_file', { path: file.path, from: sourceFormatId, to: selectedTarget.id }
+      );
+      if (result.success) {
+        convertedFiles = new Map(convertedFiles.set(file.id, {
+          path: result.content,
+          format: result.extension || selectedTarget.id
+        }));
+
+        if (!skipPreview && settings?.auto_preview) {
+          previewFileFn(file.id);
+        }
+      }
+    } catch (e) { console.error(`Conversion failed: ${file.name}`, e); }
+    finally { convertingFiles.delete(file.id); }
+  }
 
   async function convertAll() { 
-    for (let i = 0; i < files.length; i++) await convertOne(i); 
+    for (let i = 0; i < files.length; i++) await convertOne(i, true); 
   }
   
   function clearAll() { 

@@ -1,4 +1,5 @@
 // src/lib/data/settings.ts
+import { invalidateAll } from "$app/navigation";
 import { invoke } from "@tauri-apps/api/core";
 
 export interface AppSettings {
@@ -38,4 +39,5 @@ export function isSettingsLoaded(): boolean {
 export async function saveSettings(newSettings: AppSettings): Promise<void> {
   settings = newSettings;
   await invoke("save_settings", { settings: newSettings });
+  invalidateAll();
 }
