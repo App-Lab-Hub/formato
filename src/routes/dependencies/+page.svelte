@@ -4,11 +4,10 @@
   import { ArrowLeft, Package, Cpu, BookOpen, ChevronDown } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { DependenciesData } from '$lib/services/dependencies';
-  import { slide, fade } from 'svelte/transition';
+  import { slide } from 'svelte/transition';
   import { cubicIn, cubicOut } from 'svelte/easing';
 
   let { data }: { data: { deps: DependenciesData } } = $props();
-  let deps = $state(data.deps);
 
   let npmOpen = $state(true);
   let cargoOpen = $state(true);
@@ -81,8 +80,8 @@
         </div>
 
         <div class="max-w-4xl mx-auto space-y-6">
-          {#if deps}
-            {#if getNpmGroups(deps).length > 0}
+          {#if data.deps}
+            {#if getNpmGroups(data.deps).length > 0}
               <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border overflow-hidden">
                 <button
                   onclick={toggleNpm}
@@ -92,19 +91,19 @@
                     <Package class="h-5 w-5 text-yellow-400" />
                     <h2 class="text-lg font-semibold">NPM зависимости</h2>
                     <span class="text-xs text-muted-foreground/60 bg-muted-foreground/10 px-2 py-1 rounded-full">
-                      {getNpmGroups(deps).reduce((acc, g) => acc + g.data.length, 0)} пакетов
+                      {getNpmGroups(data.deps).reduce((acc, g) => acc + g.data.length, 0)} пакетов
                     </span>
                   </div>
                   <ChevronDown class="h-5 w-5 text-muted-foreground transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]" style="transform: rotate({npmOpen ? 180 : 0}deg)" />
                 </button>
                 
                 {#if npmOpen}
-            <div 
-              class="border-t border-border p-6 space-y-6" 
-              in:slide|local={{ duration: 600, easing: cubicIn }}
-              out:slide|local={{ duration: 600, easing: cubicOut }}
-            >                
-              {#each getNpmGroups(deps) as group}
+                  <div 
+                    class="border-t border-border p-6 space-y-6" 
+                    in:slide|local={{ duration: 600, easing: cubicIn }}
+                    out:slide|local={{ duration: 600, easing: cubicOut }}
+                  >                
+                    {#each getNpmGroups(data.deps) as group}
                       <div>
                         <h3 class="text-sm font-medium text-muted-foreground mb-3">
                           {group.label}
@@ -125,7 +124,7 @@
               </div>
             {/if}
 
-            {#if getCargoGroups(deps).length > 0}
+            {#if getCargoGroups(data.deps).length > 0}
               <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border overflow-hidden">
                 <button
                   onclick={toggleCargo}
@@ -135,19 +134,19 @@
                     <Cpu class="h-5 w-5 text-cyan-400" />
                     <h2 class="text-lg font-semibold">Cargo зависимости</h2>
                     <span class="text-xs text-muted-foreground/60 bg-muted-foreground/10 px-2 py-1 rounded-full">
-                      {getCargoGroups(deps).reduce((acc, g) => acc + g.data.length, 0)} пакетов
+                      {getCargoGroups(data.deps).reduce((acc, g) => acc + g.data.length, 0)} пакетов
                     </span>
                   </div>
                   <ChevronDown class="h-5 w-5 text-muted-foreground transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]" style="transform: rotate({cargoOpen ? 180 : 0}deg)" />
                 </button>
                 
                 {#if cargoOpen}
-              <div 
-                class="border-t border-border p-6 space-y-6" 
-                in:slide|local={{ duration: 600, easing: cubicIn }}
-                out:slide|local={{ duration: 600, easing: cubicOut }}
-              >   
-                 {#each getCargoGroups(deps) as group}
+                  <div 
+                    class="border-t border-border p-6 space-y-6" 
+                    in:slide|local={{ duration: 600, easing: cubicIn }}
+                    out:slide|local={{ duration: 600, easing: cubicOut }}
+                  >   
+                    {#each getCargoGroups(data.deps) as group}
                       <div>
                         <h3 class="text-sm font-medium text-muted-foreground mb-3">
                           {group.label}
@@ -182,7 +181,7 @@
             </div>
 
             <div class="text-center text-xs text-muted-foreground/40 pb-8">
-              Всего зависимостей: {getTotalCount(deps)}
+              Всего зависимостей: {getTotalCount(data.deps)}
             </div>
           {/if}
         </div>

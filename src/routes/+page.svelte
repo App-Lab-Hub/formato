@@ -3,7 +3,7 @@
   // @ts-ignore
   import '@splidejs/svelte-splide/css/sea-green';
   import '$lib/styles/splide.css';
-  import { getFormats } from '$lib/data/formats';
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
   import { onMount } from 'svelte';
@@ -11,6 +11,7 @@
   import Header from '$lib/components/Header.svelte';
   import Footer from '$lib/components/Footer.svelte';
   import FormatoLogo from '$lib/components/FormatoLogo.svelte';
+  import type { Format } from '$lib/types/format';
 
   const SPLIDE_INDEX_KEY = 'splide_active_index';
 
@@ -37,12 +38,15 @@
     }
   };
 
-  let formats = getFormats();
+  let formats = $derived<Format[]>(page.data.formats || []);
   let splideInstance: any = null;
   let isRestoring = false;
 
-  const formatMap = new Map<number, any>();
-  formats.forEach((f, i) => formatMap.set(i, f));
+  let formatMap = $derived.by(() => {
+    const map = new Map<number, Format>();
+    formats.forEach((f, i) => map.set(i, f));
+    return map;
+  });
 
   function normalizeIndex(index: number): number {
     if (index < 0) {
