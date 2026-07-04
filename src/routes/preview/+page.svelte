@@ -7,6 +7,7 @@
   import { FileWarning, Settings, ExternalLink } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { PageProps } from './$types';
+  import { invoke } from '@tauri-apps/api/core';
 
   let { data }: PageProps = $props();
 
@@ -169,21 +170,24 @@
     }
   }
 
-  onMount(() => {
-    maxSizeMB = data.maxSize;
-    document.title = data.title;
-    fileSize = data.size;
-    console.log("DATA IS->",data);
+  onMount(async () => {
+  maxSizeMB = data.maxSize;
+  document.title = data.title;
+  fileSize = data.size;
 
-    if (data.blocked) {
-      const limitText = maxSizeMB === 0 ? '∞ (без ограничений)' : formatSize(maxSizeMB);
-      errorMessage = `Файл слишком большой (${formatFileSize(fileSize)}). Максимальный размер для предпросмотра: ${limitText}.`;
-      return;
-    }
-    if (data.content) {
-      processPreviewData(data.content, data.lang);
-    }
-  });
+  const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
+  
+  if (fileSize > maxSizeBytes) {
+    const limitText = maxSizeMB === 0 ? '∞ (без ограничений)' : formatSize(maxSizeMB);
+    errorMessage = `Файл слишком большой (${formatFileSize(fileSize)}). Максимальный размер для предпросмотра: ${limitText}.`;
+    return;
+  }
+
+  if (data.path) {
+    const content = await invoke<string>('read_file_content', { path: decodeURIComponent(data.path) });
+    processPreviewData(content, data.lang);
+  }
+});
 </script>
 
 <div bind:this={monacoContainer} style="width: 100vw; height: 100vh;" class="preview-page">
