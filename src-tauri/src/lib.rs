@@ -47,6 +47,7 @@ pub fn run() {
             utils::get_db_status,
             utils::get_formats,
             utils::get_format_by_id,
+            utils::get_file_size,
             // settings
             settings::get_settings,
             settings::save_settings,

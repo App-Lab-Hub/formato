@@ -85,3 +85,11 @@ pub async fn get_format_by_id(
     }))
 }
 
+
+#[tauri::command]
+pub async fn get_file_size(path: String) -> Result<u64, String> {
+    tokio::fs::metadata(&path)
+        .await
+        .map(|m| m.len())
+        .map_err(|e| format!("Cannot get file size: {e}"))
+}
