@@ -10,8 +10,8 @@ pub struct AppSettings {
     pub language: String,
     #[serde(default)]
     pub auto_preview: bool,
-    #[serde(default)]
-    pub max_preview_size: u64,
+   #[serde(default = "default_max_preview_size")]  // 👈 меняем
+    pub max_preview_size: f64,  // 👈 меняем на f64
     #[serde(default = "default_after_convert")]
     pub after_convert: String,
     #[serde(default = "default_true")]
@@ -29,6 +29,7 @@ fn default_language() -> String { "ru".into() }
 fn default_after_convert() -> String { "stay".into() }
 fn default_archive_format() -> String { "zip".into() }
 fn default_true() -> bool { true }
+fn default_max_preview_size() -> f64 { 1.0 }  // 👈 добавляем
 
 impl Default for AppSettings {
     fn default() -> Self {
@@ -36,7 +37,7 @@ impl Default for AppSettings {
             theme: default_theme(),
             language: default_language(),
             auto_preview: false,
-            max_preview_size: 0,
+            max_preview_size: 1.0,  // 👈 1.0 вместо 0
             after_convert: default_after_convert(),
             show_extensions: true,
             enable_cache: true,
