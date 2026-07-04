@@ -3,7 +3,6 @@
   import { onMount } from 'svelte';
   import * as monaco from 'monaco-editor';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
-  import { invoke } from '@tauri-apps/api/core';
   import { formatFileSize, formatSize } from '$lib/utils/format';
   import { FileWarning, Settings, ExternalLink } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
@@ -11,7 +10,7 @@
 
   let { data }: PageProps = $props();
 
-let monacoContainer = $state<HTMLElement>();
+  let monacoContainer = $state<HTMLElement>();
   let errorMessage = $state<string | null>(null);
   let fileSize = $state<number>(0);
   let maxSizeMB = $state<number>(5);
@@ -36,18 +35,7 @@ let monacoContainer = $state<HTMLElement>();
     }
   }
 
-  function processPreviewData(data: { content: string; lang: string; title: string; size?: number }) {
-    const { content, lang, size } = data;
-    
-    fileSize = size || content.length;
-    const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
-    
-    if (fileSize > maxSizeBytes) {
-      const limitText = maxSizeMB === 0 ? '∞ (без ограничений)' : formatSize(maxSizeMB);
-      errorMessage = `Файл слишком большой (${formatFileSize(fileSize)}). Максимальный размер для предпросмотра: ${limitText}.`;
-      return;
-    }
-
+  function processPreviewData(content: string, lang: string) {
     if (monacoContainer && content) {
       const editor = monaco.editor.create(monacoContainer, {
         value: content,
@@ -181,18 +169,21 @@ let monacoContainer = $state<HTMLElement>();
     }
   }
 
-onMount(() => {
-  if (data.content) {
-    maxSizeMB = data.maxSize;        // ← сначала
-    document.title = data.title;     // ← сначала
-    processPreviewData({             // ← потом
-      content: data.content, 
-      lang: data.lang, 
-      title: data.title, 
-      size: data.size 
-    });
-  }
-});
+  onMount(() => {
+    maxSizeMB = data.maxSize;
+    document.title = data.title;
+    fileSize = data.size;
+    console.log("DATA IS->",data);
+
+    if (data.blocked) {
+      const limitText = maxSizeMB === 0 ? '∞ (без ограничений)' : formatSize(maxSizeMB);
+      errorMessage = `Файл слишком большой (${formatFileSize(fileSize)}). Максимальный размер для предпросмотра: ${limitText}.`;
+      return;
+    }
+    if (data.content) {
+      processPreviewData(data.content, data.lang);
+    }
+  });
 </script>
 
 <div bind:this={monacoContainer} style="width: 100vw; height: 100vh;" class="preview-page">

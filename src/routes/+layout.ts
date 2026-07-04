@@ -13,7 +13,12 @@ import {
 import { loadSettings, getSettings } from "$lib/data/settings";
 import type { LayoutLoad } from "./$types";
 
-export const load: LayoutLoad = async () => {
+export const load: LayoutLoad = async ({ url }) => {
+  // Preview окно — не грузим форматы и настройки
+  if (url.pathname.startsWith("/preview")) {
+    return { formats: [], settings: {} as any };
+  }
+
   if (!isFormatsLoaded()) await loadFormatsData();
   await loadSettings();
 
