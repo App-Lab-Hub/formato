@@ -1,4 +1,4 @@
 {
   "svelte.enable-ts-plugin": true,
-  "cSpell.words": ["Formato", "SPLIDE"]
+  "cSpell.words": ["Formato", "SPLIDE", "tauri"]
 }

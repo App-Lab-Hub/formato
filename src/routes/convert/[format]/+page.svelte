@@ -173,49 +173,63 @@
   async function downloadFile(fileId: string) {
     const converted = convertedFiles.get(fileId);
     if (!converted) return;
-    const content = await invoke<string>('read_file_content', { path: converted.path });
     const file = files.find(f => f.id === fileId);
     const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
-    const convertedFileName = `${baseName}.${converted.format}`;
+    
     try {
+      const isArchive = settings?.enable_archive && settings?.archive_format;
+      const ext = isArchive ? settings.archive_format : converted.format;
+      const defaultName = `${baseName}.${ext}`;
+      
+      // Один диалог сохранения
       const filePath = await save({
-        defaultPath: convertedFileName,
-        title: 'Сохранить файл',
-        filters: [{ name: 'Все файлы', extensions: ['*'] }]
+        defaultPath: defaultName,
+        title: isArchive ? 'Сохранить архив' : 'Сохранить файл',
+        // filters: [{ name: 'Все файлы', extensions: ['*'] }]
       });
-      if (filePath) await writeTextFile(filePath, content);
+      
+      if (!filePath) return;
+      
+      if (isArchive) {
+        await invoke('archive_file', { 
+          sourcePath: converted.path, 
+          outputPath: filePath, 
+          format: settings.archive_format 
+        });
+      } else {
+        const content = await invoke<string>('read_file_content', { path: converted.path });
+        await writeTextFile(filePath, content);
+      }
     } catch (e) { console.error('[Download] Failed:', e); }
   }
 
 
-
   async function previewFileFn(fileId: string) {
-    const converted = convertedFiles.get(fileId);
-    const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
-    if (!savedPath) return;
-    try {
-      const raw = await invoke<string>('read_file_content', { path: savedPath });
-      const format = converted?.format ?? sourceFormatId;
-      const file = files.find(f => f.id === fileId);
-      const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
-      const title = converted ? `${baseName}.${format}` : file?.name ?? 'file';
-      const windowId = `preview-${Date.now()}`;
-      const webview = new WebviewWindow(windowId, {
-        url: `/preview?windowId=${windowId}&title=${encodeURIComponent(title)}`,
-        title,
-        width: 900, height: 700,
-        resizable: true, center: true,
-        maximizable: true, minimizable: true, closable: true,
-        transparent: false,
-        backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
-        theme: 'dark',
-        minWidth: 400, minHeight: 300
-      });
-      await webview.once('preview-ready', async () => {
-        await webview.emit('preview-data', { content: raw, lang: format, title });
-      });
-    } catch (e) { console.error('Preview failed:', e); }
-  }
+  const converted = convertedFiles.get(fileId);
+  const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
+  if (!savedPath) return;
+  try {
+    const actualSize = await invoke<number>('get_file_size', { path: savedPath });
+    const format = converted?.format ?? sourceFormatId;
+    const file = files.find(f => f.id === fileId);
+    const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
+    const title = converted ? `${baseName}.${format}` : file?.name ?? 'file';
+    const windowId = `preview-${Date.now()}`;
+    const maxSizeMB = settings?.max_preview_size ?? 5;
+    
+    new WebviewWindow(windowId, {
+      url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}`,
+      title,
+      width: 900, height: 700,
+      resizable: true, center: true,
+      maximizable: true, minimizable: true, closable: true,
+      transparent: false,
+      backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
+      theme: 'dark',
+      minWidth: 400, minHeight: 300
+    });
+  } catch (e) { console.error('Preview failed:', e); }
+}
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') goBack();

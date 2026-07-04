@@ -5,6 +5,7 @@
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { onMount } from 'svelte';
   import { getSettings, saveSettings, type AppSettings } from '$lib/data/settings';
+  import { formatSize } from '$lib/utils/format';
 
   let settings = $state<AppSettings>(getSettings());
   let theme = $state(settings.theme);
@@ -17,8 +18,11 @@
   let enableArchive = $state(settings.enable_archive);
   let archiveFormat = $state(settings.archive_format);
 
-  const maxPreviewSizes = [1, 10, 50, 100, 500, 1000];
+  // Добавили 0.25 MB (256 KB) и 0.5 MB (512 KB)
+  const maxPreviewSizes = [0.25, 0.5, 1.0, 10.0, 50.0, 100.0, 500.0, 1024.0];
 
+
+    
   function goBack() {
     goto('/');
   }
@@ -189,7 +193,7 @@
                   onclick={() => maxPreviewSize = size}
                   class="cursor-pointer px-4 py-2 rounded-lg border text-sm transition-all {maxPreviewSize === size ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/50'}"
                 >
-                  {size >= 1000 ? `${size / 1000} GB` : `${size} MB`}
+                  {formatSize(size)}
                 </button>
               {/each}
               <button 
@@ -200,6 +204,7 @@
               </button>
             </div>
           </div>
+
           <!-- Поведение после конвертации -->
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
             <div class="flex items-center gap-3 mb-4">

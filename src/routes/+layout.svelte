@@ -1,13 +1,14 @@
-<!-- src/routes/+layout.svelte -->
 <script lang="ts">
   import "../app.css";
-  import "$lib/styles/scroll.css"; // ← добавить
+  import "$lib/styles/scroll.css";
   import SplashScreen from '$lib/components/SplashScreen.svelte';
   import { onMount } from 'svelte';
   import { invoke } from "@tauri-apps/api/core";
   import { browser } from '$app/environment';
   import { loadFormatsData } from '$lib/data/formats';
   import ScrollContainer from "$lib/components/ScrollContainer.svelte";
+  import { getCurrentWebview } from '@tauri-apps/api/webview';
+  import { goto } from '$app/navigation';
 
   let { children } = $props();
 
@@ -18,8 +19,12 @@
   let splashDone = $state(appReady);
 
   onMount(() => {
-    // Загружаем форматы 1 раз при старте
     loadFormatsData();
+    
+    // Слушаем навигацию из других окон
+    getCurrentWebview().listen('navigate', (event) => {
+      goto(event.payload as string);
+    });
     
     if (!appReady) {
       invoke('app_ready').catch(console.error);
@@ -51,7 +56,6 @@
 {#if showSplash && !splashDone}
   <SplashScreen onComplete={onSplashComplete} />
 {/if}
-
 
 <div class="bg-background text-foreground">
   {@render children?.()}
