@@ -102,6 +102,16 @@
     }
   }
 
+  async function addPendingFiles() {
+    const storageKey = `pending_files_${sourceFormatId}`;
+    const pending = sessionStorage.getItem(storageKey);
+    if (!pending) return;
+    
+    sessionStorage.removeItem(storageKey);
+    const paths: string[] = JSON.parse(pending);
+    await processAndAddPaths(paths);
+  }
+
   async function pickFile() {
     const result = await open({
       multiple: true,
@@ -110,7 +120,12 @@
 
     if (result) {
       const paths = Array.isArray(result) ? result : [result];
-      await processAndAddPaths(paths as string[]);
+      
+      const storageKey = `pending_files_${sourceFormatId}`;
+      const pending = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+      sessionStorage.setItem(storageKey, JSON.stringify([...pending, ...paths]));
+      
+      await processAndAddPaths(paths);
     }
   }
 
@@ -121,6 +136,8 @@
   }
 
   onMount(() => {
+    addPendingFiles();
+    
     const webview = getCurrentWebview();
 
     const unlisten = webview.onDragDropEvent((event) => {

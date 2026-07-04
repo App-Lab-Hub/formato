@@ -181,11 +181,9 @@
       const ext = isArchive ? settings.archive_format : converted.format;
       const defaultName = `${baseName}.${ext}`;
       
-      // Один диалог сохранения
       const filePath = await save({
         defaultPath: defaultName,
         title: isArchive ? 'Сохранить архив' : 'Сохранить файл',
-        // filters: [{ name: 'Все файлы', extensions: ['*'] }]
       });
       
       if (!filePath) return;
@@ -203,33 +201,32 @@
     } catch (e) { console.error('[Download] Failed:', e); }
   }
 
-
   async function previewFileFn(fileId: string) {
-  const converted = convertedFiles.get(fileId);
-  const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
-  if (!savedPath) return;
-  try {
-    const actualSize = await invoke<number>('get_file_size', { path: savedPath });
-    const format = converted?.format ?? sourceFormatId;
-    const file = files.find(f => f.id === fileId);
-    const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
-    const title = converted ? `${baseName}.${format}` : file?.name ?? 'file';
-    const windowId = `preview-${Date.now()}`;
-    const maxSizeMB = settings?.max_preview_size ?? 5;
-    
-    new WebviewWindow(windowId, {
-      url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}`,
-      title,
-      width: 900, height: 700,
-      resizable: true, center: true,
-      maximizable: true, minimizable: true, closable: true,
-      transparent: false,
-      backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
-      theme: 'dark',
-      minWidth: 400, minHeight: 300
-    });
-  } catch (e) { console.error('Preview failed:', e); }
-}
+    const converted = convertedFiles.get(fileId);
+    const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
+    if (!savedPath) return;
+    try {
+      const actualSize = await invoke<number>('get_file_size', { path: savedPath });
+      const format = converted?.format ?? sourceFormatId;
+      const file = files.find(f => f.id === fileId);
+      const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
+      const title = converted ? `${baseName}.${format}` : file?.name ?? 'file';
+      const windowId = `preview-${Date.now()}`;
+      const maxSizeMB = settings?.max_preview_size ?? 5;
+      
+      new WebviewWindow(windowId, {
+        url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}`,
+        title,
+        width: 900, height: 700,
+        resizable: true, center: true,
+        maximizable: true, minimizable: true, closable: true,
+        transparent: false,
+        backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
+        theme: 'dark',
+        minWidth: 400, minHeight: 300
+      });
+    } catch (e) { console.error('Preview failed:', e); }
+  }
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') goBack();
