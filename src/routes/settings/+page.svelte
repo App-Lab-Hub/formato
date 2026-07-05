@@ -1,7 +1,7 @@
 <!-- src/routes/settings/+page.svelte -->
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { ArrowLeft, Sun, Moon, Monitor, Languages, Palette, Eye, Database, PlayCircle, FolderOpen, FileCheck, Shield, Archive } from 'lucide-svelte';
+  import { ArrowLeft, Sun, Moon, Monitor, Languages, Palette, Eye, Database, FolderOpen, FileCheck, Shield, Archive } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { onMount } from 'svelte';
   import { getSettings, saveSettings, type AppSettings } from '$lib/data/settings';
@@ -12,17 +12,13 @@
   let language = $state(settings.language);
   let autoPreview = $state(settings.auto_preview);
   let maxPreviewSize = $state(settings.max_preview_size);
-  let afterConvert = $state(settings.after_convert);
   let showExtensions = $state(settings.show_extensions);
   let enableCache = $state(settings.enable_cache);
   let enableArchive = $state(settings.enable_archive);
   let archiveFormat = $state(settings.archive_format);
 
-  // Добавили 0.25 MB (256 KB) и 0.5 MB (512 KB)
   const maxPreviewSizes = [0.25, 0.5, 1.0, 10.0, 50.0, 100.0, 500.0, 1024.0];
 
-
-    
   function goBack() {
     goto('/');
   }
@@ -30,7 +26,7 @@
   async function save() {
     await saveSettings({
       theme, language, auto_preview: autoPreview,
-      max_preview_size: maxPreviewSize, after_convert: afterConvert,
+      max_preview_size: maxPreviewSize,
       show_extensions: showExtensions, enable_cache: enableCache,
       enable_archive: enableArchive, archive_format: archiveFormat,
     });
@@ -202,31 +198,6 @@
               >
                 ∞
               </button>
-            </div>
-          </div>
-
-          <!-- Поведение после конвертации -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
-            <div class="flex items-center gap-3 mb-4">
-              <PlayCircle class="h-5 w-5 text-primary" />
-              <div>
-                <h2 class="text-lg font-semibold">После конвертации</h2>
-                <p class="text-sm text-muted-foreground">Что делать после успешной конвертации</p>
-              </div>
-            </div>
-            <div class="grid grid-cols-2 gap-3">
-              {#each [
-                { id: 'stay', label: 'Остаться', desc: 'Остаться на странице конвертации' },
-                { id: 'home', label: 'На главную', desc: 'Вернуться на главный экран' }
-              ] as opt}
-                <button 
-                  onclick={() => afterConvert = opt.id}
-                  class="cursor-pointer px-4 py-3 rounded-xl border transition-all text-left {afterConvert === opt.id ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/50'}"
-                >
-                  <span class="text-sm font-medium">{opt.label}</span>
-                  <p class="text-xs text-muted-foreground mt-1">{opt.desc}</p>
-                </button>
-              {/each}
             </div>
           </div>
 

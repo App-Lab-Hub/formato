@@ -7,7 +7,6 @@ export interface AppSettings {
   language: string;
   auto_preview: boolean;
   max_preview_size: number;
-  after_convert: string;
   show_extensions: boolean;
   enable_cache: boolean;
   enable_archive: boolean;
