@@ -269,6 +269,7 @@
         {convertedFiles}
         {counter}
         {fileHashes}
+        showExtensions={settings?.show_extensions ?? true}
         onfileschange={handleFilesChange}
         onconvertone={convertOne}
         onconvertall={convertAll}

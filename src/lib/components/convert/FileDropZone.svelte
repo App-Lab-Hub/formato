@@ -9,7 +9,7 @@
   import TooltipTrigger from '$lib/components/ui/tooltip/tooltip-trigger.svelte';
   import TooltipContent from '$lib/components/ui/tooltip/tooltip-content.svelte';
 
-  let {
+ let {
     sourceFormatId,
     sourceFormatName,
     sourceFormatExtensions = [sourceFormatId],
@@ -19,6 +19,7 @@
     convertedFiles = new Map(),
     counter = 0,
     fileHashes = new Map(),
+    showExtensions = true,
     onfileschange,
     onconvertone,
     onconvertall,
@@ -35,6 +36,7 @@
     convertedFiles: Map<string, { path: string; format: string }>;
     counter: number;
     fileHashes: Map<string, string>;
+    showExtensions?: boolean;
     onfileschange: (files: { path: string; name: string; id: string }[]) => void;
     onconvertone: (index: number) => void;
     onconvertall: () => void;
@@ -276,7 +278,9 @@
 
 <div class="flex flex-col flex-1 min-w-0 gap-0.5">
   <div class="flex items-center gap-2">
-    <span class="text-base font-medium text-foreground truncate" title={file.name}>{file.name}</span>
+    <span class="text-base font-medium text-foreground truncate" title={file.name}>
+      {showExtensions ? file.name : file.name.replace(/\.[^.]+$/, '')}
+    </span>
     {#if savedPath}
       <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded-md">
         {savedPath.format}
