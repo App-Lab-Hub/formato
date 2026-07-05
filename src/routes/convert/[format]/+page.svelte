@@ -139,7 +139,12 @@
     convertingFiles.add(file.id);
     try {
       const result = await invoke<{ success: boolean; content: string; extension: string | null; error: string | null }>(
-        'convert_file', { path: file.path, from: sourceFormatId, to: selectedTarget.id }
+        'convert_file', { 
+          path: file.path, 
+          from: sourceFormatId, 
+          to: selectedTarget.id,
+          enableCache: settings?.enable_cache ?? true
+        }
       );
       if (result.success) {
         convertedFiles = new Map(convertedFiles.set(file.id, {

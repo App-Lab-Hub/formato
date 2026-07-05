@@ -57,6 +57,7 @@ pub async fn convert_file(
     path: String,
     from: String,
     to: String,
+    enable_cache: bool,
 ) -> Result<ConvertResult, String> {
     let input_hash = calculate_conversion_hash(&path, &from, &to)
         .map_err(|e| format!("Cannot read file: {e}"))?;
@@ -64,19 +65,25 @@ pub async fn convert_file(
     let db_guard = state.db.lock().await;
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
     
-    if let Some(existing_path) = db::find_conversion(db, &input_hash).await {
-        let extension = Path::new(&existing_path)
-            .extension()
-            .and_then(|e| e.to_str())
-            .map(|e| e.to_string());
+    if enable_cache {
+        if let Some(existing_path) = db::find_conversion(db, &input_hash).await {
+            dbg!("✅ Cache HIT", &input_hash);
+            let extension = Path::new(&existing_path)
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(|e| e.to_string());
 
-        return Ok(ConvertResult {
-            success: true,
-            content: existing_path,
-            hash: Some(input_hash),
-            extension,
-            error: None,
-        });
+            return Ok(ConvertResult {
+                success: true,
+                content: existing_path,
+                hash: Some(input_hash),
+                extension,
+                error: None,
+            });
+        }
+        dbg!("❌ Cache MISS, converting...", &input_hash);
+    } else {
+        dbg!("🔄 Cache DISABLED, direct conversion", &input_hash);
     }
     
     let (path_clone, from_clone, to_clone) = (path.clone(), from.clone(), to.clone());
@@ -90,7 +97,9 @@ pub async fn convert_file(
         .and_then(|e| e.to_str())
         .map(|e| e.to_string());
 
-    db::save_conversion(db, &input_hash, &saved_path).await?;
+    if enable_cache {
+        db::save_conversion(db, &input_hash, &saved_path).await?;
+    }
 
     Ok(ConvertResult {
         success: true,
@@ -100,7 +109,6 @@ pub async fn convert_file(
         error: None,
     })
 }
-
 
 fn calculate_conversion_hash(path: &str, from: &str, to: &str) -> std::io::Result<String> {
     let file = File::open(path)?;
