@@ -15,7 +15,7 @@
 
 <div class="flex items-center gap-4">
   <div class="h-px w-20 bg-border"></div>
-  <span class="text-xs text-muted-foreground/50 uppercase tracking-widest">convert to</span>
+  <span class="text-xs text-muted-foreground/50 uppercase tracking-widest">{m.convert_to()}</span>
   <div class="h-px w-20 bg-border"></div>
 </div>
 

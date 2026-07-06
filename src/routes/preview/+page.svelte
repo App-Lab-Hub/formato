@@ -8,6 +8,7 @@
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { PageProps } from './$types';
   import { invoke } from '@tauri-apps/api/core';
+  import { m } from '$lib/paraglide/messages';
 
   let { data }: PageProps = $props();
 
@@ -171,23 +172,23 @@
   }
 
   onMount(async () => {
-  maxSizeMB = data.maxSize;
-  document.title = data.title;
-  fileSize = data.size;
+    maxSizeMB = data.maxSize;
+    document.title = data.title;
+    fileSize = data.size;
 
-  const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
-  
-  if (fileSize > maxSizeBytes) {
-    const limitText = maxSizeMB === 0 ? '∞ (без ограничений)' : formatSize(maxSizeMB);
-    errorMessage = `Файл слишком большой (${formatFileSize(fileSize)}). Максимальный размер для предпросмотра: ${limitText}.`;
-    return;
-  }
+    const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
+    
+    if (fileSize > maxSizeBytes) {
+      const limitText = maxSizeMB === 0 ? m.preview_unlimited() : formatSize(maxSizeMB);
+      errorMessage = m.preview_too_large() + ` (${formatFileSize(fileSize)}). ${m.preview_max_size()}: ${limitText}.`;
+      return;
+    }
 
-  if (data.path) {
-    const content = await invoke<string>('read_file_content', { path: decodeURIComponent(data.path) });
-    processPreviewData(content, data.lang);
-  }
-});
+    if (data.path) {
+      const content = await invoke<string>('read_file_content', { path: decodeURIComponent(data.path) });
+      processPreviewData(content, data.lang);
+    }
+  });
 </script>
 
 <div bind:this={monacoContainer} style="width: 100vw; height: 100vh;" class="preview-page">
@@ -203,7 +204,7 @@
           </div>
 
           <h2 class="text-xl sm:text-2xl font-bold mb-3 bg-gradient-to-r from-red-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Файл слишком большой
+            {m.preview_too_large_title()}
           </h2>
 
           <div class="bg-white/[0.03] backdrop-blur-sm rounded-2xl border border-white/[0.06] p-4 sm:p-6 mb-4 sm:mb-6">
@@ -212,22 +213,18 @@
 
           <div class="space-y-2 sm:space-y-3">
             {#if maxSizeMB === 0}
-              <p class="text-xs text-gray-500 px-2">
-                Вы установили безлимитный режим (∞), но файл всё равно не может быть открыт из-за ограничений памяти браузера.
-              </p>
+              <p class="text-xs text-gray-500 px-2">{m.preview_unlimited_desc()}</p>
             {:else}
               <button
                 onclick={openSettings}
                 class="cursor-pointer w-full flex items-center justify-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-purple-500/20 to-pink-500/20 border border-purple-500/30 text-purple-300 hover:from-purple-500/30 hover:to-pink-500/30 hover:text-purple-200 transition-all duration-300 text-xs sm:text-sm font-medium"
               >
                 <Settings class="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                Открыть настройки
+                {m.preview_open_settings()}
                 <ExternalLink class="h-2.5 w-2.5 sm:h-3 sm:w-3 opacity-60" />
               </button>
               
-              <p class="text-xs text-gray-500">
-                Вы можете увеличить лимит в разделе "Лимит предпросмотра"
-              </p>
+              <p class="text-xs text-gray-500">{m.preview_increase_limit()}</p>
             {/if}
           </div>
 

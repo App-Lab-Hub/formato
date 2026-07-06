@@ -8,8 +8,9 @@
   import Tooltip from '$lib/components/ui/tooltip/tooltip.svelte';
   import TooltipTrigger from '$lib/components/ui/tooltip/tooltip-trigger.svelte';
   import TooltipContent from '$lib/components/ui/tooltip/tooltip-content.svelte';
+  import { m } from '$lib/paraglide/messages';
 
- let {
+  let {
     sourceFormatId,
     sourceFormatName,
     sourceFormatExtensions = [sourceFormatId],
@@ -215,16 +216,16 @@
   <div class="rounded-full bg-secondary p-4 transition-colors duration-300 {isDragOver ? 'bg-primary/20 text-primary' : 'group-hover:bg-primary/10 group-hover:text-primary'}">
     <Upload class="h-8 w-8 {isDragOver ? 'text-primary scale-110' : 'text-muted-foreground group-hover:text-primary'}" />
   </div>
-  <div class="text-center space-y-1">
-    {#if isDragOver}
-      <p class="text-base font-medium text-primary">Drop your files here</p>
-    {:else}
-      <p class="text-base font-medium text-foreground">
-        Drop your <span class="text-primary">{sourceFormatName}</span> files here
-      </p>
-      <p class="text-sm text-muted-foreground">or click to browse filesystem</p>
-    {/if}
-  </div>
+<div class="text-center space-y-1">
+  {#if isDragOver}
+    <p class="text-base font-medium text-primary">{m.drop_files_here()}</p>
+  {:else}
+    <p class="text-base font-medium text-foreground">
+      {m.drop_files_text()} <span class="text-primary">{sourceFormatName}</span> {m.drop_files_file()}
+    </p>
+    <p class="text-sm text-muted-foreground">{m.or_click()}</p>
+  {/if}
+</div>
 </button>
 
 {#if files.length > 0}
@@ -235,7 +236,7 @@
           {files.length}
         </span>
         <span class="text-base font-medium text-muted-foreground">
-          {files.length === 1 ? 'File queued' : 'Files queued'}
+          {files.length === 1 ? m.file_queued() : m.files_queued()}
         </span>
       </div>
 
@@ -247,7 +248,7 @@
                 <Zap class="h-4 w-4 fill-current group-hover/btn:scale-110 transition-transform" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>Convert all</p></TooltipContent>
+            <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{m.convert_all()}</p></TooltipContent>
           </Tooltip>
         {/if}
 
@@ -257,7 +258,7 @@
               <ListX class="h-5 w-5 group-hover/btn:scale-110 transition-transform" />
             </button>
           </TooltipTrigger>
-          <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>Clear all</p></TooltipContent>
+          <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{m.clear_all()}</p></TooltipContent>
         </Tooltip>
       </div>
     </div>
@@ -303,7 +304,7 @@
                   <Eye class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{savedPath ? 'Preview' : 'Convert first'}</p></TooltipContent>
+              <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{savedPath ? m.preview() : m.convert_first()}</p></TooltipContent>
             </Tooltip>
 
             <Tooltip>
@@ -312,7 +313,7 @@
                   <Download class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{savedPath ? 'Download' : 'Convert first'}</p></TooltipContent>
+              <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{savedPath ? m.download() : m.convert_first()}</p></TooltipContent>
             </Tooltip>
 
             {#if selectedTarget}
@@ -328,7 +329,7 @@
                     </button>
                   {/if}
                 </TooltipTrigger>
-                <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{isConverting ? 'Converting...' : 'Convert'}</p></TooltipContent>
+                <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{isConverting ? m.converting() : m.convert()}</p></TooltipContent>
               </Tooltip>
             {/if}
 
@@ -338,7 +339,7 @@
                   <X class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{isConverting ? 'Cannot remove' : 'Remove'}</p></TooltipContent>
+              <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{isConverting ? m.cannot_remove() : m.remove()}</p></TooltipContent>
             </Tooltip>
           </div>
         </div>

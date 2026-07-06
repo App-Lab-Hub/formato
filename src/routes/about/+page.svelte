@@ -8,6 +8,7 @@
   import { onMount } from 'svelte';
   import { getFormats } from '$lib/data/formats';
   import FormatoLogo from '$lib/components/FormatoLogo.svelte';
+  import { m } from '$lib/paraglide/messages';
 
   let formats = getFormats();
 
@@ -27,14 +28,13 @@
   <div class="flex flex-col bg-background text-foreground min-h-full">
     <main class="flex flex-col items-center px-8 py-16">
       
-      <!-- Кнопка назад -->
       <div class="w-full max-w-[1700px] flex justify-start mb-8">
         <button 
           onclick={goBack} 
           class="flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
         >
           <ArrowLeft class="h-5 w-5" />
-          <span class="text-sm">На главную</span>
+          <span class="text-sm">{m.settings_back()}</span>
         </button>
       </div>
 
@@ -45,16 +45,13 @@
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8 mb-8">
             <div class="flex items-center gap-3 mb-4">
               <Info class="h-5 w-5 text-primary" />
-              <h2 class="text-xl font-semibold">О приложении</h2>
+              <h2 class="text-xl font-semibold">{m.about_title()}</h2>
             </div>
             <p class="text-muted-foreground leading-relaxed">
-              <span class="font-semibold text-foreground">Formato</span> — это мощный и простой в использовании конвертер данных, 
-              который работает полностью локально на вашем устройстве. 
-              Никаких загрузок на сервер, никаких ограничений по размеру файлов.
+              {m.about_desc_1()}
             </p>
             <p class="text-muted-foreground leading-relaxed mt-3">
-              Поддерживает <span class="font-semibold text-foreground">{formats.length}</span> форматов данных, 
-              включая JSON, YAML, XML, CSV, TOML, INI, Markdown и HTML.
+              {m.about_desc_2()} <span class="font-semibold text-foreground">{formats.length}</span> {m.about_desc_3()}
             </p>
           </div>
 
@@ -63,41 +60,33 @@
             <div class="bg-card/30 backdrop-blur-sm rounded-xl border border-border p-6">
               <div class="flex items-center gap-3 mb-3">
                 <Zap class="h-5 w-5 text-yellow-400" />
-                <h3 class="font-semibold">Быстро</h3>
+                <h3 class="font-semibold">{m.about_fast()}</h3>
               </div>
-              <p class="text-sm text-muted-foreground">
-                Мгновенная конвертация благодаря нативной обработке данных на Rust
-              </p>
+              <p class="text-sm text-muted-foreground">{m.about_fast_desc()}</p>
             </div>
             
             <div class="bg-card/30 backdrop-blur-sm rounded-xl border border-border p-6">
               <div class="flex items-center gap-3 mb-3">
                 <Shield class="h-5 w-5 text-emerald-400" />
-                <h3 class="font-semibold">Безопасно</h3>
+                <h3 class="font-semibold">{m.about_secure()}</h3>
               </div>
-              <p class="text-sm text-muted-foreground">
-                Все данные обрабатываются локально на вашем устройстве. Ничего не отправляется в интернет
-              </p>
+              <p class="text-sm text-muted-foreground">{m.about_secure_desc()}</p>
             </div>
             
             <div class="bg-card/30 backdrop-blur-sm rounded-xl border border-border p-6">
               <div class="flex items-center gap-3 mb-3">
                 <Sparkles class="h-5 w-5 text-purple-400" />
-                <h3 class="font-semibold">Умно</h3>
+                <h3 class="font-semibold">{m.about_smart()}</h3>
               </div>
-              <p class="text-sm text-muted-foreground">
-                Интеллектуальный парсинг и преобразование данных с сохранением структуры
-              </p>
+              <p class="text-sm text-muted-foreground">{m.about_smart_desc()}</p>
             </div>
             
             <div class="bg-card/30 backdrop-blur-sm rounded-xl border border-border p-6">
               <div class="flex items-center gap-3 mb-3">
                 <Users class="h-5 w-5 text-cyan-400" />
-                <h3 class="font-semibold">Для всех</h3>
+                <h3 class="font-semibold">{m.about_for_everyone()}</h3>
               </div>
-              <p class="text-sm text-muted-foreground">
-                Простой интерфейс для разработчиков, аналитиков и всех, кто работает с данными
-              </p>
+              <p class="text-sm text-muted-foreground">{m.about_for_everyone_desc()}</p>
             </div>
           </div>
 
@@ -105,7 +94,7 @@
         <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8 mb-8">
           <div class="flex items-center gap-3 mb-4">
             <Code class="h-5 w-5 text-primary" />
-            <h2 class="text-xl font-semibold">Стек технологий</h2>
+            <h2 class="text-xl font-semibold">{m.about_tech_stack()}</h2>
           </div>
           <div class="flex flex-wrap gap-3">
             <span class="px-4 py-2 bg-primary/10 rounded-full text-sm text-primary border border-primary/20">Tauri</span>
@@ -124,17 +113,17 @@
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-8 mb-8">
             <div class="flex items-center gap-3 mb-4">
               <Package class="h-5 w-5 text-primary" />
-              <h2 class="text-xl font-semibold">Технические детали</h2>
+              <h2 class="text-xl font-semibold">{m.about_tech_details()}</h2>
             </div>
             <p class="text-muted-foreground leading-relaxed mb-4">
-              Посмотрите полное дерево зависимостей проекта — все NPM и Cargo пакеты, используемые в Formato.
+              {m.about_tech_details_desc()}
             </p>
             <a 
               href="/dependencies" 
               class="inline-flex items-center gap-2 px-6 py-3 bg-primary/10 hover:bg-primary/20 rounded-lg text-primary transition-colors border border-primary/20"
             >
               <Package class="h-4 w-4" />
-              <span>Посмотреть зависимости</span>
+              <span>{m.about_view_deps()}</span>
             </a>
           </div>
 
@@ -144,11 +133,10 @@
               <div class="h-5 w-5 text-primary">
                 <FaGithub />
               </div>
-              <h2 class="text-xl font-semibold">Открытый исходный код</h2>
+              <h2 class="text-xl font-semibold">{m.about_open_source()}</h2>
             </div>
             <p class="text-muted-foreground leading-relaxed mb-4">
-              Formato — это проект с открытым исходным кодом. Вы можете внести свой вклад, сообщить о проблемах 
-              или просто посмотреть код на GitHub.
+              {m.about_open_source_desc()}
             </p>
             <a 
               href="https://github.com/yourusername/formato" 
@@ -159,7 +147,7 @@
               <div class="h-4 w-4">
                 <FaGithub />
               </div>
-              <span>Посмотреть на GitHub</span>
+              <span>{m.about_view_github()}</span>
             </a>
           </div>
 

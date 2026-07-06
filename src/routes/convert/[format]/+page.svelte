@@ -16,6 +16,7 @@
   import type { Format } from '$lib/types/format';
   import { browser } from '$app/environment';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
+  import { m } from '$lib/paraglide/messages';
 
   const sourceFormatId: string = page.params.format!;
   let settings = $derived(page.data.settings);
@@ -94,7 +95,7 @@
             }
             isLoading = false;
           } else {
-            loadError = `Формат "${sourceFormatId}" не найден`;
+            loadError = m.format_not_found() + ` "${sourceFormatId}"`;
             isLoading = false;
           }
           clearInterval(checkFormats);
@@ -102,7 +103,7 @@
       }, 100);
       return () => clearInterval(checkFormats);
     } else {
-      loadError = `Формат "${sourceFormatId}" не найден`;
+      loadError = m.format_not_found() + ` "${sourceFormatId}"`;
       isLoading = false;
     }
   });
@@ -188,7 +189,7 @@
       
       const filePath = await save({
         defaultPath: defaultName,
-        title: isArchive ? 'Сохранить архив' : 'Сохранить файл',
+        title: isArchive ? m.settings_archive() : 'Save file',
       });
       
       if (!filePath) return;
@@ -249,7 +250,7 @@
     <div class="flex flex-col items-center justify-center min-h-screen bg-background gap-4">
       <p class="text-red-400 text-xl">{loadError}</p>
       <button onclick={() => goto('/')} class="text-primary hover:underline text-sm">
-        Вернуться на главную
+        {m.settings_back()}
       </button>
     </div>
   {:else if sourceFormat}
@@ -258,7 +259,7 @@
         <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
           <button onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
             <ArrowLeft class="h-5 w-5" />
-            <span class="text-sm">Back</span>
+            <span class="text-sm">{m.settings_back()}</span>
           </button>
 
           <SourceFormatHeader format={sourceFormat} />
