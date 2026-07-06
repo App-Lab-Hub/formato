@@ -1,6 +1,6 @@
-<!-- src/lib/components/convert/SourceFormatHeader.svelte -->
 <script lang="ts">
   import type { Format } from '$lib/types/format';
+  import { m } from '$lib/paraglide/messages';
 
   let { format }: { format: Format } = $props();
 </script>
@@ -14,7 +14,9 @@
     </div>
     <div class="text-center max-w-xl">
       <h1 class="text-2xl font-bold {format.textColor}">{format.name}</h1>
-      <p class="mt-2 text-sm text-muted-foreground leading-relaxed">{format.description}</p>
+      <p class="mt-2 text-sm text-muted-foreground leading-relaxed">
+        {(m as any)[`format_desc_${format.id}`]()}
+      </p>
     </div>
   </div>
 {/if}

@@ -6,7 +6,6 @@ export interface FormatDB {
   format_id: string;
   name: string;
   extensions: string[];
-  description: string;
   icon: string;
   color: string;
   glow: string;
@@ -18,7 +17,6 @@ export interface Format {
   id: string;
   name: string;
   extensions: string[];
-  description: string;
   icon: Component;
   color: string;
   glow: string;

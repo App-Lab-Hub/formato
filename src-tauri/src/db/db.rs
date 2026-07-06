@@ -55,47 +55,38 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
     
     let now = chrono::Utc::now();
 
-        let formats = vec![
+    let formats = vec![
         ("json", "JSON", json!(["json", "hjson"]), 
-        "JavaScript Object Notation — легковесный формат обмена данными, основанный на синтаксисе JavaScript",
         "FileBraces", "from-yellow-500/30 to-amber-500/15", "shadow-yellow-500/20",
         "text-yellow-400", "hover:border-yellow-500/60"),
         ("yaml", "YAML", json!(["yaml", "yml"]),
-        "YAML Ain't Markup Language — человекочитаемый формат сериализации данных, популярный в конфигурациях и DevOps",
         "FileText", "from-blue-500/30 to-cyan-500/15", "shadow-blue-500/20",
         "text-blue-400", "hover:border-blue-500/60"),
         ("csv", "CSV", json!(["csv", "tsv"]),
-        "Comma-Separated Values — табличный формат для хранения и обмена данными между базами, Excel и аналитическими системами",
         "FileSpreadsheet", "from-green-500/30 to-emerald-500/15", "shadow-green-500/20",
         "text-green-400", "hover:border-green-500/60"),
         ("xml", "XML", json!(["xml"]),
-        "Extensible Markup Language — универсальный язык разметки с древовидной структурой, широко используется в API, SOAP и конфигурациях",
         "FileCode", "from-orange-500/30 to-red-500/15", "shadow-orange-500/20",
         "text-orange-400", "hover:border-orange-500/60"),
         ("toml", "TOML", json!(["toml"]),
-        "Tom's Obvious Minimal Language — минималистичный формат конфигураций с чёткой структурой, любимец Rust-сообщества",
         "AlignLeft", "from-orange-400/30 to-yellow-500/15", "shadow-orange-400/20",
         "text-orange-400", "hover:border-orange-400/60"),
         ("ini", "INI", json!(["ini", "cfg", "conf"]),
-        "Простейший формат конфигурационных файлов с секциями и парами ключ-значение, используется повсеместно",
         "ListOrdered", "from-gray-400/30 to-slate-500/15", "shadow-gray-400/20",
         "text-gray-400", "hover:border-gray-400/60"),
         ("md", "Markdown", json!(["md", "markdown", "mdown", "mkd"]),
-        "Легковесный язык разметки для форматирования текста, конвертируется в HTML, PDF и другие форматы",
         "Braces", "from-purple-500/30 to-violet-500/15", "shadow-purple-500/20",
         "text-purple-400", "hover:border-purple-500/60"),
         ("html", "HTML", json!(["html", "htm"]),
-        "HyperText Markup Language — стандартный язык веб-разметки, основа всех веб-страниц и шаблонов",
         "Globe", "from-orange-500/30 to-red-500/15", "shadow-orange-500/20",
         "text-orange-300", "hover:border-orange-500/60"),
     ];
 
-    for (format_id, name, extensions, description, icon, color, glow, text_color, border_hover) in formats {
+    for (format_id, name, extensions, icon, color, glow, text_color, border_hover) in formats {
         let new_format = FormatActiveModel {
             format_id: Set(format_id.to_string()),
             name: Set(name.to_string()),
             extensions: Set(extensions),
-            description: Set(description.to_string()),
             icon: Set(icon.to_string()),
             color: Set(color.to_string()),
             glow: Set(glow.to_string()),

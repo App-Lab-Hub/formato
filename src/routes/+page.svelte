@@ -12,6 +12,7 @@
   import Footer from '$lib/components/Footer.svelte';
   import FormatoLogo from '$lib/components/FormatoLogo.svelte';
   import type { Format } from '$lib/types/format';
+  import { m } from '$lib/paraglide/messages';
 
   const SPLIDE_INDEX_KEY = 'splide_active_index';
 
@@ -134,7 +135,9 @@
                     </div>
                     <div class="w-full min-w-0">
                       <h3 class="text-xl lg:text-2xl font-bold">{format.name}</h3>
-                      <p class="mt-1.5 text-sm text-muted-foreground truncate">{format.description}</p>
+                      <p class="mt-1.5 text-sm text-muted-foreground truncate">
+                       {(m as any)[`format_desc_${format.id}`]()}
+                    </p>
                     </div>
                   </div>
                 </div>
@@ -142,9 +145,9 @@
             {/each}
           </Splide>
         {:else}
-          <div class="text-center text-muted-foreground py-10">
-            Нет доступных форматов
-          </div>
+        <div class="text-center text-muted-foreground py-10">
+          {m.no_formats()}
+        </div>
         {/if}
       </div>
     </main>

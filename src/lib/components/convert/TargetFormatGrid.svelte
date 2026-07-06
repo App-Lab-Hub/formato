@@ -1,6 +1,6 @@
-<!-- src/lib/components/convert/TargetFormatGrid.svelte -->
 <script lang="ts">
   import type { Format } from '$lib/types/format';
+  import { m } from '$lib/paraglide/messages';
 
   let {
     formats,
@@ -33,7 +33,9 @@
         <Icon class="relative h-11 w-11 {target.textColor}" />
       </div>
       <span class="text-base font-bold">{target.name}</span>
-      <span class="text-xs text-muted-foreground line-clamp-3 max-w-[160px]">{target.description}</span>
+      <span class="text-xs text-muted-foreground line-clamp-3 max-w-[160px]">
+        {(m as any)[`format_desc_${target.id}`]()}
+      </span>
     </button>
   {/each}
 </div>

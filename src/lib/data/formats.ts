@@ -54,7 +54,6 @@ export async function loadFormatsData(): Promise<void> {
         id: f.format_id,
         name: f.name,
         extensions: f.extensions,
-        description: f.description,
         icon: iconMap[f.icon] || Icons.File,
         color: f.color,
         glow: f.glow,

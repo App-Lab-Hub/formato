@@ -12,8 +12,7 @@ pub struct Model {
     pub format_id: String,
     
     pub name: String,
-    pub extensions: JsonValue,  // ← serde_json::Value
-    pub description: String,
+    pub extensions: JsonValue,
     pub icon: String,
     pub color: String,
     pub glow: String,
