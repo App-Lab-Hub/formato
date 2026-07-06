@@ -1,3 +1,4 @@
+<!-- src/routes/+layout.svelte -->
 <script lang="ts">
 	import "../app.css";
 	import "$lib/styles/scroll.css";
@@ -6,11 +7,11 @@
 	import { invoke } from "@tauri-apps/api/core";
 	import { browser } from '$app/environment';
 	import { loadFormatsData } from '$lib/data/formats';
-	import ScrollContainer from "$lib/components/ScrollContainer.svelte";
 	import { getCurrentWebview } from '@tauri-apps/api/webview';
 	import { goto } from '$app/navigation';
 	import { setLocale } from '$lib/paraglide/runtime';
 	import { page } from '$app/state';
+	import { applyTheme, watchSystemTheme } from '$lib/data/settings';
 
 	let { children } = $props();
 	const isHome = browser && window.location.pathname === '/';
@@ -19,6 +20,14 @@
 	let splashDone = $state(appReady);
 
 	let lang = $derived(page.data?.settings?.language ?? 'en');
+	let settings = $derived(page.data?.settings);
+
+	// Применяем тему при загрузке настроек
+	$effect(() => {
+		if (settings?.theme) {
+			applyTheme(settings.theme);
+		}
+	});
 
 	$effect(() => {
 		if (lang) {
@@ -39,6 +48,20 @@
 			if (!isHome) {
 				onSplashComplete();
 			}
+		}
+	});
+
+	// Следим за системной темой отдельно
+	onMount(() => {
+		if (browser && settings?.theme === 'system') {
+			const unwatch = watchSystemTheme(() => {
+				// Если выбрана системная тема, обновляем
+				if (settings?.theme === 'system') {
+					applyTheme('system');
+				}
+			});
+
+			return unwatch;
 		}
 	});
 

@@ -100,5 +100,6 @@
   "preview_unlimited": "∞ (unlimited)",
   "preview_unlimited_desc": "You have set unlimited mode (∞), but the file still cannot be opened due to browser memory limitations.",
 
-  "convert_to": "convert to"
+  "convert_to": "convert to",
+  "settings_theme_system_desc": "Follows your system theme automatically"
 }

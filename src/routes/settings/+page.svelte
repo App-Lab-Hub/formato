@@ -45,13 +45,14 @@
   });
 </script>
 
+<!-- src/routes/settings/+page.svelte -->
 <ScrollContainer>
   <div class="flex flex-col bg-background text-foreground min-h-full">
     <main class="flex flex-col items-center px-8 py-16">
       
       <div class="w-full max-w-[1700px] flex justify-start mb-8">
         <button 
-          onclick={goBack} 
+          onclick={() => goto('/')} 
           class="cursor-pointer flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
         >
           <ArrowLeft class="h-5 w-5" />
@@ -95,6 +96,10 @@
                 </button>
               {/each}
             </div>
+            <p class="mt-3 text-xs text-muted-foreground/60">
+              {theme === 'system' ? '🔄 ' + m.settings_theme_system_desc() : 
+               theme === 'dark' ? '🌙 ' + m.settings_theme_dark() : '☀️ ' + m.settings_theme_light()}
+            </p>
           </div>
 
           <!-- Язык -->
