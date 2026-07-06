@@ -125,7 +125,7 @@
               {@const Icon = format.icon}
               <SplideSlide>
                 <div
-                  class="group block rounded-2xl border-2 border-border bg-card/50 backdrop-blur-sm p-10 transition-all duration-300 hover:scale-[1.05] {format.borderHover} {format.glow} hover:shadow-2xl hover:-translate-y-2 mx-auto cursor-pointer"
+                  class="group block rounded-2xl border-2 dark:border-border light:border-border/50 dark:bg-card/50 light:bg-white/60 backdrop-blur-sm p-10 transition-all duration-300 hover:scale-[1.05] {format.borderHover} {format.glow} hover:shadow-2xl hover:-translate-y-2 mx-auto cursor-pointer dark:hover:shadow-purple-500/20 light:hover:shadow-purple-400/30"
                   style="max-width: 320px;"
                 >
                   <div class="flex flex-col items-center gap-6 text-center">
@@ -134,8 +134,8 @@
                       <Icon class="relative h-16 w-16 {format.textColor}" />
                     </div>
                     <div class="w-full min-w-0">
-                      <h3 class="text-xl lg:text-2xl font-bold">{format.name}</h3>
-                      <p class="mt-1.5 text-sm text-muted-foreground truncate">
+                      <h3 class="text-xl lg:text-2xl font-bold dark:text-foreground light:text-foreground/90">{format.name}</h3>
+                      <p class="mt-1.5 text-sm dark:text-muted-foreground light:text-muted-foreground/70 truncate">
                        {(m as any)[`format_desc_${format.id}`]()}
                     </p>
                     </div>
@@ -145,7 +145,7 @@
             {/each}
           </Splide>
         {:else}
-        <div class="text-center text-muted-foreground py-10">
+        <div class="text-center dark:text-muted-foreground light:text-muted-foreground/70 py-10">
           {m.no_formats()}
         </div>
         {/if}

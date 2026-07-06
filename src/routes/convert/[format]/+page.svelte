@@ -257,7 +257,7 @@
     <TooltipProvider>
       <div class="flex flex-col bg-background text-foreground min-h-screen">
         <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
-          <button onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors">
+          <button onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 dark:text-muted-foreground light:text-muted-foreground/70 dark:hover:text-primary light:hover:text-primary transition-colors">
             <ArrowLeft class="h-5 w-5" />
             <span class="text-sm">{m.settings_back()}</span>
           </button>

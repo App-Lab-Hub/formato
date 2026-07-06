@@ -14,7 +14,7 @@
     </div>
     <div class="text-center max-w-xl">
       <h1 class="text-2xl font-bold {format.textColor}">{format.name}</h1>
-      <p class="mt-2 text-sm text-muted-foreground leading-relaxed">
+      <p class="mt-2 text-sm dark:text-muted-foreground light:text-muted-foreground/70 leading-relaxed">
         {(m as any)[`format_desc_${format.id}`]()}
       </p>
     </div>

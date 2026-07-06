@@ -73,10 +73,9 @@
     setTimeout(() => isClicked = false, 600);
   }
 </script>
-
 <header 
-  class="w-full border-b bg-background/80 backdrop-blur-xl relative transition-all duration-500 ease-out z-10 overflow-visible
-  {isClicked ? 'border-purple-500/30' : 'border-purple-500/10'}"
+  class="w-full border-b dark:border-purple-500/10 light:border-purple-300/20 dark:bg-background/80 light:bg-white/80 backdrop-blur-xl relative transition-all duration-500 ease-out z-10 overflow-visible
+  {isClicked ? 'dark:border-purple-500/30 light:border-purple-400/30' : 'dark:border-purple-500/10 light:border-purple-300/20'}"
   style={isClicked ? `box-shadow: 0 8px 25px ${shadowColor};` : ''}
 >
   <div class="absolute bottom-0 left-0 right-0 h-[2px] overflow-hidden pointer-events-none z-0">
@@ -97,9 +96,9 @@
           {isClicked ? 'rotate-[360deg]' : ''}"
         />
       </div>
-      <div class="h-5 w-px bg-purple-500/20 mx-1 hidden sm:block"></div>
+      <div class="h-5 w-px dark:bg-purple-500/20 light:bg-purple-400/20 mx-1 hidden sm:block"></div>
       <span 
-        class="hidden sm:block text-lg font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent transition-all duration-300 group-hover:tracking-wider"
+        class="hidden sm:block text-lg font-bold dark:bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 light:bg-gradient-to-r light:from-cyan-600 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent transition-all duration-300 group-hover:tracking-wider"
       >
         Formato
       </span>
@@ -108,14 +107,14 @@
     <nav class="flex items-center gap-1">
       <a 
         href="/about" 
-        class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-base font-medium text-purple-300/60 hover:text-purple-200 hover:bg-purple-500/10 transition-all duration-300"
+        class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-base font-medium dark:text-purple-300/60 light:text-purple-600/60 dark:hover:text-purple-200 light:hover:text-purple-700 dark:hover:bg-purple-500/10 light:hover:bg-purple-400/10 transition-all duration-300"
       >
         <Info class="h-4 w-4" />
         <span class="hidden sm:inline">О нас</span>
       </a>
       <a 
         href="/settings" 
-        class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-base font-medium text-purple-300/60 hover:text-purple-200 hover:bg-purple-500/10 transition-all duration-300"
+        class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-base font-medium dark:text-purple-300/60 light:text-purple-600/60 dark:hover:text-purple-200 light:hover:text-purple-700 dark:hover:bg-purple-500/10 light:hover:bg-purple-400/10 transition-all duration-300"
       >
         <Settings class="h-4 w-4" />
         <span class="hidden sm:inline">Настройки</span>
