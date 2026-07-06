@@ -44,7 +44,6 @@
     save();
   });
 </script>
-
 <!-- src/routes/settings/+page.svelte -->
 <ScrollContainer>
   <div class="flex flex-col bg-background text-foreground min-h-full">
@@ -63,20 +62,20 @@
       <div class="w-full max-w-[1700px]">
         <div class="text-center mb-12">
           <h1 class="text-3xl sm:text-4xl font-bold mb-3">
-            <span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              {m.settings_title()}
-            </span>
+<span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 dark:from-cyan-400 dark:via-purple-400 dark:to-pink-400 light:from-cyan-600 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent">
+  {m.settings_title()}
+</span>
           </h1>
           <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-border to-transparent"></div>
-          <p class="text-muted-foreground/60 text-sm mt-2">
-            {m.settings_subtitle()}
-          </p>
+<p class="dark:text-muted-foreground/60 light:text-foreground/50 text-sm mt-2">
+  {m.settings_subtitle()}
+</p>
         </div>
 
         <div class="space-y-6 max-w-3xl mx-auto">
           
           <!-- Тема -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
+          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6 dark:bg-card/50 light:bg-card/80 dark:border-border light:border-border/60 shadow-sm dark:shadow-none light:shadow-md">
             <div class="flex items-center gap-3 mb-4">
               <Palette class="h-5 w-5 text-primary" />
               <h2 class="text-lg font-semibold">{m.settings_theme()}</h2>
@@ -89,21 +88,21 @@
               ] as opt}
                 <button 
                   onclick={() => theme = opt.id}
-                  class="cursor-pointer px-4 py-3 rounded-xl border transition-all flex items-center justify-center gap-2 {theme === opt.id ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/50'}"
+                  class="cursor-pointer px-4 py-3 rounded-xl border-2 transition-all flex items-center justify-center gap-2 {theme === opt.id ? 'border-primary bg-primary/20 text-primary shadow-sm' : 'dark:border-border light:border-border/40 dark:hover:border-primary/50 light:hover:border-primary/60 dark:bg-transparent light:bg-white/40 dark:hover:bg-transparent light:hover:bg-white/60'}"
                 >
                   <opt.icon class="h-4 w-4" />
-                  <span class="text-sm">{opt.label}</span>
+                  <span class="text-sm font-medium">{opt.label}</span>
                 </button>
               {/each}
             </div>
-            <p class="mt-3 text-xs text-muted-foreground/60">
+            <p class="mt-3 text-xs dark:text-muted-foreground/60 light:text-muted-foreground/70">
               {theme === 'system' ? '🔄 ' + m.settings_theme_system_desc() : 
                theme === 'dark' ? '🌙 ' + m.settings_theme_dark() : '☀️ ' + m.settings_theme_light()}
             </p>
           </div>
 
           <!-- Язык -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
+          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6 dark:bg-card/50 light:bg-card/80 dark:border-border light:border-border/60 shadow-sm dark:shadow-none light:shadow-md">
             <div class="flex items-center gap-3 mb-4">
               <Languages class="h-5 w-5 text-primary" />
               <h2 class="text-lg font-semibold">{m.settings_language()}</h2>
@@ -115,28 +114,28 @@
               ] as opt}
                 <button 
                   onclick={() => language = opt.id}
-                  class="cursor-pointer px-4 py-3 rounded-xl border transition-all {language === opt.id ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/50'}"
+                  class="cursor-pointer px-4 py-3 rounded-xl border-2 transition-all {language === opt.id ? 'border-primary bg-primary/20 text-primary shadow-sm' : 'dark:border-border light:border-border/40 dark:hover:border-primary/50 light:hover:border-primary/60 dark:bg-transparent light:bg-white/40 dark:hover:bg-transparent light:hover:bg-white/60'}"
                 >
-                  <span class="text-sm">{opt.label}</span>
+                  <span class="text-sm font-medium">{opt.label}</span>
                 </button>
               {/each}
             </div>
           </div>
 
           <!-- Авто-превью -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
+          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6 dark:bg-card/50 light:bg-card/80 dark:border-border light:border-border/60 shadow-sm dark:shadow-none light:shadow-md">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <FolderOpen class="h-5 w-5 text-primary" />
                 <div>
                   <h2 class="text-lg font-semibold">{m.settings_auto_preview()}</h2>
-                  <p class="text-sm text-muted-foreground">{m.settings_auto_preview_desc()}</p>
+                  <p class="text-sm dark:text-muted-foreground light:text-muted-foreground/70">{m.settings_auto_preview_desc()}</p>
                 </div>
               </div>
               <button 
                 onclick={() => autoPreview = !autoPreview}
                 aria-label={m.settings_auto_preview()}
-                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {autoPreview ? 'bg-primary' : 'bg-muted-foreground/20'}"
+                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {autoPreview ? 'bg-primary' : 'dark:bg-muted-foreground/20 light:bg-muted-foreground/30'}"
               >
                 <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {autoPreview ? 'left-6' : 'left-0.5'}"></span>
               </button>
@@ -144,25 +143,25 @@
           </div>
 
           <!-- Архивация -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
+          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6 dark:bg-card/50 light:bg-card/80 dark:border-border light:border-border/60 shadow-sm dark:shadow-none light:shadow-md">
             <div class="flex items-center gap-3 mb-4">
               <Archive class="h-5 w-5 text-primary" />
               <div>
                 <h2 class="text-lg font-semibold">{m.settings_archive()}</h2>
-                <p class="text-sm text-muted-foreground">{m.settings_archive_desc()}</p>
+                <p class="text-sm dark:text-muted-foreground light:text-muted-foreground/70">{m.settings_archive_desc()}</p>
               </div>
             </div>
             <div class="flex items-center justify-between mb-4">
-              <span class="text-sm text-muted-foreground">{m.settings_archive_enable()}</span>
+              <span class="text-sm dark:text-muted-foreground light:text-muted-foreground/70">{m.settings_archive_enable()}</span>
               <button 
                 onclick={() => enableArchive = !enableArchive}
-                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {enableArchive ? 'bg-primary' : 'bg-muted-foreground/20'}"
+                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {enableArchive ? 'bg-primary' : 'dark:bg-muted-foreground/20 light:bg-muted-foreground/30'}"
               >
                 <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {enableArchive ? 'left-6' : 'left-0.5'}"></span>
               </button>
             </div>
             {#if enableArchive}
-              <div class="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-border/50">
+              <div class="grid grid-cols-3 gap-3 mt-3 pt-3 dark:border-t border-border/50 light:border-t border-border/40">
                 {#each [
                   { id: 'zip', label: 'ZIP', desc: m.settings_archive_zip() },
                   { id: 'tar.gz', label: 'TAR.GZ', desc: m.settings_archive_tar_gz() },
@@ -170,10 +169,10 @@
                 ] as opt}
                   <button 
                     onclick={() => archiveFormat = opt.id}
-                    class="cursor-pointer px-4 py-3 rounded-xl border transition-all text-left {archiveFormat === opt.id ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/50'}"
+                    class="cursor-pointer px-4 py-3 rounded-xl border-2 transition-all text-left {archiveFormat === opt.id ? 'border-primary bg-primary/20 text-primary shadow-sm' : 'dark:border-border light:border-border/40 dark:hover:border-primary/50 light:hover:border-primary/60 dark:bg-transparent light:bg-white/40 dark:hover:bg-transparent light:hover:bg-white/60'}"
                   >
                     <span class="text-sm font-medium">{opt.label}</span>
-                    <p class="text-xs text-muted-foreground mt-1">{opt.desc}</p>
+                    <p class="text-xs dark:text-muted-foreground light:text-muted-foreground/60 mt-1">{opt.desc}</p>
                   </button>
                 {/each}
               </div>
@@ -181,26 +180,26 @@
           </div>
 
           <!-- Макс. размер предпросмотра -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
+          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6 dark:bg-card/50 light:bg-card/80 dark:border-border light:border-border/60 shadow-sm dark:shadow-none light:shadow-md">
             <div class="flex items-center gap-3 mb-4">
               <Eye class="h-5 w-5 text-primary" />
               <div>
                 <h2 class="text-lg font-semibold">{m.settings_preview_limit()}</h2>
-                <p class="text-sm text-muted-foreground">{m.settings_preview_limit_desc()}</p>
+                <p class="text-sm dark:text-muted-foreground light:text-muted-foreground/70">{m.settings_preview_limit_desc()}</p>
               </div>
             </div>
             <div class="flex flex-wrap gap-2">
               {#each maxPreviewSizes as size}
                 <button 
                   onclick={() => maxPreviewSize = size}
-                  class="cursor-pointer px-4 py-2 rounded-lg border text-sm transition-all {maxPreviewSize === size ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/50'}"
+                  class="cursor-pointer px-4 py-2 rounded-lg border-2 text-sm transition-all {maxPreviewSize === size ? 'border-primary bg-primary/20 text-primary shadow-sm' : 'dark:border-border light:border-border/40 dark:hover:border-primary/50 light:hover:border-primary/60 dark:bg-transparent light:bg-white/40 dark:hover:bg-transparent light:hover:bg-white/60'}"
                 >
                   {formatSize(size)}
                 </button>
               {/each}
               <button 
                 onclick={() => maxPreviewSize = 0}
-                class="cursor-pointer px-4 py-2 rounded-lg border text-sm transition-all {maxPreviewSize === 0 ? 'border-primary bg-primary/10 text-primary' : 'border-border hover:border-primary/50'}"
+                class="cursor-pointer px-4 py-2 rounded-lg border-2 text-sm transition-all {maxPreviewSize === 0 ? 'border-primary bg-primary/20 text-primary shadow-sm' : 'dark:border-border light:border-border/40 dark:hover:border-primary/50 light:hover:border-primary/60 dark:bg-transparent light:bg-white/40 dark:hover:bg-transparent light:hover:bg-white/60'}"
               >
                 ∞
               </button>
@@ -208,18 +207,18 @@
           </div>
 
           <!-- Показывать расширения -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
+          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6 dark:bg-card/50 light:bg-card/80 dark:border-border light:border-border/60 shadow-sm dark:shadow-none light:shadow-md">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <FileCheck class="h-5 w-5 text-primary" />
                 <div>
                   <h2 class="text-lg font-semibold">{m.settings_show_extensions()}</h2>
-                  <p class="text-sm text-muted-foreground">{m.settings_show_extensions_desc()}</p>
+                  <p class="text-sm dark:text-muted-foreground light:text-muted-foreground/70">{m.settings_show_extensions_desc()}</p>
                 </div>
               </div>
               <button 
                 onclick={() => showExtensions = !showExtensions}
-                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {showExtensions ? 'bg-primary' : 'bg-muted-foreground/20'}"
+                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {showExtensions ? 'bg-primary' : 'dark:bg-muted-foreground/20 light:bg-muted-foreground/30'}"
               >
                 <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {showExtensions ? 'left-6' : 'left-0.5'}"></span>
               </button>
@@ -227,18 +226,18 @@
           </div>
 
           <!-- Кэширование -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
+          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6 dark:bg-card/50 light:bg-card/80 dark:border-border light:border-border/60 shadow-sm dark:shadow-none light:shadow-md">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <Database class="h-5 w-5 text-primary" />
                 <div>
                   <h2 class="text-lg font-semibold">{m.settings_enable_cache()}</h2>
-                  <p class="text-sm text-muted-foreground">{m.settings_enable_cache_desc()}</p>
+                  <p class="text-sm dark:text-muted-foreground light:text-muted-foreground/70">{m.settings_enable_cache_desc()}</p>
                 </div>
               </div>
               <button 
                 onclick={() => enableCache = !enableCache}
-                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {enableCache ? 'bg-primary' : 'bg-muted-foreground/20'}"
+                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {enableCache ? 'bg-primary' : 'dark:bg-muted-foreground/20 light:bg-muted-foreground/30'}"
               >
                 <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {enableCache ? 'left-6' : 'left-0.5'}"></span>
               </button>
@@ -246,25 +245,25 @@
           </div>
 
           <!-- Безопасность -->
-          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
+          <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6 dark:bg-card/50 light:bg-card/80 dark:border-border light:border-border/60 shadow-sm dark:shadow-none light:shadow-md">
             <div class="flex items-center gap-3 mb-3">
               <Shield class="h-5 w-5 text-primary" />
               <h2 class="text-lg font-semibold">{m.settings_security()}</h2>
             </div>
-            <p class="text-sm text-muted-foreground mb-3">
+            <p class="text-sm dark:text-muted-foreground light:text-muted-foreground/70 mb-3">
               {m.settings_security_desc()}
             </p>
             <div class="flex items-center gap-2 text-xs">
-              <span class="px-2 py-1 bg-emerald-500/10 rounded border border-emerald-500/20 text-emerald-400">● {m.settings_security_badge()}</span>
-              <span class="text-muted-foreground/60">{m.settings_security_local()}</span>
+              <span class="px-2 py-1 dark:bg-emerald-500/10 light:bg-emerald-500/15 rounded-lg dark:border border-emerald-500/20 light:border border-emerald-500/25 dark:text-emerald-400 light:text-emerald-600 font-medium">● {m.settings_security_badge()}</span>
+              <span class="dark:text-muted-foreground/60 light:text-muted-foreground/50">{m.settings_security_local()}</span>
             </div>
           </div>
 
         </div>
 
-        <div class="text-center mt-8 text-xs text-muted-foreground/40">
-          {m.settings_save_message()}
-        </div>
+<div class="text-center mt-8 text-xs dark:text-muted-foreground/40 light:text-foreground/40">
+  {m.settings_save_message()}
+</div>
       </div>
 
     </main>
