@@ -18,8 +18,9 @@
 	let showSplash = $state(isHome && !appReady);
 	let splashDone = $state(appReady);
 
+	let lang = $derived(page.data?.settings?.language ?? 'en');
+
 	$effect(() => {
-		const lang = page.data?.settings?.language;
 		if (lang) {
 			setLocale(lang, { reload: false });
 		}
@@ -65,4 +66,6 @@
 	<SplashScreen onComplete={onSplashComplete} />
 {/if}
 
-<div class="bg-background text-foreground">{@render children?.()}</div>
+{#key lang}
+	<div class="bg-background text-foreground">{@render children?.()}</div>
+{/key}

@@ -23,7 +23,7 @@ export const load: LayoutLoad = async ({ url }) => {
   await loadSettings();
 
   const settings = getSettings();
-  setLocale(settings.language, { reload: false });
+  setLocale(settings.language as "en" | "ru", { reload: false });
 
   return {
     formats: getFormats(),

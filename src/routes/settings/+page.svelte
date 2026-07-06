@@ -6,6 +6,7 @@
   import { onMount } from 'svelte';
   import { getSettings, saveSettings, type AppSettings } from '$lib/data/settings';
   import { formatSize } from '$lib/utils/format';
+  import { m } from '$lib/paraglide/messages';
 
   let settings = $state<AppSettings>(getSettings());
   let theme = $state(settings.theme);
@@ -54,7 +55,7 @@
           class="cursor-pointer flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors"
         >
           <ArrowLeft class="h-5 w-5" />
-          <span class="text-sm">На главную</span>
+          <span class="text-sm">{m.settings_back()}</span>
         </button>
       </div>
 
@@ -62,12 +63,12 @@
         <div class="text-center mb-12">
           <h1 class="text-3xl sm:text-4xl font-bold mb-3">
             <span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-              Настройки
+              {m.settings_title()}
             </span>
           </h1>
           <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-border to-transparent"></div>
           <p class="text-muted-foreground/60 text-sm mt-2">
-            Настройте приложение под себя
+            {m.settings_subtitle()}
           </p>
         </div>
 
@@ -77,13 +78,13 @@
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
             <div class="flex items-center gap-3 mb-4">
               <Palette class="h-5 w-5 text-primary" />
-              <h2 class="text-lg font-semibold">Тема</h2>
+              <h2 class="text-lg font-semibold">{m.settings_theme()}</h2>
             </div>
             <div class="grid grid-cols-3 gap-3">
               {#each [
-                { id: 'light', icon: Sun, label: 'Светлая' },
-                { id: 'dark', icon: Moon, label: 'Тёмная' },
-                { id: 'system', icon: Monitor, label: 'Системная' }
+                { id: 'light', icon: Sun, label: m.settings_theme_light() },
+                { id: 'dark', icon: Moon, label: m.settings_theme_dark() },
+                { id: 'system', icon: Monitor, label: m.settings_theme_system() }
               ] as opt}
                 <button 
                   onclick={() => theme = opt.id}
@@ -100,7 +101,7 @@
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
             <div class="flex items-center gap-3 mb-4">
               <Languages class="h-5 w-5 text-primary" />
-              <h2 class="text-lg font-semibold">Язык интерфейса</h2>
+              <h2 class="text-lg font-semibold">{m.settings_language()}</h2>
             </div>
             <div class="grid grid-cols-2 gap-3">
               {#each [
@@ -123,13 +124,13 @@
               <div class="flex items-center gap-3">
                 <FolderOpen class="h-5 w-5 text-primary" />
                 <div>
-                  <h2 class="text-lg font-semibold">Авто-превью</h2>
-                  <p class="text-sm text-muted-foreground">Открывать предпросмотр файла после завершения конвертации</p>
+                  <h2 class="text-lg font-semibold">{m.settings_auto_preview()}</h2>
+                  <p class="text-sm text-muted-foreground">{m.settings_auto_preview_desc()}</p>
                 </div>
               </div>
               <button 
                 onclick={() => autoPreview = !autoPreview}
-                aria-label="Авто-превью"
+                aria-label={m.settings_auto_preview()}
                 class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {autoPreview ? 'bg-primary' : 'bg-muted-foreground/20'}"
               >
                 <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {autoPreview ? 'left-6' : 'left-0.5'}"></span>
@@ -142,25 +143,25 @@
             <div class="flex items-center gap-3 mb-4">
               <Archive class="h-5 w-5 text-primary" />
               <div>
-                <h2 class="text-lg font-semibold">Архивировать результат</h2>
-                <p class="text-sm text-muted-foreground">Упаковать сконвертированный файл в архив</p>
+                <h2 class="text-lg font-semibold">{m.settings_archive()}</h2>
+                <p class="text-sm text-muted-foreground">{m.settings_archive_desc()}</p>
               </div>
             </div>
             <div class="flex items-center justify-between mb-4">
-              <span class="text-sm text-muted-foreground">Включить архивацию</span>
+              <span class="text-sm text-muted-foreground">{m.settings_archive_enable()}</span>
               <button 
                 onclick={() => enableArchive = !enableArchive}
                 class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {enableArchive ? 'bg-primary' : 'bg-muted-foreground/20'}"
               >
-                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {enableArchive ? 'left-6' : 'left-0.5'}" />
+                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {enableArchive ? 'left-6' : 'left-0.5'}"></span>
               </button>
             </div>
             {#if enableArchive}
               <div class="grid grid-cols-3 gap-3 mt-3 pt-3 border-t border-border/50">
                 {#each [
-                  { id: 'zip', label: 'ZIP', desc: 'Универсальный' },
-                  { id: 'tar.gz', label: 'TAR.GZ', desc: 'Linux/macOS' },
-                  { id: 'tar.xz', label: 'TAR.XZ', desc: 'Макс. сжатие' }
+                  { id: 'zip', label: 'ZIP', desc: m.settings_archive_zip() },
+                  { id: 'tar.gz', label: 'TAR.GZ', desc: m.settings_archive_tar_gz() },
+                  { id: 'tar.xz', label: 'TAR.XZ', desc: m.settings_archive_tar_xz() }
                 ] as opt}
                   <button 
                     onclick={() => archiveFormat = opt.id}
@@ -179,8 +180,8 @@
             <div class="flex items-center gap-3 mb-4">
               <Eye class="h-5 w-5 text-primary" />
               <div>
-                <h2 class="text-lg font-semibold">Лимит предпросмотра</h2>
-                <p class="text-sm text-muted-foreground">Максимальный размер файла для предпросмотра</p>
+                <h2 class="text-lg font-semibold">{m.settings_preview_limit()}</h2>
+                <p class="text-sm text-muted-foreground">{m.settings_preview_limit_desc()}</p>
               </div>
             </div>
             <div class="flex flex-wrap gap-2">
@@ -207,15 +208,15 @@
               <div class="flex items-center gap-3">
                 <FileCheck class="h-5 w-5 text-primary" />
                 <div>
-                  <h2 class="text-lg font-semibold">Расширения файлов</h2>
-                  <p class="text-sm text-muted-foreground">Показывать расширения в списке (data.json вместо data)</p>
+                  <h2 class="text-lg font-semibold">{m.settings_show_extensions()}</h2>
+                  <p class="text-sm text-muted-foreground">{m.settings_show_extensions_desc()}</p>
                 </div>
               </div>
               <button 
                 onclick={() => showExtensions = !showExtensions}
                 class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {showExtensions ? 'bg-primary' : 'bg-muted-foreground/20'}"
               >
-                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {showExtensions ? 'left-6' : 'left-0.5'}" />
+                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {showExtensions ? 'left-6' : 'left-0.5'}"></span>
               </button>
             </div>
           </div>
@@ -226,15 +227,15 @@
               <div class="flex items-center gap-3">
                 <Database class="h-5 w-5 text-primary" />
                 <div>
-                  <h2 class="text-lg font-semibold">Кэширование конвертаций</h2>
-                  <p class="text-sm text-muted-foreground">Использовать хэш для кэширования результатов</p>
+                  <h2 class="text-lg font-semibold">{m.settings_enable_cache()}</h2>
+                  <p class="text-sm text-muted-foreground">{m.settings_enable_cache_desc()}</p>
                 </div>
               </div>
               <button 
                 onclick={() => enableCache = !enableCache}
                 class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {enableCache ? 'bg-primary' : 'bg-muted-foreground/20'}"
               >
-                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {enableCache ? 'left-6' : 'left-0.5'}" />
+                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {enableCache ? 'left-6' : 'left-0.5'}"></span>
               </button>
             </div>
           </div>
@@ -243,21 +244,21 @@
           <div class="bg-card/50 backdrop-blur-sm rounded-2xl border border-border p-6">
             <div class="flex items-center gap-3 mb-3">
               <Shield class="h-5 w-5 text-primary" />
-              <h2 class="text-lg font-semibold">Безопасность</h2>
+              <h2 class="text-lg font-semibold">{m.settings_security()}</h2>
             </div>
             <p class="text-sm text-muted-foreground mb-3">
-              Все данные обрабатываются локально. Никакие данные не передаются на сервер.
+              {m.settings_security_desc()}
             </p>
             <div class="flex items-center gap-2 text-xs">
-              <span class="px-2 py-1 bg-emerald-500/10 rounded border border-emerald-500/20 text-emerald-400">● Защищено</span>
-              <span class="text-muted-foreground/60">Локальная обработка</span>
+              <span class="px-2 py-1 bg-emerald-500/10 rounded border border-emerald-500/20 text-emerald-400">● {m.settings_security_badge()}</span>
+              <span class="text-muted-foreground/60">{m.settings_security_local()}</span>
             </div>
           </div>
 
         </div>
 
         <div class="text-center mt-8 text-xs text-muted-foreground/40">
-          Настройки сохраняются автоматически на вашем устройстве
+          {m.settings_save_message()}
         </div>
       </div>
 
