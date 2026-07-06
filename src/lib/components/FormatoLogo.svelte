@@ -1,3 +1,7 @@
+<script>
+  import { m } from "$lib/paraglide/messages";
+
+</script>
 <div class="text-center mb-8 sm:mb-10">
     <div class="relative inline-block">
     <div class="absolute inset-0 blur-2xl bg-gradient-to-r from-cyan-400/20 via-purple-400/20 to-pink-400/20 rounded-full"></div>
@@ -17,6 +21,6 @@
     <div class="mt-3 h-px w-20 sm:w-28 mx-auto bg-gradient-to-r from-transparent via-purple-400/40 to-transparent"></div>
 
     <p class="mt-3 text-sm sm:text-base text-purple-300/50 max-w-md mx-auto font-light tracking-wide">
-    Универсальный конвертер данных
+    {m.hero_tagline()}
     </p>
 </div>

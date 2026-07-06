@@ -1,5 +1,6 @@
-// preview/+layout.ts — убрал проверку blocked и read_file_content
+// preview/+layout.ts
 export const ssr = false;
+export const prerender = false;
 
 import type { LayoutLoad } from "./$types";
 

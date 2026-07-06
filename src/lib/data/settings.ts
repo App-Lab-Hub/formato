@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 
 export interface AppSettings {
   theme: string;
-  language: string;
+  language: "en" | "ru";
   auto_preview: boolean;
   max_preview_size: number;
   show_extensions: boolean;

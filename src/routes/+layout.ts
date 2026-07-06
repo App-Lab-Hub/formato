@@ -3,7 +3,7 @@
 // See: https://svelte.dev/docs/kit/single-page-apps
 // See: https://v2.tauri.app/start/frontend/sveltekit/ for more info
 export const ssr = false;
-export const prerender = false;
+export const prerender = true;
 
 import {
   loadFormatsData,
@@ -11,10 +11,10 @@ import {
   isFormatsLoaded,
 } from "$lib/data/formats";
 import { loadSettings, getSettings } from "$lib/data/settings";
+import { setLocale } from "$lib/paraglide/runtime";
 import type { LayoutLoad } from "./$types";
 
 export const load: LayoutLoad = async ({ url }) => {
-  // Preview окно — не грузим форматы и настройки
   if (url.pathname.startsWith("/preview")) {
     return { formats: [], settings: {} as any };
   }
@@ -22,8 +22,11 @@ export const load: LayoutLoad = async ({ url }) => {
   if (!isFormatsLoaded()) await loadFormatsData();
   await loadSettings();
 
+  const settings = getSettings();
+  setLocale(settings.language, { reload: false });
+
   return {
     formats: getFormats(),
-    settings: getSettings(),
+    settings,
   };
 };
