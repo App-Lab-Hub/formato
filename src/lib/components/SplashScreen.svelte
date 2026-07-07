@@ -149,8 +149,12 @@
 
       if (isFadingOut || !refs.title) return;
       await animate(refs.title as HTMLElement, 
-        { opacity: [0, 1] }, 
-        { duration: 0.8, easing: [0.34, 1.56, 0.64, 1] }
+        { 
+          opacity: [0, 1],
+          transform: ['translateX(-40px) scale(0.85)', 'translateX(0) scale(1)'],
+          filter: ['blur(10px)', 'blur(0px)']
+        }, 
+        { duration: 1.2, easing: [0.34, 1.56, 0.64, 1] }
       ).finished;
 
       if (isFadingOut || !refs.subtitle) return;
