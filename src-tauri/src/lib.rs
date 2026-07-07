@@ -18,6 +18,7 @@ use tauri::Manager;
 #[derive(Default)] 
 pub struct AppState {
     pub db: Arc<Mutex<Option<DatabaseConnection>>>,
+    pub system_theme: Mutex<String>, // 'dark' или 'light'
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

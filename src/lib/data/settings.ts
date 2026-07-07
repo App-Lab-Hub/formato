@@ -131,15 +131,26 @@ export function getEffectiveTheme(settings: AppSettings): "light" | "dark" {
   return settings.theme as "light" | "dark";
 }
 
-// Следить за изменением системной темы
+// src/lib/data/settings.ts
 export function watchSystemTheme(
   callback: (isDark: boolean) => void,
 ): () => void {
   if (!browser) return () => {};
 
   const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-  const handler = (e: MediaQueryListEvent) => callback(e.matches);
+  const handler = (e: MediaQueryListEvent) => {
+    console.log("🔄 System theme changed:", e.matches ? "dark" : "light");
+    callback(e.matches);
+  };
 
   mediaQuery.addEventListener("change", handler);
-  return () => mediaQuery.removeEventListener("change", handler);
+  console.log(
+    "👀 Watching system theme, initial:",
+    mediaQuery.matches ? "dark" : "light",
+  );
+
+  return () => {
+    console.log("👋 Stopped watching system theme");
+    mediaQuery.removeEventListener("change", handler);
+  };
 }

@@ -6,7 +6,7 @@ use tauri::Manager;
 pub fn app_ready(app: tauri::AppHandle) {
     if let Some(window) = app.get_webview_window("main") {                         
         let _ = window.set_background_color(Some(tauri::utils::config::Color(6, 6, 8, 255)));
-        let _ = window.set_theme(Some(tauri::Theme::Dark));
+        // let _ = window.set_theme(Some(tauri::Theme::Dark));
         let _ = window.show();
     }
 }
