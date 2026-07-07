@@ -20,6 +20,7 @@
     rgba(0, 0, 0, 0.8) 100%
   );
 }
+
 .splash-scanline {
   position: absolute;
   left: 0;
@@ -29,7 +30,6 @@
   top: -5%;
   opacity: 0;
   z-index: 20;
-
   background: linear-gradient(
     to right,
     transparent 20%,
@@ -38,7 +38,6 @@
     rgba(34, 211, 238, 0.15) 60%,
     transparent 80%
   );
-
   box-shadow:
     0 0 4px rgba(34, 211, 238, 0.2),
     0 0 8px rgba(192, 132, 252, 0.1);
@@ -75,6 +74,13 @@
   text-transform: uppercase;
   user-select: none;
   margin: 0;
+  opacity: 0;
+}
+.gradient-text {
+  background: linear-gradient(to right, #22d3ee, #c084fc, #f472b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .letter {
@@ -189,7 +195,6 @@
 
 .logo-glow {
   position: absolute;
-  /* Центрируем через top/left + margin — не трогаем transform */
   top: 50%;
   left: 50%;
   width: clamp(130px, 20vw, 190px);
