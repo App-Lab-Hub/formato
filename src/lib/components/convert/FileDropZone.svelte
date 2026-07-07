@@ -205,36 +205,36 @@
     onclearall();
   }
 </script>
+
 <button
   bind:this={dropzoneEl}
   onclick={pickFile}
   class="group w-full max-w-4xl min-h-[180px] flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed bg-card/30 duration-300 cursor-pointer transition-all {isDragOver
     ? 'border-primary bg-primary/10'
-    : 'dark:border-border light:border-border/50 dark:hover:border-primary/50 light:hover:border-primary/50 dark:hover:bg-primary/5 light:hover:bg-primary/5'}"
+    : 'dark:border-border light:border-purple-300/40 dark:hover:border-primary/50 light:hover:border-purple-500/60 dark:hover:bg-primary/5 light:hover:bg-purple-200/40'}"
 >
-  <div class="rounded-full bg-secondary p-4 transition-colors duration-300 {isDragOver ? 'bg-primary/20 text-primary' : 'dark:group-hover:bg-primary/10 light:group-hover:bg-primary/10 dark:group-hover:text-primary light:group-hover:text-primary'}">
-    <Upload class="h-8 w-8 {isDragOver ? 'text-primary scale-110' : 'dark:text-muted-foreground light:text-muted-foreground/60 dark:group-hover:text-primary light:group-hover:text-primary'}" />
+  <div class="rounded-full p-4 transition-all duration-500 ease-out group-hover:bg-primary/20 group-hover:text-primary {isDragOver ? 'bg-primary/30 text-primary scale-105' : 'bg-purple-200/60 text-purple-600 dark:bg-purple-500/20 dark:text-purple-300'}">
+    <Upload class="h-8 w-8 transition-transform duration-500 ease-out group-hover:scale-110 {isDragOver ? 'scale-110' : ''}" />
   </div>
-<div class="text-center space-y-1">
-  {#if isDragOver}
-    <p class="text-base font-medium text-primary">{m.drop_files_here()}</p>
-  {:else}
-    <p class="text-base font-medium dark:text-foreground light:text-foreground/90">
-      {m.drop_files_text()} <span class="text-primary">{sourceFormatName}</span> {m.drop_files_file()}
-    </p>
-    <p class="text-sm dark:text-muted-foreground light:text-muted-foreground/60">{m.or_click()}</p>
-  {/if}
-</div>
+  <div class="text-center space-y-1">
+    {#if isDragOver}
+      <p class="text-base font-medium text-primary">{m.drop_files_here()}</p>
+    {:else}
+      <p class="text-base font-medium dark:text-foreground light:text-purple-800">
+        {m.drop_files_text()} <span class="text-primary font-semibold">{sourceFormatName}</span> {m.drop_files_file()}
+      </p>
+      <p class="text-sm dark:text-muted-foreground light:text-purple-600/70">{m.or_click()}</p>
+    {/if}
+  </div>
 </button>
-
 {#if files.length > 0}
   <div class="w-full max-w-4xl flex flex-col gap-4">
     <div class="flex items-center justify-between px-1">
       <div class="flex items-center gap-2">
-        <span class="flex h-7 w-7 items-center justify-center rounded-full dark:bg-violet-500/10 light:bg-violet-500/10 text-xs font-bold dark:text-violet-400 light:text-violet-600">
+        <span class="flex h-7 w-7 items-center justify-center rounded-full dark:bg-violet-500/20 light:bg-purple-300/60 text-xs font-bold dark:text-violet-400 light:text-purple-700">
           {files.length}
         </span>
-        <span class="text-base font-medium dark:text-muted-foreground light:text-muted-foreground/70">
+        <span class="text-base font-medium dark:text-muted-foreground light:text-purple-700/70">
           {files.length === 1 ? m.file_queued() : m.files_queued()}
         </span>
       </div>
@@ -243,9 +243,9 @@
         {#if selectedTarget}
           <Tooltip>
             <TooltipTrigger>
-              <button onclick={onconvertall} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:bg-violet-600 light:bg-violet-500 text-white hover:dark:bg-violet-700 hover:light:bg-violet-600 h-9 w-9 shadow-sm shadow-violet-500/20 group/btn">
-                <Zap class="h-4 w-4 fill-current group-hover/btn:scale-110 transition-transform" />
-              </button>
+<button onclick={onconvertall} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:bg-violet-600 light:bg-purple-500 text-white hover:dark:bg-violet-700 hover:light:bg-purple-600 h-9 w-9 shadow-sm shadow-violet-500/20 group/btn">
+  <Zap class="h-4 w-4 fill-current group-hover/btn:scale-110 transition-transform" />
+</button>
             </TooltipTrigger>
             <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{m.convert_all()}</p></TooltipContent>
           </Tooltip>
@@ -253,7 +253,7 @@
 
         <Tooltip>
           <TooltipTrigger>
-            <button onclick={clearAllWithAnimation} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-destructive/10 hover:text-destructive h-9 w-9 dark:text-muted-foreground light:text-muted-foreground/60 group/btn">
+            <button onclick={clearAllWithAnimation} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-destructive/10 hover:text-destructive h-9 w-9 dark:text-muted-foreground light:text-purple-600/60 group/btn">
               <ListX class="h-5 w-5 group-hover/btn:scale-110 transition-transform" />
             </button>
           </TooltipTrigger>
@@ -269,37 +269,37 @@
           <div
             data-file-item
             data-file-id={file.id}
-            class="group relative flex items-center gap-4 rounded-xl border border-border/50 dark:bg-card/50 light:bg-white/60 p-3.5 transition-all duration-200 dark:hover:bg-violet-500/5 light:hover:bg-violet-500/5 dark:hover:border-violet-500/20 light:hover:border-violet-500/30 hover:shadow-sm"
+            class="group relative flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 p-3.5 transition-all duration-200 dark:hover:bg-violet-500/10 light:hover:bg-purple-200/70 dark:hover:border-violet-500/20 light:hover:border-purple-400/50 hover:shadow-sm"
             class:opacity-70={isConverting}
           >
-          <div class="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg dark:bg-secondary/50 light:bg-violet-100/30 dark:text-muted-foreground light:text-muted-foreground/60 dark:group-hover:text-violet-500 light:group-hover:text-violet-600 transition-colors">
+          <div class="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg dark:bg-violet-500/20 light:bg-purple-300/60 dark:text-violet-400 light:text-purple-700 dark:group-hover:bg-violet-500/30 light:group-hover:bg-purple-400/60 dark:group-hover:text-violet-300 light:group-hover:text-purple-800 transition-colors">
             <FileText class="h-5 w-5" />
           </div>
 
-<div class="flex flex-col flex-1 min-w-0 gap-0.5">
-  <div class="flex items-center gap-2">
-    <span class="text-base font-medium dark:text-foreground light:text-foreground/90 truncate" title={file.name}>
-      {showExtensions ? file.name : file.name.replace(/\.[^.]+$/, '')}
-    </span>
-    {#if savedPath}
-      <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wider dark:text-emerald-400 light:text-emerald-600 dark:bg-emerald-400/10 light:bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
-        {savedPath.format}
-      </span>
-    {/if}
-  </div>
-  {#if selectedTarget}
-    <div class="flex items-center gap-1.5 text-xs font-medium dark:text-muted-foreground/80 light:text-muted-foreground/60">
-      <span class="uppercase tracking-wide opacity-70">{sourceFormatId}</span>
-      <ArrowRight class="h-3.5 w-3.5 dark:text-violet-500 light:text-violet-600" />
-      <span class="uppercase tracking-wide dark:text-violet-400 light:text-violet-600">{selectedTarget.id}</span>
-    </div>
-  {/if}
-</div>
+          <div class="flex flex-col flex-1 min-w-0 gap-0.5">
+            <div class="flex items-center gap-2">
+              <span class="text-base font-medium dark:text-foreground light:text-purple-800/90 truncate" title={file.name}>
+                {showExtensions ? file.name : file.name.replace(/\.[^.]+$/, '')}
+              </span>
+              {#if savedPath}
+                <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wider dark:text-emerald-400 light:text-emerald-600 dark:bg-emerald-400/10 light:bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
+                  {savedPath.format}
+                </span>
+              {/if}
+            </div>
+            {#if selectedTarget}
+              <div class="flex items-center gap-1.5 text-xs font-medium dark:text-muted-foreground/80 light:text-purple-700/60">
+                <span class="uppercase tracking-wide opacity-70">{sourceFormatId}</span>
+                <ArrowRight class="h-3.5 w-3.5 dark:text-violet-500 light:text-violet-600" />
+                <span class="uppercase tracking-wide dark:text-violet-400 light:text-violet-600">{selectedTarget.id}</span>
+              </div>
+            {/if}
+          </div>
 
-          <div class="flex items-center gap-1 shrink-0 pl-3 border-l dark:border-border/50 light:border-border/30 ml-2">
+          <div class="flex items-center gap-1 shrink-0 pl-3 border-l dark:border-border/50 light:border-purple-300/40 ml-2">
             <Tooltip>
               <TooltipTrigger>
-                <button onclick={() => onpreview(file.id)} disabled={!savedPath} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-muted-foreground/60 dark:hover:text-foreground light:hover:text-foreground h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <button onclick={() => onpreview(file.id)} disabled={!savedPath} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:text-foreground light:hover:text-purple-800 h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                   <Eye class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
@@ -308,7 +308,7 @@
 
             <Tooltip>
               <TooltipTrigger>
-                <button onclick={() => ondownload(file.id)} disabled={!savedPath} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-muted-foreground/60 dark:hover:text-foreground light:hover:text-foreground h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <button onclick={() => ondownload(file.id)} disabled={!savedPath} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:text-foreground light:hover:text-purple-800 h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                   <Download class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
@@ -323,9 +323,9 @@
                       <LoaderCircle class="h-4 w-4 dark:text-violet-500 light:text-violet-600 animate-spin" />
                     </span>
                   {:else}
-                    <button onclick={() => onconvertone(i)} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-muted-foreground/60 dark:hover:bg-violet-500 light:hover:bg-violet-500 dark:hover:text-white light:hover:text-white h-8 w-8 transition-all duration-200">
-                      <Play class="h-4 w-4" />
-                    </button>
+<button onclick={() => onconvertone(i)} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-700 dark:hover:bg-violet-500 light:hover:bg-purple-500/50 dark:hover:text-white light:hover:text-white h-8 w-8 transition-all duration-200 bg-transparent hover:bg-purple-500/20">
+  <Play class="h-4 w-4" />
+</button>
                   {/if}
                 </TooltipTrigger>
                 <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{isConverting ? m.converting() : m.convert()}</p></TooltipContent>
@@ -334,7 +334,7 @@
 
             <Tooltip>
               <TooltipTrigger>
-                <button onclick={() => removeFile(i)} disabled={isConverting} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-muted-foreground/60 dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <button onclick={() => removeFile(i)} disabled={isConverting} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                   <X class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
