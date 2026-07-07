@@ -43,8 +43,44 @@ export async function saveSettings(newSettings: AppSettings): Promise<void> {
   invalidateAll();
 }
 
-// src/lib/data/settings.ts
-export function applyTheme(theme: string): void {
+// Получить цвета для фона окна в зависимости от темы
+function getWindowBackgroundColors(theme: string): {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+} {
+  const isDark =
+    theme === "dark" ||
+    (theme === "system" &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches);
+
+  if (isDark) {
+    // Тёмная тема
+    return { r: 20, g: 10, b: 41, a: 255 };
+  } else {
+    // Светлая тема — oklch(94.137% 0.03325 300.838) в RGB r g b (239, 231, 255)
+    return { r: 239, g: 231, b: 255, a: 255 };
+  }
+}
+
+// Установить фон окна через invoke
+async function setWindowBackground(theme: string) {
+  try {
+    const colors = getWindowBackgroundColors(theme);
+    await invoke("set_window_background", {
+      r: colors.r,
+      g: colors.g,
+      b: colors.b,
+      a: colors.a,
+    });
+  } catch (e) {
+    console.warn("Failed to set window background:", e);
+  }
+}
+
+// Функция для применения темы
+export function applyTheme(theme: string, emit: boolean = true): void {
   if (!browser) return;
 
   const isDark =
@@ -52,6 +88,7 @@ export function applyTheme(theme: string): void {
     (theme === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
+  // Добавляем/удаляем классы на html
   if (isDark) {
     document.documentElement.classList.remove("light");
     document.documentElement.classList.add("dark");
@@ -67,16 +104,21 @@ export function applyTheme(theme: string): void {
     monaco.editor.setTheme(isDark ? "vs-dark" : "vs");
   }
 
-  // Отправляем событие во все preview окна
-  WebviewWindow.getAll()
-    .then(windows => {
-      for (const win of windows) {
-        if (win.label.startsWith("preview-")) {
-          win.emit("theme-changed", theme);
+  // Устанавливаем фон окна через invoke
+  setWindowBackground(theme);
+
+  // Отправляем событие во все preview окна ТОЛЬКО если emit = true
+  if (emit) {
+    WebviewWindow.getAll()
+      .then(windows => {
+        for (const win of windows) {
+          if (win.label.startsWith("preview-")) {
+            win.emit("theme-changed", theme);
+          }
         }
-      }
-    })
-    .catch(() => {});
+      })
+      .catch(() => {});
+  }
 }
 
 // Получить актуальную тему (с учетом system)

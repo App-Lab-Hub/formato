@@ -10,9 +10,10 @@
   import type { PageProps } from './$types';
   import { invoke } from '@tauri-apps/api/core';
   import { m } from '$lib/paraglide/messages';
+  import { applyTheme } from '$lib/data/settings';
 
   let { data }: PageProps = $props();
-
+  
   // Получаем параметры из URL
   const urlParams = new URLSearchParams(window.location.search);
   const themeFromUrl = urlParams.get('theme') || 'dark';
@@ -24,7 +25,7 @@
   let editor: monaco.editor.IStandaloneCodeEditor | null = null;
   let currentTheme = $state(themeFromUrl);
 
-  // Функция обновления темы
+  // Функция обновления темы (без отправки событий)
   function updateTheme(theme: string) {
     if (currentTheme === theme) return;
     
@@ -39,6 +40,9 @@
     if (editor) {
       monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
     }
+    
+    // Применяем тему через applyTheme (без отправки события, чтобы не создавать петлю)
+    applyTheme(theme, false);
   }
 
   onMount(() => {
@@ -46,6 +50,9 @@
     const isDark = themeFromUrl === 'dark';
     document.documentElement.classList.remove('light', 'dark');
     document.documentElement.classList.add(isDark ? 'dark' : 'light');
+    
+    // Устанавливаем начальный фон через applyTheme (без отправки события)
+    applyTheme(themeFromUrl, false);
 
     // Слушаем событие изменения темы из основного окна
     const unlisten = getCurrentWebview().listen('theme-changed', (event) => {
