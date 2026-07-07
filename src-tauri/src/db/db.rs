@@ -46,6 +46,8 @@ pub async fn db_init() -> Result<DatabaseConnection, sea_orm::DbErr> {
 // INIT FORMATS
 // ============================================================
 
+// src/db/init.rs
+
 async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
     let count = Formats::find().count(db).await?;
     if count > 0 {
@@ -57,29 +59,60 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
 
     let formats = vec![
         ("json", "JSON", json!(["json", "hjson"]), 
-        "FileBraces", "from-yellow-500/30 to-amber-500/15", "shadow-yellow-500/20",
-        "text-yellow-400", "hover:border-yellow-500/60"),
+        "FileBraces", 
+        "dark:from-yellow-500/30 light:from-yellow-600/40 dark:to-amber-500/15 light:to-amber-600/25", 
+        "dark:shadow-yellow-500/20 light:shadow-yellow-600/30",
+        "dark:text-yellow-400 light:text-yellow-700", 
+        "dark:hover:border-yellow-500/60 light:hover:border-yellow-600/50"),
+        
         ("yaml", "YAML", json!(["yaml", "yml"]),
-        "FileText", "from-blue-500/30 to-cyan-500/15", "shadow-blue-500/20",
-        "text-blue-400", "hover:border-blue-500/60"),
+        "FileText", 
+        "dark:from-blue-500/30 light:from-blue-600/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
+        "dark:shadow-blue-500/20 light:shadow-blue-600/30",
+        "dark:text-blue-400 light:text-blue-700", 
+        "dark:hover:border-blue-500/60 light:hover:border-blue-600/50"),
+        
         ("csv", "CSV", json!(["csv", "tsv"]),
-        "FileSpreadsheet", "from-green-500/30 to-emerald-500/15", "shadow-green-500/20",
-        "text-green-400", "hover:border-green-500/60"),
+        "FileSpreadsheet", 
+        "dark:from-green-500/30 light:from-green-600/40 dark:to-emerald-500/15 light:to-emerald-600/25", 
+        "dark:shadow-green-500/20 light:shadow-green-600/30",
+        "dark:text-green-400 light:text-green-700", 
+        "dark:hover:border-green-500/60 light:hover:border-green-600/50"),
+        
         ("xml", "XML", json!(["xml"]),
-        "FileCode", "from-orange-500/30 to-red-500/15", "shadow-orange-500/20",
-        "text-orange-400", "hover:border-orange-500/60"),
+        "FileCode", 
+        "dark:from-orange-500/30 light:from-orange-600/40 dark:to-red-500/15 light:to-red-600/25", 
+        "dark:shadow-orange-500/20 light:shadow-orange-600/30",
+        "dark:text-orange-400 light:text-orange-700", 
+        "dark:hover:border-orange-500/60 light:hover:border-orange-600/50"),
+        
         ("toml", "TOML", json!(["toml"]),
-        "AlignLeft", "from-orange-400/30 to-yellow-500/15", "shadow-orange-400/20",
-        "text-orange-400", "hover:border-orange-400/60"),
+        "AlignLeft", 
+        "dark:from-orange-400/30 light:from-orange-500/40 dark:to-yellow-500/15 light:to-yellow-600/25", 
+        "dark:shadow-orange-400/20 light:shadow-orange-500/30",
+        "dark:text-orange-400 light:text-orange-700", 
+        "dark:hover:border-orange-400/60 light:hover:border-orange-500/50"),
+        
         ("ini", "INI", json!(["ini", "cfg", "conf"]),
-        "ListOrdered", "from-gray-400/30 to-slate-500/15", "shadow-gray-400/20",
-        "text-gray-400", "hover:border-gray-400/60"),
+        "ListOrdered", 
+        "dark:from-gray-400/30 light:from-gray-500/40 dark:to-slate-500/15 light:to-slate-600/25", 
+        "dark:shadow-gray-400/20 light:shadow-gray-500/30",
+        "dark:text-gray-400 light:text-gray-700", 
+        "dark:hover:border-gray-400/60 light:hover:border-gray-500/50"),
+        
         ("md", "Markdown", json!(["md", "markdown", "mdown", "mkd"]),
-        "Braces", "from-purple-500/30 to-violet-500/15", "shadow-purple-500/20",
-        "text-purple-400", "hover:border-purple-500/60"),
+        "Braces", 
+        "dark:from-purple-500/30 light:from-purple-600/40 dark:to-violet-500/15 light:to-violet-600/25", 
+        "dark:shadow-purple-500/20 light:shadow-purple-600/30",
+        "dark:text-purple-400 light:text-purple-700", 
+        "dark:hover:border-purple-500/60 light:hover:border-purple-600/50"),
+        
         ("html", "HTML", json!(["html", "htm"]),
-        "Globe", "from-orange-500/30 to-red-500/15", "shadow-orange-500/20",
-        "text-orange-300", "hover:border-orange-500/60"),
+        "Globe", 
+        "dark:from-orange-500/30 light:from-orange-600/40 dark:to-red-500/15 light:to-red-600/25", 
+        "dark:shadow-orange-500/20 light:shadow-orange-600/30",
+        "dark:text-orange-300 light:text-orange-700", 
+        "dark:hover:border-orange-500/60 light:hover:border-orange-600/50"),
     ];
 
     for (format_id, name, extensions, icon, color, glow, text_color, border_hover) in formats {
@@ -103,7 +136,6 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
     println!("✅ All formats initialized!");
     Ok(())
 }
-
 
 // ============================================================
 // CRUD ДЛЯ ФОРМАТОВ (экспортируемые функции)

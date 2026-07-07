@@ -3,6 +3,7 @@
   import { onMount } from 'svelte';
   import * as monaco from 'monaco-editor';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
+  import { getCurrentWebview } from '@tauri-apps/api/webview';
   import { formatFileSize, formatSize } from '$lib/utils/format';
   import { FileWarning, Settings, ExternalLink } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
@@ -12,10 +13,50 @@
 
   let { data }: PageProps = $props();
 
+  // Получаем параметры из URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const themeFromUrl = urlParams.get('theme') || 'dark';
+
   let monacoContainer = $state<HTMLElement>();
   let errorMessage = $state<string | null>(null);
   let fileSize = $state<number>(0);
   let maxSizeMB = $state<number>(5);
+  let editor: monaco.editor.IStandaloneCodeEditor | null = null;
+  let currentTheme = $state(themeFromUrl);
+
+  // Функция обновления темы
+  function updateTheme(theme: string) {
+    if (currentTheme === theme) return;
+    
+    currentTheme = theme;
+    const isDark = theme === 'dark';
+    
+    // Меняем классы на html
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(isDark ? 'dark' : 'light');
+    
+    // Меняем тему Monaco если редактор уже создан
+    if (editor) {
+      monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
+    }
+  }
+
+  onMount(() => {
+    // Применяем начальную тему
+    const isDark = themeFromUrl === 'dark';
+    document.documentElement.classList.remove('light', 'dark');
+    document.documentElement.classList.add(isDark ? 'dark' : 'light');
+
+    // Слушаем событие изменения темы из основного окна
+    const unlisten = getCurrentWebview().listen('theme-changed', (event) => {
+      const newTheme = event.payload as string;
+      updateTheme(newTheme);
+    });
+
+    return () => {
+      unlisten.then(fn => fn());
+    };
+  });
 
   async function openSettings() {
     const mainWindow = await WebviewWindow.getByLabel('main');
@@ -39,11 +80,13 @@
 
   function processPreviewData(content: string, lang: string) {
     if (monacoContainer && content) {
-      const editor = monaco.editor.create(monacoContainer, {
+      const isDark = currentTheme === 'dark';
+      
+      editor = monaco.editor.create(monacoContainer, {
         value: content,
         language: lang,
         readOnly: false,
-        theme: 'vs-dark',
+        theme: isDark ? 'vs-dark' : 'vs',
         minimap: { enabled: false },
         scrollBeyondLastLine: false,
         wordWrap: 'on',
@@ -108,7 +151,7 @@
         label: 'Find',
         keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF],
         run: () => {
-          editor.getAction('actions.find')?.run();
+          editor?.getAction('actions.find')?.run();
           setTimeout(fixFindWidgetHeight, 10);
         }
       });
@@ -190,6 +233,7 @@
     }
   });
 </script>
+
 
 <div bind:this={monacoContainer} style="width: 100vw; height: 100vh;" class="preview-page">
   {#if errorMessage}

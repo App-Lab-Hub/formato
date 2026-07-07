@@ -207,6 +207,7 @@
     } catch (e) { console.error('[Download] Failed:', e); }
   }
 
+  // В файле конвертации
   async function previewFileFn(fileId: string) {
     const converted = convertedFiles.get(fileId);
     const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
@@ -219,9 +220,11 @@
       const title = converted ? `${baseName}.${format}` : file?.name ?? 'file';
       const windowId = `preview-${Date.now()}`;
       const maxSizeMB = settings?.max_preview_size ?? 5;
+      const language = settings?.language ?? 'en';
+      const theme = settings?.theme ?? 'dark';
       
       new WebviewWindow(windowId, {
-        url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}`,
+        url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}&locale=${language}&theme=${theme}&windowId=${windowId}`,
         title,
         width: 900, height: 700,
         resizable: true, center: true,

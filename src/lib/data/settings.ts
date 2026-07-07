@@ -2,9 +2,10 @@
 import { invalidateAll } from "$app/navigation";
 import { invoke } from "@tauri-apps/api/core";
 import { browser } from "$app/environment";
+import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
 
 export interface AppSettings {
-  theme: string; // 'light' | 'dark' | 'system'
+  theme: string;
   language: string;
   auto_preview: boolean;
   max_preview_size: number;
@@ -42,7 +43,7 @@ export async function saveSettings(newSettings: AppSettings): Promise<void> {
   invalidateAll();
 }
 
-// Функция для применения темы
+// src/lib/data/settings.ts
 export function applyTheme(theme: string): void {
   if (!browser) return;
 
@@ -51,7 +52,6 @@ export function applyTheme(theme: string): void {
     (theme === "system" &&
       window.matchMedia("(prefers-color-scheme: dark)").matches);
 
-  // Добавляем/удаляем классы на html
   if (isDark) {
     document.documentElement.classList.remove("light");
     document.documentElement.classList.add("dark");
@@ -60,12 +60,23 @@ export function applyTheme(theme: string): void {
     document.documentElement.classList.add("light");
   }
 
-  // Для Monaco Editor (если нужна темная тема)
+  // Для Monaco Editor
   // @ts-ignore
   if (window.monaco?.editor) {
     // @ts-ignore
     monaco.editor.setTheme(isDark ? "vs-dark" : "vs");
   }
+
+  // Отправляем событие во все preview окна
+  WebviewWindow.getAll()
+    .then(windows => {
+      for (const win of windows) {
+        if (win.label.startsWith("preview-")) {
+          win.emit("theme-changed", theme);
+        }
+      }
+    })
+    .catch(() => {});
 }
 
 // Получить актуальную тему (с учетом system)
