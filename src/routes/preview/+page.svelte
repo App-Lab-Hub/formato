@@ -245,13 +245,14 @@
               <FileWarning class="h-12 w-12 sm:h-16 sm:w-16 dark:text-red-400 light:text-red-600" />
             </div>
           </div>
-
-          <h2 class="text-xl sm:text-2xl font-bold mb-3 dark:bg-gradient-to-r dark:from-red-400 dark:via-purple-400 dark:to-pink-400 light:bg-gradient-to-r light:from-red-600 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent">
-            {m.preview_too_large_title()}
+          <h2 class="text-xl sm:text-2xl font-bold mb-3">
+            <span class="bg-gradient-to-r from-red-400 via-purple-400 to-pink-400 dark:from-red-400 dark:via-purple-400 dark:to-pink-400 light:from-purple-700 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent">
+              {m.preview_too_large_title()}
+            </span>
           </h2>
 
-          <div class="dark:bg-white/[0.03] light:bg-white/80 backdrop-blur-sm rounded-2xl border dark:border-white/[0.06] light:border-red-300/60 p-4 sm:p-6 mb-4 sm:mb-6">
-            <p class="dark:text-gray-300 light:text-red-900/90 text-xs sm:text-sm leading-relaxed">{errorMessage}</p>
+          <div class="dark:bg-white/[0.03] light:bg-white/80 backdrop-blur-sm rounded-2xl border dark:border-white/[0.06] light:border-purple-300/60 p-4 sm:p-6 mb-4 sm:mb-6">
+            <p class="dark:text-gray-300 light:text-purple-900/90 text-xs sm:text-sm leading-relaxed">{errorMessage}</p>
           </div>
 
           <div class="space-y-2 sm:space-y-3">
