@@ -8,7 +8,12 @@
   <img
     src="/favicon.svg"
     alt="Formato logo"
-    class="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto transition-transform hover:scale-105 duration-300"
+    class="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto transition-transform hover:scale-105 duration-300 dark:block light:hidden"
+  />
+  <img
+    src="/favicon.light.svg"
+    alt="Formato logo"
+    class="relative w-24 h-24 sm:w-32 sm:h-32 mx-auto transition-transform hover:scale-105 duration-300 dark:hidden light:block"
   />
 </div>
           

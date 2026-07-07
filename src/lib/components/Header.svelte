@@ -87,22 +87,26 @@
   </div>
 
   <div class="flex justify-between items-center px-5 sm:px-8 py-3.5 max-w-[1700px] mx-auto relative z-10">
-    <a href="/" class="flex items-center gap-2 group select-none" on:click={handleLogoClick}>
-      <div class="relative flex items-center justify-center" style="padding: 4px;">
-        <img
-          src="/favicon.svg"
-          alt="Formato"
-          class="w-8 h-8 sm:w-9 sm:h-9 transition-all duration-500 group-hover:scale-110 group-hover:drop-shadow-[0_0_12px_rgba(168,85,247,0.5)]
-          {isClicked ? 'rotate-[360deg]' : ''}"
-        />
-      </div>
-      <div class="h-5 w-px dark:bg-purple-500/20 light:bg-purple-400/30 mx-1 hidden sm:block"></div>
-    <span 
-      class="hidden sm:block text-lg font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 dark:from-cyan-400 dark:via-purple-400 dark:to-pink-400 light:from-cyan-600 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent transition-all duration-300 group-hover:tracking-wider"
-    >
-      Formato
-    </span>
-    </a>
+      <a href="/" class="flex items-center gap-2 group select-none" on:click={handleLogoClick}>
+        <div class="relative flex items-center justify-center" style="padding: 4px;">
+          <img
+            src="/favicon.svg"
+            alt="Formato"
+            class="w-8 h-8 sm:w-9 sm:h-9 transition-all duration-500 group-hover:scale-110 group-hover:drop-shadow-[0_0_12px_rgba(168,85,247,0.5)] dark:block light:hidden {isClicked ? 'rotate-[360deg]' : ''}"
+          />
+          <img
+            src="/favicon.light.svg"
+            alt="Formato"
+            class="w-8 h-8 sm:w-9 sm:h-9 transition-all duration-500 group-hover:scale-110 group-hover:drop-shadow-[0_0_12px_rgba(168,85,247,0.5)] dark:hidden light:block {isClicked ? 'rotate-[360deg]' : ''}"
+          />
+        </div>
+        <div class="h-5 w-px dark:bg-purple-500/20 light:bg-purple-400/30 mx-1 hidden sm:block"></div>
+      <span 
+        class="hidden sm:block text-lg font-bold bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 dark:from-cyan-400 dark:via-purple-400 dark:to-pink-400 light:from-cyan-600 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent transition-all duration-300 group-hover:tracking-wider"
+      >
+        Formato
+      </span>
+      </a>
 
     <nav class="flex items-center gap-1">
       <a 
