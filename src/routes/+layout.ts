@@ -10,7 +10,7 @@ import {
   getFormats,
   isFormatsLoaded,
 } from "$lib/data/formats";
-import { loadSettings, getSettings } from "$lib/data/settings";
+import { loadSettings, getSettings, applyTheme } from "$lib/data/settings";
 import { setLocale } from "$lib/paraglide/runtime";
 import type { LayoutLoad } from "./$types";
 
@@ -18,11 +18,11 @@ export const load: LayoutLoad = async ({ url }) => {
   if (url.pathname.startsWith("/preview")) {
     return { formats: [], settings: {} as any };
   }
-
   if (!isFormatsLoaded()) await loadFormatsData();
   await loadSettings();
 
   const settings = getSettings();
+  applyTheme(settings.theme);
   setLocale(settings.language as "en" | "ru", { reload: false });
 
   return {
