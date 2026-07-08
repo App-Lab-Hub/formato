@@ -51,6 +51,7 @@
   let _counter = $state(counter);
   let isDragOver = $state(false);
   let dropzoneEl = $state<HTMLElement | null>(null);
+  let pendingProcessed = false;
 
   async function hashFilePath(path: string): Promise<string> {
     return await invoke<string>('hash_file', { path });
@@ -64,6 +65,8 @@
 
     if (validPaths.length === 0) {
       toast.warning('⚠️ Нет подходящих файлов для этого формата');
+      // Очищаем pending, чтобы не пытаться снова
+      clearPendingFiles();
       return;
     }
 
@@ -85,12 +88,13 @@
       }
     }
 
-    if (duplicateCount > 0) {
-      toast.warning(`⚠️ ${duplicateCount} файл(а) уже есть в списке`);
-    }
+    // Очищаем pending после обработки, независимо от результата
+    clearPendingFiles();
 
     if (newPaths.length === 0) {
-      if (duplicateCount === 0) {
+      if (duplicateCount > 0) {
+        toast.warning(`⚠️ Все ${duplicateCount} файл(ов) уже есть в списке`);
+      } else {
         toast.warning('⚠️ Нет новых файлов для добавления');
       }
       return;
@@ -108,7 +112,12 @@
     });
 
     onfileschange([...files, ...newFiles]);
-    toast.success(`✅ Добавлено ${newFiles.length} файл(а)`);
+    
+    let message = `✅ Добавлено ${newFiles.length} файл(а)`;
+    if (duplicateCount > 0) {
+      message += ` (${duplicateCount} дубликат(ов) пропущено)`;
+    }
+    toast.success(message);
     
     await tick();
     for (const f of newFiles) {
@@ -123,14 +132,36 @@
     }
   }
 
+  function clearPendingFiles() {
+    const storageKey = `pending_files_${sourceFormatId}`;
+    sessionStorage.removeItem(storageKey);
+  }
+
   async function addPendingFiles() {
+    // Если уже обрабатывали, не делаем ничего
+    if (pendingProcessed) return;
+    pendingProcessed = true;
+
     const storageKey = `pending_files_${sourceFormatId}`;
     const pending = sessionStorage.getItem(storageKey);
     if (!pending) return;
     
-    sessionStorage.removeItem(storageKey);
-    const paths: string[] = JSON.parse(pending);
-    await processAndAddPaths(paths);
+    try {
+      const paths: string[] = JSON.parse(pending);
+      // Проверяем, есть ли уже такие пути в списке
+      const existingPaths = new Set(files.map(f => f.path));
+      const newPaths = paths.filter(p => !existingPaths.has(p));
+      
+      if (newPaths.length > 0) {
+        await processAndAddPaths(newPaths);
+      } else {
+        // Если все пути уже есть, просто очищаем pending
+        clearPendingFiles();
+      }
+    } catch (e) {
+      console.warn('Failed to process pending files:', e);
+      clearPendingFiles();
+    }
   }
 
   async function pickFile() {
@@ -142,11 +173,14 @@
     if (result) {
       const paths = Array.isArray(result) ? result : [result];
       
+      // Сохраняем в pending
       const storageKey = `pending_files_${sourceFormatId}`;
-      const pending = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
-      sessionStorage.setItem(storageKey, JSON.stringify([...pending, ...paths]));
+      sessionStorage.setItem(storageKey, JSON.stringify(paths));
       
+      // Обрабатываем сразу
       await processAndAddPaths(paths);
+      
+      // processAndAddPaths уже очистил pending
     }
   }
 
@@ -157,10 +191,10 @@
   }
 
   onMount(() => {
+    // Обрабатываем pending только при первом монтировании
     addPendingFiles();
     
     const webview = getCurrentWebview();
-
     const unlisten = webview.onDragDropEvent((event) => {
       if (event.payload.type === 'over') {
         const pos = event.payload.position;
@@ -224,7 +258,6 @@
     onclearall();
   }
 </script>
-
 <button
   bind:this={dropzoneEl}
   onclick={pickFile}
