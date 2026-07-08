@@ -2,7 +2,6 @@
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
-  import { ArrowLeft, LoaderCircle } from 'lucide-svelte';
   import { getFormatById, getFormats, isFormatsLoaded } from '$lib/data/formats';
   import { invoke } from '@tauri-apps/api/core';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
@@ -158,19 +157,19 @@
           format: result.extension || selectedTarget.id
         }));
 
-        toast.success(`✅ ${file.name} → ${selectedTarget.name}`);
+        toast.success(`${file.name} → ${selectedTarget.name}`);
 
         if (!skipPreview && settings?.auto_preview) {
           previewFileFn(file.id);
         }
       } else {
         const errorMsg = result.error || 'Неизвестная ошибка';
-        toast.error(`❌ ${file.name}: ${errorMsg}`);
+        toast.error(`${file.name}: ${errorMsg}`);
       }
     } catch (e) { 
       console.error(`Conversion failed: ${file.name}`, e);
       const errorMsg = e instanceof Error ? e.message : 'Ошибка соединения с бекендом';
-      toast.error(`❌ ${file.name}: ${errorMsg}`);
+      toast.error(`${file.name}: ${errorMsg}`);
     }
     finally { 
       convertingFiles.delete(file.id); 
@@ -179,12 +178,12 @@
 
   async function convertAll() { 
     if (files.length === 0) {
-      toast.warning('⚠️ Нет файлов для конвертации');
+      toast.warning('Нет файлов для конвертации');
       return;
     }
     
     if (!selectedTarget) {
-      toast.warning('⚠️ Выберите целевой формат');
+      toast.warning('Выберите целевой формат');
       return;
     }
     
@@ -195,7 +194,7 @@
   
   function clearAll() { 
     if (files.length === 0) {
-      toast.warning('⚠️ Нет файлов для очистки');
+      toast.warning('Нет файлов для очистки');
       return;
     }
     
@@ -207,13 +206,13 @@
       sessionStorage.removeItem(getStorageKey('converted'));
       sessionStorage.removeItem(getStorageKey('hashes'));
     }
-    toast.info('🧹 Все файлы очищены');
+    toast.info('Все файлы очищены');
   }
 
   async function downloadFile(fileId: string) {
     const converted = convertedFiles.get(fileId);
     if (!converted) {
-      toast.warning('⚠️ Сначала сконвертируйте файл');
+      toast.warning('Сначала сконвертируйте файл');
       return;
     }
     const file = files.find(f => f.id === fileId);
@@ -230,7 +229,7 @@
       });
       
       if (!filePath) {
-        toast.info('❌ Сохранение отменено');
+        toast.info('Сохранение отменено');
         return;
       }
       
@@ -245,10 +244,10 @@
         await writeTextFile(filePath, content);
       }
       
-      toast.success(`✅ Файл сохранён: ${filePath.split('/').pop()}`);
+      toast.success(`Файл сохранён: ${filePath.split('/').pop()}`);
     } catch (e) { 
       console.error('[Download] Failed:', e);
-      toast.error('❌ Ошибка при сохранении файла');
+      toast.error('Ошибка при сохранении файла');
     }
   }
 
@@ -256,7 +255,7 @@
     const converted = convertedFiles.get(fileId);
     const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
     if (!savedPath) {
-      toast.warning('⚠️ Файл не найден');
+      toast.warning('Файл не найден');
       return;
     }
     try {
@@ -272,7 +271,7 @@
       
       const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
       if (actualSize > maxSizeBytes) {
-        toast.warning(`⚠️ Файл слишком большой для предпросмотра (${formatFileSize(actualSize)})`);
+        toast.warning(`Файл слишком большой для предпросмотра (${formatFileSize(actualSize)})`);
       }
       
       new WebviewWindow(windowId, {
@@ -288,7 +287,7 @@
       });
     } catch (e) { 
       console.error('Preview failed:', e);
-      toast.error('❌ Не удалось открыть предпросмотр');
+      toast.error('Не удалось открыть предпросмотр');
     }
   }
 
@@ -301,7 +300,7 @@
 <ScrollContainer>
   {#if isLoading}
     <div class="flex items-center justify-center min-h-screen bg-background">
-      <LoaderCircle class="h-16 w-16 text-primary animate-spin" />
+      <div class="h-16 w-16 text-primary animate-spin">⏳</div>
     </div>
   {:else if loadError}
     <div class="flex flex-col items-center justify-center min-h-screen bg-background gap-4">
@@ -315,8 +314,7 @@
       <div class="flex flex-col bg-background text-foreground min-h-screen">
         <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
           <button onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 dark:text-muted-foreground light:text-purple-700/70 dark:hover:text-primary light:hover:text-purple-800 transition-colors">
-            <ArrowLeft class="h-5 w-5" />
-            <span class="text-sm">{m.settings_back()}</span>
+            <span class="text-sm">← {m.settings_back()}</span>
           </button>
 
           <SourceFormatHeader format={sourceFormat} />

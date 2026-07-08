@@ -57,15 +57,16 @@
     return await invoke<string>('hash_file', { path });
   }
 
-  async function processAndAddPaths(paths: string[]) {
+  async function processAndAddPaths(paths: string[], suppressToast: boolean = false) {
     const validPaths = paths.filter(path => {
       const ext = path.split('.').pop()?.toLowerCase();
       return ext ? sourceFormatExtensions.includes(ext) : false;
     });
 
     if (validPaths.length === 0) {
-      toast.warning('⚠️ Нет подходящих файлов для этого формата');
-      // Очищаем pending, чтобы не пытаться снова
+      if (!suppressToast) {
+        toast.warning('Нет подходящих файлов для этого формата');
+      }
       clearPendingFiles();
       return;
     }
@@ -88,14 +89,14 @@
       }
     }
 
-    // Очищаем pending после обработки, независимо от результата
-    clearPendingFiles();
 
     if (newPaths.length === 0) {
-      if (duplicateCount > 0) {
-        toast.warning(`⚠️ Все ${duplicateCount} файл(ов) уже есть в списке`);
-      } else {
-        toast.warning('⚠️ Нет новых файлов для добавления');
+      if (!suppressToast) {
+        if (duplicateCount > 0) {
+          toast.warning(`Все ${duplicateCount} файл(ов) уже есть в списке`);
+        } else {
+          toast.warning('Нет новых файлов для добавления');
+        }
       }
       return;
     }
@@ -113,11 +114,13 @@
 
     onfileschange([...files, ...newFiles]);
     
-    let message = `✅ Добавлено ${newFiles.length} файл(а)`;
-    if (duplicateCount > 0) {
-      message += ` (${duplicateCount} дубликат(ов) пропущено)`;
+    if (!suppressToast) {
+      let message = `Добавлено ${newFiles.length} файл(а)`;
+      if (duplicateCount > 0) {
+        message += ` (${duplicateCount} дубликат(ов) пропущено)`;
+      }
+      toast.success(message);
     }
-    toast.success(message);
     
     await tick();
     for (const f of newFiles) {
@@ -138,7 +141,6 @@
   }
 
   async function addPendingFiles() {
-    // Если уже обрабатывали, не делаем ничего
     if (pendingProcessed) return;
     pendingProcessed = true;
 
@@ -148,14 +150,13 @@
     
     try {
       const paths: string[] = JSON.parse(pending);
-      // Проверяем, есть ли уже такие пути в списке
       const existingPaths = new Set(files.map(f => f.path));
       const newPaths = paths.filter(p => !existingPaths.has(p));
       
       if (newPaths.length > 0) {
-        await processAndAddPaths(newPaths);
+        // Передаём true, чтобы отключить уведомления для pending файлов
+        await processAndAddPaths(newPaths, true);
       } else {
-        // Если все пути уже есть, просто очищаем pending
         clearPendingFiles();
       }
     } catch (e) {
@@ -173,14 +174,10 @@
     if (result) {
       const paths = Array.isArray(result) ? result : [result];
       
-      // Сохраняем в pending
       const storageKey = `pending_files_${sourceFormatId}`;
       sessionStorage.setItem(storageKey, JSON.stringify(paths));
       
-      // Обрабатываем сразу
       await processAndAddPaths(paths);
-      
-      // processAndAddPaths уже очистил pending
     }
   }
 
@@ -191,7 +188,6 @@
   }
 
   onMount(() => {
-    // Обрабатываем pending только при первом монтировании
     addPendingFiles();
     
     const webview = getCurrentWebview();
@@ -240,7 +236,7 @@
     }
 
     onfileschange(files.filter((_, i) => i !== index));
-    toast.info(`🗑️ ${file.name} удалён`);
+    toast.info(`${file.name} удалён`);
   }
 
   async function clearAllWithAnimation() {
@@ -258,6 +254,7 @@
     onclearall();
   }
 </script>
+
 <button
   bind:this={dropzoneEl}
   onclick={pickFile}
