@@ -157,19 +157,19 @@
           format: result.extension || selectedTarget.id
         }));
 
-        toast.success(`${file.name} → ${selectedTarget.name}`);
+        toast.success(m.convert_success({ from: file.name, to: selectedTarget.name }));
 
         if (!skipPreview && settings?.auto_preview) {
           previewFileFn(file.id);
         }
       } else {
-        const errorMsg = result.error || 'Неизвестная ошибка';
-        toast.error(`${file.name}: ${errorMsg}`);
+        const errorMsg = result.error || m.unknown_error();
+        toast.error(m.convert_error({ name: file.name, error: errorMsg }));
       }
     } catch (e) { 
       console.error(`Conversion failed: ${file.name}`, e);
-      const errorMsg = e instanceof Error ? e.message : 'Ошибка соединения с бекендом';
-      toast.error(`${file.name}: ${errorMsg}`);
+      const errorMsg = e instanceof Error ? e.message : m.backend_connection_error();
+      toast.error(m.convert_error({ name: file.name, error: errorMsg }));
     }
     finally { 
       convertingFiles.delete(file.id); 
@@ -178,12 +178,12 @@
 
   async function convertAll() { 
     if (files.length === 0) {
-      toast.warning('Нет файлов для конвертации');
+      toast.warning(m.no_files_to_convert());
       return;
     }
     
     if (!selectedTarget) {
-      toast.warning('Выберите целевой формат');
+      toast.warning(m.select_target_format());
       return;
     }
     
@@ -194,7 +194,7 @@
   
   function clearAll() { 
     if (files.length === 0) {
-      toast.warning('Нет файлов для очистки');
+      toast.warning(m.no_files_to_clear());
       return;
     }
     
@@ -206,13 +206,13 @@
       sessionStorage.removeItem(getStorageKey('converted'));
       sessionStorage.removeItem(getStorageKey('hashes'));
     }
-    toast.info('Все файлы очищены');
+    toast.info(m.all_files_cleared());
   }
 
   async function downloadFile(fileId: string) {
     const converted = convertedFiles.get(fileId);
     if (!converted) {
-      toast.warning('Сначала сконвертируйте файл');
+      toast.warning(m.convert_first_download());
       return;
     }
     const file = files.find(f => f.id === fileId);
@@ -225,11 +225,11 @@
       
       const filePath = await save({
         defaultPath: defaultName,
-        title: isArchive ? m.settings_archive() : 'Save file',
+        title: isArchive ? m.save_archive() : m.save_file(),
       });
       
       if (!filePath) {
-        toast.info('Сохранение отменено');
+        toast.info(m.save_cancelled());
         return;
       }
       
@@ -244,10 +244,11 @@
         await writeTextFile(filePath, content);
       }
       
-      toast.success(`Файл сохранён: ${filePath.split('/').pop()}`);
+      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'file';
+      toast.success(m.file_saved({ name: fileName }));
     } catch (e) { 
       console.error('[Download] Failed:', e);
-      toast.error('Ошибка при сохранении файла');
+      toast.error(m.save_error());
     }
   }
 
@@ -255,7 +256,7 @@
     const converted = convertedFiles.get(fileId);
     const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
     if (!savedPath) {
-      toast.warning('Файл не найден');
+      toast.warning(m.file_not_found());
       return;
     }
     try {
@@ -271,7 +272,7 @@
       
       const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
       if (actualSize > maxSizeBytes) {
-        toast.warning(`Файл слишком большой для предпросмотра (${formatFileSize(actualSize)})`);
+        toast.warning(m.preview_too_large({ size: formatFileSize(actualSize) }));
       }
       
       new WebviewWindow(windowId, {
@@ -287,7 +288,7 @@
       });
     } catch (e) { 
       console.error('Preview failed:', e);
-      toast.error('Не удалось открыть предпросмотр');
+      toast.error(m.preview_error());
     }
   }
 

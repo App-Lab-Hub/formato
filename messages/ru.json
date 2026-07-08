@@ -93,7 +93,7 @@
   "about_view_github": "Посмотреть на GitHub",
 
   "preview_too_large_title": "Файл слишком большой",
-  "preview_too_large": "Файл слишком большой",
+  "preview_too_large": "Файл слишком большой для предпросмотра ({size})",
   "preview_max_size": "Максимальный размер для предпросмотра",
   "preview_open_settings": "Открыть настройки",
   "preview_increase_limit": "Вы можете увеличить лимит в разделе \"Лимит предпросмотра\"",
@@ -101,5 +101,29 @@
   "preview_unlimited_desc": "Вы установили безлимитный режим (∞), но файл всё равно не может быть открыт из-за ограничений памяти браузера.",
 
   "convert_to": "конвертировать в",
-  "settings_theme_system_desc": "Автоматически следует за системной темой"
+  "settings_theme_system_desc": "Автоматически следует за системной темой",
+
+  "file_no_suitable": "Нет файлов подходящего формата",
+  "file_duplicate_all": "Все файлы уже добавлены ({count})",
+  "file_no_new": "Новых файлов для добавления нет",
+  "file_added": "Добавлено файлов: {count}",
+  "file_duplicate_skipped": "Пропущено дубликатов: {count}",
+  "file_removed": "Файл {name} удалён",
+
+  "convert_success": "{from} → {to}",
+  "convert_error": "{name}: {error}",
+  "unknown_error": "Неизвестная ошибка",
+  "backend_connection_error": "Ошибка подключения к бекенду",
+  "no_files_to_convert": "Нет файлов для конвертации",
+  "select_target_format": "Выберите формат для конвертации",
+  "no_files_to_clear": "Нет файлов для очистки",
+  "all_files_cleared": "Список файлов очищен",
+  "convert_first_download": "Сначала сконвертируйте файл",
+  "save_file": "Сохранить файл",
+  "save_archive": "Сохранить архив",
+  "save_cancelled": "Сохранение отменено",
+  "file_saved": "Файл {name} сохранён",
+  "save_error": "Ошибка сохранения файла",
+  "file_not_found": "Файл не найден",
+  "preview_error": "Не удалось открыть предпросмотр"
 }

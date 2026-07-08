@@ -93,7 +93,7 @@
   "about_view_github": "View on GitHub",
 
   "preview_too_large_title": "File too large",
-  "preview_too_large": "File is too large",
+  "preview_too_large": "File too large for preview ({size})",
   "preview_max_size": "Maximum preview size",
   "preview_open_settings": "Open settings",
   "preview_increase_limit": "You can increase the limit in the \"Preview limit\" section",
@@ -101,5 +101,29 @@
   "preview_unlimited_desc": "You have set unlimited mode (∞), but the file still cannot be opened due to browser memory limitations.",
 
   "convert_to": "convert to",
-  "settings_theme_system_desc": "Follows your system theme automatically"
+  "settings_theme_system_desc": "Follows your system theme automatically",
+
+  "file_no_suitable": "No files of matching format",
+  "file_duplicate_all": "All files already added ({count})",
+  "file_no_new": "No new files to add",
+  "file_added": "Added files: {count}",
+  "file_duplicate_skipped": "Duplicates skipped: {count}",
+  "file_removed": "File {name} removed",
+
+  "convert_success": "{from} → {to}",
+  "convert_error": "{name}: {error}",
+  "unknown_error": "Unknown error",
+  "backend_connection_error": "Backend connection error",
+  "no_files_to_convert": "No files to convert",
+  "select_target_format": "Select format for conversion",
+  "no_files_to_clear": "No files to clear",
+  "all_files_cleared": "File list cleared",
+  "convert_first_download": "Convert the file first",
+  "save_file": "Save file",
+  "save_archive": "Save archive",
+  "save_cancelled": "Save cancelled",
+  "file_saved": "File {name} saved",
+  "save_error": "Error saving file",
+  "file_not_found": "File not found",
+  "preview_error": "Failed to open preview"
 }
