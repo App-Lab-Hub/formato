@@ -1,6 +1,8 @@
+<!-- Footer.svelte -->
 <script lang="ts">
   // @ts-ignore
   import { FaGithub } from 'svelte-icons/fa';
+  import { m } from '$lib/paraglide/messages';
 </script>
 
 <footer class="w-full border-t dark:border-purple-500/10 light:border-purple-300/30 dark:bg-background/80 light:bg-purple-200/50 backdrop-blur-xl mt-auto">
@@ -12,21 +14,21 @@
         href="/about" 
         class="dark:text-purple-300/50 light:text-purple-700/70 dark:hover:text-purple-200 light:hover:text-purple-800 transition-colors duration-200 font-medium"
       >
-        О нас
+        {m.about_title()}
       </a>
       <span class="dark:text-purple-500/20 light:text-purple-400/30">|</span>
       <a 
         href="/settings" 
         class="dark:text-purple-300/50 light:text-purple-700/70 dark:hover:text-purple-200 light:hover:text-purple-800 transition-colors duration-200 font-medium"
       >
-        Настройки
+        {m.settings_title()}
       </a>
       <span class="dark:text-purple-500/20 light:text-purple-400/30">|</span>
       <a 
         href="/dependencies" 
         class="dark:text-purple-300/50 light:text-purple-700/70 dark:hover:text-purple-200 light:hover:text-purple-800 transition-colors duration-200 font-medium"
       >
-        Зависимости
+        {m.deps_title()}
       </a>
       <span class="dark:text-purple-500/20 light:text-purple-400/30">|</span>
       <a 
