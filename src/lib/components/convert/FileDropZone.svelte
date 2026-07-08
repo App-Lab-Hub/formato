@@ -1,3 +1,4 @@
+<!-- // FileDropZone.svelte -->
 <script lang="ts">
   import { open } from '@tauri-apps/plugin-dialog';
   import { getCurrentWebview } from '@tauri-apps/api/webview';
@@ -9,6 +10,7 @@
   import TooltipTrigger from '$lib/components/ui/tooltip/tooltip-trigger.svelte';
   import TooltipContent from '$lib/components/ui/tooltip/tooltip-content.svelte';
   import { m } from '$lib/paraglide/messages';
+  import { toast } from '$lib/utils/toast';
 
   let {
     sourceFormatId,
@@ -60,24 +62,39 @@
       return ext ? sourceFormatExtensions.includes(ext) : false;
     });
 
-    if (validPaths.length === 0) return;
+    if (validPaths.length === 0) {
+      toast.warning('⚠️ Нет подходящих файлов для этого формата');
+      return;
+    }
 
     const knownHashes = new Set(fileHashes.values());
-
     const newPaths: { path: string; hash: string }[] = [];
+    let duplicateCount = 0;
+
     for (const path of validPaths) {
       try {
         const hash = await hashFilePath(path);
         if (!knownHashes.has(hash)) {
           knownHashes.add(hash);
           newPaths.push({ path, hash });
+        } else {
+          duplicateCount++;
         }
       } catch (e) {
         console.warn(`Failed to hash file: ${path}`, e);
       }
     }
 
-    if (newPaths.length === 0) return;
+    if (duplicateCount > 0) {
+      toast.warning(`⚠️ ${duplicateCount} файл(а) уже есть в списке`);
+    }
+
+    if (newPaths.length === 0) {
+      if (duplicateCount === 0) {
+        toast.warning('⚠️ Нет новых файлов для добавления');
+      }
+      return;
+    }
 
     const ids = newPaths.map(() => `${_counter++}-${Date.now()}`);
     const newFiles = newPaths.map(({ path, hash }, idx) => {
@@ -91,8 +108,9 @@
     });
 
     onfileschange([...files, ...newFiles]);
+    toast.success(`✅ Добавлено ${newFiles.length} файл(а)`);
+    
     await tick();
-
     for (const f of newFiles) {
       const el = document.querySelector(`[data-file-id="${f.id}"]`) as HTMLElement;
       el?.animate(
@@ -188,6 +206,7 @@
     }
 
     onfileschange(files.filter((_, i) => i !== index));
+    toast.info(`🗑️ ${file.name} удалён`);
   }
 
   async function clearAllWithAnimation() {
@@ -227,6 +246,7 @@
     {/if}
   </div>
 </button>
+
 {#if files.length > 0}
   <div class="w-full max-w-4xl flex flex-col gap-4">
     <div class="flex items-center justify-between px-1">
@@ -243,9 +263,9 @@
         {#if selectedTarget}
           <Tooltip>
             <TooltipTrigger>
-<button onclick={onconvertall} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:bg-violet-600 light:bg-purple-500 text-white hover:dark:bg-violet-700 hover:light:bg-purple-600 h-9 w-9 shadow-sm shadow-violet-500/20 group/btn">
-  <Zap class="h-4 w-4 fill-current group-hover/btn:scale-110 transition-transform" />
-</button>
+              <button onclick={onconvertall} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:bg-violet-600 light:bg-purple-500 text-white hover:dark:bg-violet-700 hover:light:bg-purple-600 h-9 w-9 shadow-sm shadow-violet-500/20 group/btn">
+                <Zap class="h-4 w-4 fill-current group-hover/btn:scale-110 transition-transform" />
+              </button>
             </TooltipTrigger>
             <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{m.convert_all()}</p></TooltipContent>
           </Tooltip>
@@ -266,12 +286,12 @@
       {#each files as file, i (file.id)}
         {@const isConverting = convertingFiles.has(file.id)}
         {@const savedPath = convertedFiles.get(file.id)}
-          <div
-            data-file-item
-            data-file-id={file.id}
-            class="group relative flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 p-3.5 transition-all duration-200 dark:hover:bg-violet-500/10 light:hover:bg-purple-200/70 dark:hover:border-violet-500/20 light:hover:border-purple-400/50 hover:shadow-sm"
-            class:opacity-70={isConverting}
-          >
+        <div
+          data-file-item
+          data-file-id={file.id}
+          class="group relative flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 p-3.5 transition-all duration-200 dark:hover:bg-violet-500/10 light:hover:bg-purple-200/70 dark:hover:border-violet-500/20 light:hover:border-purple-400/50 hover:shadow-sm"
+          class:opacity-70={isConverting}
+        >
           <div class="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg dark:bg-violet-500/20 light:bg-purple-300/60 dark:text-violet-400 light:text-purple-700 dark:group-hover:bg-violet-500/30 light:group-hover:bg-purple-400/60 dark:group-hover:text-violet-300 light:group-hover:text-purple-800 transition-colors">
             <FileText class="h-5 w-5" />
           </div>
@@ -323,9 +343,9 @@
                       <LoaderCircle class="h-4 w-4 dark:text-violet-500 light:text-violet-600 animate-spin" />
                     </span>
                   {:else}
-<button onclick={() => onconvertone(i)} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-700 dark:hover:bg-violet-500 light:hover:bg-purple-500/50 dark:hover:text-white light:hover:text-white h-8 w-8 transition-all duration-200 bg-transparent hover:bg-purple-500/20">
-  <Play class="h-4 w-4" />
-</button>
+                    <button onclick={() => onconvertone(i)} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-700 dark:hover:bg-violet-500 light:hover:bg-purple-500/50 dark:hover:text-white light:hover:text-white h-8 w-8 transition-all duration-200 bg-transparent hover:bg-purple-500/20">
+                      <Play class="h-4 w-4" />
+                    </button>
                   {/if}
                 </TooltipTrigger>
                 <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md"><p>{isConverting ? m.converting() : m.convert()}</p></TooltipContent>

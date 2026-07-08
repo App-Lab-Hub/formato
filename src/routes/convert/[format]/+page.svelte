@@ -1,3 +1,4 @@
+<!-- // +page.svelte (convert страница) -->
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
@@ -17,6 +18,8 @@
   import { browser } from '$app/environment';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { m } from '$lib/paraglide/messages';
+  import { toast } from '$lib/utils/toast';
+  import { formatFileSize } from '$lib/utils/format';
 
   const sourceFormatId: string = page.params.format!;
   let settings = $derived(page.data.settings);
@@ -137,7 +140,9 @@
   async function convertOne(index: number, skipPreview = false) {
     const file = files[index];
     if (!selectedTarget || convertingFiles.has(file.id)) return;
+    
     convertingFiles.add(file.id);
+    
     try {
       const result = await invoke<{ success: boolean; content: string; extension: string | null; error: string | null }>(
         'convert_file', { 
@@ -153,19 +158,47 @@
           format: result.extension || selectedTarget.id
         }));
 
+        toast.success(`✅ ${file.name} → ${selectedTarget.name}`);
+
         if (!skipPreview && settings?.auto_preview) {
           previewFileFn(file.id);
         }
+      } else {
+        const errorMsg = result.error || 'Неизвестная ошибка';
+        toast.error(`❌ ${file.name}: ${errorMsg}`);
       }
-    } catch (e) { console.error(`Conversion failed: ${file.name}`, e); }
-    finally { convertingFiles.delete(file.id); }
+    } catch (e) { 
+      console.error(`Conversion failed: ${file.name}`, e);
+      const errorMsg = e instanceof Error ? e.message : 'Ошибка соединения с бекендом';
+      toast.error(`❌ ${file.name}: ${errorMsg}`);
+    }
+    finally { 
+      convertingFiles.delete(file.id); 
+    }
   }
 
   async function convertAll() { 
-    for (let i = 0; i < files.length; i++) await convertOne(i, true); 
+    if (files.length === 0) {
+      toast.warning('⚠️ Нет файлов для конвертации');
+      return;
+    }
+    
+    if (!selectedTarget) {
+      toast.warning('⚠️ Выберите целевой формат');
+      return;
+    }
+    
+    for (let i = 0; i < files.length; i++) {
+      await convertOne(i, true);
+    }
   }
   
   function clearAll() { 
+    if (files.length === 0) {
+      toast.warning('⚠️ Нет файлов для очистки');
+      return;
+    }
+    
     files = []; 
     convertedFiles = new Map();
     fileHashes = new Map();
@@ -174,11 +207,15 @@
       sessionStorage.removeItem(getStorageKey('converted'));
       sessionStorage.removeItem(getStorageKey('hashes'));
     }
+    toast.info('🧹 Все файлы очищены');
   }
 
   async function downloadFile(fileId: string) {
     const converted = convertedFiles.get(fileId);
-    if (!converted) return;
+    if (!converted) {
+      toast.warning('⚠️ Сначала сконвертируйте файл');
+      return;
+    }
     const file = files.find(f => f.id === fileId);
     const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
     
@@ -192,7 +229,10 @@
         title: isArchive ? m.settings_archive() : 'Save file',
       });
       
-      if (!filePath) return;
+      if (!filePath) {
+        toast.info('❌ Сохранение отменено');
+        return;
+      }
       
       if (isArchive) {
         await invoke('archive_file', { 
@@ -204,14 +244,21 @@
         const content = await invoke<string>('read_file_content', { path: converted.path });
         await writeTextFile(filePath, content);
       }
-    } catch (e) { console.error('[Download] Failed:', e); }
+      
+      toast.success(`✅ Файл сохранён: ${filePath.split('/').pop()}`);
+    } catch (e) { 
+      console.error('[Download] Failed:', e);
+      toast.error('❌ Ошибка при сохранении файла');
+    }
   }
 
-  // В файле конвертации
   async function previewFileFn(fileId: string) {
     const converted = convertedFiles.get(fileId);
     const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
-    if (!savedPath) return;
+    if (!savedPath) {
+      toast.warning('⚠️ Файл не найден');
+      return;
+    }
     try {
       const actualSize = await invoke<number>('get_file_size', { path: savedPath });
       const format = converted?.format ?? sourceFormatId;
@@ -222,6 +269,11 @@
       const maxSizeMB = settings?.max_preview_size ?? 5;
       const language = settings?.language ?? 'en';
       const theme = settings?.theme ?? 'dark';
+      
+      const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
+      if (actualSize > maxSizeBytes) {
+        toast.warning(`⚠️ Файл слишком большой для предпросмотра (${formatFileSize(actualSize)})`);
+      }
       
       new WebviewWindow(windowId, {
         url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}&locale=${language}&theme=${theme}&windowId=${windowId}`,
@@ -234,7 +286,10 @@
         theme: 'dark',
         minWidth: 400, minHeight: 300
       });
-    } catch (e) { console.error('Preview failed:', e); }
+    } catch (e) { 
+      console.error('Preview failed:', e);
+      toast.error('❌ Не удалось открыть предпросмотр');
+    }
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -267,24 +322,24 @@
           <SourceFormatHeader format={sourceFormat} />
           <TargetFormatGrid formats={targetFormats} {selectedTarget} onselect={selectTarget} />
                 
-      <FileDropZone
-        sourceFormatId={sourceFormatId}
-        sourceFormatName={sourceFormat?.name ?? ''}
-        sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
-        {selectedTarget}
-        {files}
-        {convertingFiles}
-        {convertedFiles}
-        {counter}
-        {fileHashes}
-        showExtensions={settings?.show_extensions ?? true}
-        onfileschange={handleFilesChange}
-        onconvertone={convertOne}
-        onconvertall={convertAll}
-        onclearall={clearAll}
-        onpreview={previewFileFn}
-        ondownload={downloadFile}
-      />
+          <FileDropZone
+            sourceFormatId={sourceFormatId}
+            sourceFormatName={sourceFormat?.name ?? ''}
+            sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
+            {selectedTarget}
+            {files}
+            {convertingFiles}
+            {convertedFiles}
+            {counter}
+            {fileHashes}
+            showExtensions={settings?.show_extensions ?? true}
+            onfileschange={handleFilesChange}
+            onconvertone={convertOne}
+            onconvertall={convertAll}
+            onclearall={clearAll}
+            onpreview={previewFileFn}
+            ondownload={downloadFile}
+          />
         </main>
       </div>
     </TooltipProvider>
