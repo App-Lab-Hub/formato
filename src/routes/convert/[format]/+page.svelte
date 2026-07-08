@@ -18,7 +18,7 @@
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { m } from '$lib/paraglide/messages';
   import { toast } from '$lib/utils/toast';
-  import { formatFileSize } from '$lib/utils/format';
+  import { formatFileSize, formatSize } from '$lib/utils/format';
 
   const sourceFormatId: string = page.params.format!;
   let settings = $derived(page.data.settings);
@@ -252,45 +252,51 @@
     }
   }
 
-  async function previewFileFn(fileId: string) {
-    const converted = convertedFiles.get(fileId);
-    const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
-    if (!savedPath) {
-      toast.warning(m.file_not_found());
-      return;
-    }
-    try {
-      const actualSize = await invoke<number>('get_file_size', { path: savedPath });
-      const format = converted?.format ?? sourceFormatId;
-      const file = files.find(f => f.id === fileId);
-      const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
-      const title = converted ? `${baseName}.${format}` : file?.name ?? 'file';
-      const windowId = `preview-${Date.now()}`;
-      const maxSizeMB = settings?.max_preview_size ?? 5;
-      const language = settings?.language ?? 'en';
-      const theme = settings?.theme ?? 'dark';
-      
-      const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
-      if (actualSize > maxSizeBytes) {
-        toast.warning(m.preview_too_large({ size: formatFileSize(actualSize) }));
-      }
-      
-      new WebviewWindow(windowId, {
-        url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}&locale=${language}&theme=${theme}&windowId=${windowId}`,
-        title,
-        width: 900, height: 700,
-        resizable: true, center: true,
-        maximizable: true, minimizable: true, closable: true,
-        transparent: false,
-        backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
-        theme: 'dark',
-        minWidth: 400, minHeight: 300
-      });
-    } catch (e) { 
-      console.error('Preview failed:', e);
-      toast.error(m.preview_error());
-    }
+async function previewFileFn(fileId: string) {
+  const converted = convertedFiles.get(fileId);
+  const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
+  if (!savedPath) {
+    toast.warning(m.file_not_found());
+    return;
   }
+  try {
+    const actualSize = await invoke<number>('get_file_size', { path: savedPath });
+    const format = converted?.format ?? sourceFormatId;
+    const file = files.find(f => f.id === fileId);
+    const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
+    const title = converted ? `${baseName}.${format}` : file?.name ?? 'file';
+    const windowId = `preview-${Date.now()}`;
+    const maxSizeMB = settings?.max_preview_size ?? 5;
+    const language = settings?.language ?? 'en';
+    const theme = settings?.theme ?? 'dark';
+    
+    const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
+    if (actualSize > maxSizeBytes) {
+      toast.warning(m.preview_too_large_monaco({ 
+        size: formatFileSize(actualSize),
+        limit: maxSizeMB === 0 ? m.preview_unlimited() : formatSize(maxSizeMB)
+      }));
+    }
+    
+    // Убираем theme из параметров WebviewWindow, оставляем только в URL
+    // и добавляем системную тему
+    new WebviewWindow(windowId, {
+      url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}&locale=${language}&theme=${theme}&windowId=${windowId}`,
+      title,
+      width: 900, height: 700,
+      resizable: true, center: true,
+      maximizable: true, minimizable: true, closable: true,
+      transparent: false,
+      backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
+      // Убираем жесткую тему здесь
+      // theme: 'dark', // <-- УДАЛИТЬ ЭТУ СТРОКУ
+      minWidth: 400, minHeight: 300
+    });
+  } catch (e) { 
+    console.error('Preview failed:', e);
+    toast.error(m.preview_error());
+  }
+}
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') goBack();

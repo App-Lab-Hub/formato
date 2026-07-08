@@ -10,49 +10,61 @@
   import type { PageProps } from './$types';
   import { invoke } from '@tauri-apps/api/core';
   import { m } from '$lib/paraglide/messages';
-  import { applyTheme } from '$lib/data/settings';
+  import { applyTheme, watchSystemTheme } from '$lib/data/settings';
 
   let { data }: PageProps = $props();
   
   // Получаем параметры из URL
   const urlParams = new URLSearchParams(window.location.search);
   const themeFromUrl = urlParams.get('theme') || 'dark';
+  
+  // Ключ для хранения темы в sessionStorage
+  const STORAGE_KEY = 'preview_theme';
+  
+  // Восстанавливаем сохраненную тему, иначе берем из URL
+  const savedTheme = sessionStorage.getItem(STORAGE_KEY);
+  const initialTheme = savedTheme || themeFromUrl;
 
   let monacoContainer = $state<HTMLElement>();
   let errorMessage = $state<string | null>(null);
   let fileSize = $state<number>(0);
   let maxSizeMB = $state<number>(5);
   let editor: monaco.editor.IStandaloneCodeEditor | null = null;
-  let currentTheme = $state(themeFromUrl);
+  let currentTheme = $state(initialTheme);
 
   // Функция обновления темы (без отправки событий)
   function updateTheme(theme: string) {
     if (currentTheme === theme) return;
     
     currentTheme = theme;
-    const isDark = theme === 'dark';
     
-    // Меняем классы на html
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(isDark ? 'dark' : 'light');
+    // Сохраняем тему в sessionStorage
+    sessionStorage.setItem(STORAGE_KEY, theme);
     
-    // Меняем тему Monaco если редактор уже создан
+    // Применяем тему через applyTheme (она сама обработает 'system')
+    applyTheme(theme, false);
+    
+    // Обновляем Monaco если редактор уже создан
     if (editor) {
+      // Определяем реальную тему для Monaco
+      let isDark: boolean;
+      if (theme === 'system') {
+        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      } else {
+        isDark = theme === 'dark';
+      }
       monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
     }
-    
-    // Применяем тему через applyTheme (без отправки события, чтобы не создавать петлю)
-    applyTheme(theme, false);
   }
 
   onMount(() => {
-    // Применяем начальную тему
-    const isDark = themeFromUrl === 'dark';
-    document.documentElement.classList.remove('light', 'dark');
-    document.documentElement.classList.add(isDark ? 'dark' : 'light');
+    // Применяем начальную тему (сохраненную или из URL)
+    applyTheme(initialTheme, false);
     
-    // Устанавливаем начальный фон через applyTheme (без отправки события)
-    applyTheme(themeFromUrl, false);
+    // Если сохраненной темы нет, сохраняем начальную
+    if (!savedTheme) {
+      sessionStorage.setItem(STORAGE_KEY, initialTheme);
+    }
 
     // Слушаем событие изменения темы из основного окна
     const unlisten = getCurrentWebview().listen('theme-changed', (event) => {
@@ -60,8 +72,23 @@
       updateTheme(newTheme);
     });
 
+    // Слушаем изменение системной темы через watchSystemTheme
+    const unwatch = watchSystemTheme(() => {
+      // Если текущая тема - system, обновляем
+      if (currentTheme === 'system') {
+        applyTheme('system', false);
+        
+        // Обновляем Monaco
+        if (editor) {
+          const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
+        }
+      }
+    });
+
     return () => {
       unlisten.then(fn => fn());
+      unwatch();
     };
   });
 
@@ -87,7 +114,13 @@
 
   function processPreviewData(content: string, lang: string) {
     if (monacoContainer && content) {
-      const isDark = currentTheme === 'dark';
+      // Определяем реальную тему для Monaco
+      let isDark: boolean;
+      if (currentTheme === 'system') {
+        isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      } else {
+        isDark = currentTheme === 'dark';
+      }
       
       editor = monaco.editor.create(monacoContainer, {
         value: content,
@@ -230,7 +263,10 @@
     
     if (fileSize > maxSizeBytes) {
       const limitText = maxSizeMB === 0 ? m.preview_unlimited() : formatSize(maxSizeMB);
-      errorMessage = m.preview_too_large() + ` (${formatFileSize(fileSize)}). ${m.preview_max_size()}: ${limitText}.`;
+      errorMessage = m.preview_too_large_monaco({ 
+        size: formatFileSize(fileSize), 
+        limit: limitText 
+      });
       return;
     }
 
