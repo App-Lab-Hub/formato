@@ -12,6 +12,7 @@
 	import { setLocale } from '$lib/paraglide/runtime';
 	import { page } from '$app/state';
 	import { applyTheme, watchSystemTheme } from '$lib/data/settings';
+	import { showContextMenu } from '$lib/utils/context-menu';
 
 	let { children } = $props();
 	const isHome = browser && window.location.pathname === '/';
@@ -48,6 +49,85 @@
 			if (!isHome) {
 				onSplashComplete();
 			}
+		}
+
+		// Глобальное контекстное меню для всего приложения
+		if (browser) {
+			window.addEventListener('contextmenu', async (e) => {
+				// Проверяем, что клик не по интерактивным элементам
+				const target = e.target as HTMLElement;
+				
+				// Пропускаем, если клик по элементу с data-context-menu="ignore"
+				if (target.closest('[data-context-menu="ignore"]')) {
+					return;
+				}
+
+				// Пропускаем, если клик по кнопке, инпуту или textarea
+				if (target.closest('button') || target.closest('input') || target.closest('textarea')) {
+					return;
+				}
+
+				// Проверяем, что клик не по элементу с контекстным меню файла
+				if (target.closest('[data-file-item]')) {
+					return;
+				}
+
+				// Определяем текущий путь для контекстных действий
+				const currentPath = window.location.pathname;
+
+				// Создаем пункты меню
+				const actions = [];
+
+				// Навигация
+				if (currentPath !== '/') {
+					actions.push({
+						label: 'На главную',
+						action: () => goto('/'),
+					});
+				}
+
+				if (currentPath !== '/settings') {
+					actions.push({
+						label: 'Настройки',
+						action: () => goto('/settings'),
+					});
+				}
+
+				if (currentPath !== '/about') {
+					actions.push({
+						label: 'О программе',
+						action: () => goto('/about'),
+					});
+				}
+
+				if (currentPath !== '/dependencies') {
+					actions.push({
+						label: 'Зависимости',
+						action: () => goto('/dependencies'),
+					});
+				}
+
+				// Добавляем разделитель, если есть навигационные пункты
+				if (actions.length > 0) {
+					actions.push({ label: '---', action: () => {} });
+				}
+
+				// Дополнительные действия
+				actions.push({
+					label: 'Обновить страницу',
+					action: () => {
+						if (browser) {
+							// Небольшая задержка чтобы меню успело закрыться
+							setTimeout(() => {
+								window.location.reload();
+							}, 50);
+						}
+					},
+				});
+
+				// Показываем контекстное меню
+				await showContextMenu(e, { items: actions });
+			});
 		}
 	});
 

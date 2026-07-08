@@ -288,8 +288,7 @@ async function previewFileFn(fileId: string) {
       maximizable: true, minimizable: true, closable: true,
       transparent: false,
       backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
-      // Убираем жесткую тему здесь
-      // theme: 'dark', // <-- УДАЛИТЬ ЭТУ СТРОКУ
+      
       minWidth: 400, minHeight: 300
     });
   } catch (e) { 
