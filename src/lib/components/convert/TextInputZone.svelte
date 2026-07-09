@@ -3,7 +3,6 @@
   import { m } from '$lib/paraglide/messages';
   import { onMount } from 'svelte';
   import { invoke } from '@tauri-apps/api/core';
-  import { toast } from '$lib/utils/toast';
   
   let { 
     sourceFormatId, 
@@ -16,7 +15,7 @@
     sourceFormatName: string;
     selectedTarget?: { id: string; name: string } | null;
     isConverting?: boolean;
-    onfilesadd: (files: { path: string; name: string; hash: string }[]) => void;
+    onfilesadd: (files: { path: string; name: string }[], suppressToast?: boolean) => void;
   }>();
   
   let textContent = $state('');
@@ -44,29 +43,23 @@
     isProcessing = true;
     
     try {
-      // Создаём временный файл
       const tempPath = await invoke<string>('create_temp_file', {
         content: textContent,
         extension: sourceFormatId,
         name: fileName || 'input'
       });
       
-      // Вычисляем хэш (та же команда, что и для файлов)
-      const hash = await invoke<string>('hash_file', { path: tempPath });
-      
-      // Передаём в общую функцию
+      // 👇 Пользовательский ввод — показываем тосты
       onfilesadd([{
         path: tempPath,
         name: fileName || `input.${sourceFormatId}`,
-        hash
-      }]);
+      }], false);
       
-      // Очищаем поле после успешной отправки
       textContent = '';
       error = null;
     } catch (e) {
       console.error('Text conversion failed:', e);
-      toast.error(m.text_convert_error());
+      error = m.text_convert_error();
     } finally {
       isProcessing = false;
     }

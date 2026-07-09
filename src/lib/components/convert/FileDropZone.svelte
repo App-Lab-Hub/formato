@@ -3,7 +3,6 @@
   import { open } from '@tauri-apps/plugin-dialog';
   import { getCurrentWebview } from '@tauri-apps/api/webview';
   import { onMount } from 'svelte';
-  import { invoke } from '@tauri-apps/api/core';
   import { Upload } from 'lucide-svelte';
   import { m } from '$lib/paraglide/messages';
   import { toast } from '$lib/utils/toast';
@@ -17,18 +16,14 @@
     sourceFormatId: string;
     sourceFormatName: string;
     sourceFormatExtensions?: string[];
-    onfilesadd: (files: { path: string; name: string; hash: string }[]) => void;
+    onfilesadd: (files: { path: string; name: string }[], suppressToast?: boolean) => void;
   } = $props();
 
   let isDragOver = $state(false);
   let dropzoneEl = $state<HTMLElement | null>(null);
   let pendingProcessed = false;
 
-  async function hashFilePath(path: string): Promise<string> {
-    return await invoke<string>('hash_file', { path });
-  }
-
-  async function processAndAddPaths(paths: string[], suppressToast: boolean = false) {
+  function processAndAddPaths(paths: string[], suppressToast: boolean = false) {
     const validPaths = paths.filter(path => {
       const ext = path.split('.').pop()?.toLowerCase();
       return ext ? sourceFormatExtensions.includes(ext) : false;
@@ -42,31 +37,13 @@
       return;
     }
 
-    const newFiles: { path: string; name: string; hash: string }[] = [];
+    const newFiles = validPaths.map(path => ({
+      path,
+      name: path.split('/').pop() || path.split('\\').pop() || path,
+    }));
 
-    for (const path of validPaths) {
-      try {
-        const hash = await hashFilePath(path);
-        newFiles.push({
-          path,
-          name: path.split('/').pop() || path.split('\\').pop() || path,
-          hash
-        });
-      } catch (e) {
-        console.warn(`Failed to hash file: ${path}`, e);
-      }
-    }
-
-    if (newFiles.length > 0) {
-      onfilesadd(newFiles);
-      if (!suppressToast) {
-        toast.success(m.file_added({ count: newFiles.length }));
-      }
-    } else {
-      if (!suppressToast) {
-        toast.warning(m.file_no_new());
-      }
-    }
+    // 👇 Передаём suppressToast дальше
+    onfilesadd(newFiles, suppressToast);
   }
 
   function clearPendingFiles() {
@@ -84,7 +61,8 @@
     
     try {
       const paths: string[] = JSON.parse(pending);
-      await processAndAddPaths(paths, true);
+      // 👇 Подавляем тосты для восстановления из sessionStorage
+      processAndAddPaths(paths, true);
     } catch (e) {
       console.warn('Failed to process pending files:', e);
     } finally {
@@ -102,7 +80,8 @@
       const paths = Array.isArray(result) ? result : [result];
       const storageKey = `pending_files_${sourceFormatId}`;
       sessionStorage.setItem(storageKey, JSON.stringify(paths));
-      await processAndAddPaths(paths);
+      // 👇 Пользовательский выбор — показываем тосты
+      processAndAddPaths(paths, false);
     }
   }
 
@@ -131,7 +110,8 @@
         const x = pos.x / window.devicePixelRatio;
         const y = pos.y / window.devicePixelRatio;
         if (isOverDropzone(x, y) && event.payload.paths?.length) {
-          processAndAddPaths(event.payload.paths);
+          // 👇 Drag&drop — показываем тосты
+          processAndAddPaths(event.payload.paths, false);
         }
       } else if (event.payload.type === 'leave') {
         isDragOver = false;

@@ -1,4 +1,4 @@
-<!-- +page.svelte -->
+<!-- +page.svelte (только скрипт) -->
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
@@ -42,7 +42,6 @@
   let counter = $state(0);
   let fileHashes = $state<Map<string, string>>(new Map());
 
-  // Режим ввода: 'file' или 'text'
   let inputMode = $state<'file' | 'text'>('file');
 
   function loadFilesFromStorage() {
@@ -155,22 +154,21 @@
     toast.info(m.file_removed({ name: file.name }));
   }
 
-  // ОБЩАЯ ФУНКЦИЯ ДЛЯ ДОБАВЛЕНИЯ ФАЙЛОВ
-  async function addFiles(filesToAdd: { path: string; name: string; hash: string }[]) {
+  async function addFiles(filesToAdd: { path: string; name: string }[], suppressToast: boolean = false) {
     const knownHashes = new Set(fileHashes.values());
     const newFiles: { path: string; name: string; id: string }[] = [];
     let duplicates = 0;
     
     for (const file of filesToAdd) {
-      // Проверка на дубликат
-      if (knownHashes.has(file.hash)) {
+      const hash = await invoke<string>('hash_file', { path: file.path });
+      
+      if (knownHashes.has(hash)) {
         duplicates++;
         continue;
       }
       
-      // Создаём ID и сохраняем хэш
       const newId = `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      fileHashes.set(newId, file.hash);
+      fileHashes.set(newId, hash);
       
       newFiles.push({
         path: file.path,
@@ -180,25 +178,27 @@
     }
     
     if (newFiles.length === 0) {
-      if (duplicates > 0) {
-        toast.warning(m.file_duplicate_all({ count: duplicates }));
-      } else {
-        toast.warning(m.file_no_new());
+      if (!suppressToast) {
+        if (duplicates > 0) {
+          toast.warning(m.file_duplicate_all({ count: duplicates }));
+        } else {
+          toast.warning(m.file_no_new());
+        }
       }
       return;
     }
     
-    // Добавляем в список
     const updatedFiles = [...files, ...newFiles];
     handleFilesChange(updatedFiles);
     
-    if (duplicates > 0) {
-      toast.success(m.file_added({ count: newFiles.length }) + ' ' + m.file_duplicate_skipped({ count: duplicates }));
-    } else {
-      toast.success(m.file_added({ count: newFiles.length }));
+    if (!suppressToast) {
+      if (duplicates > 0) {
+        toast.success(m.file_added({ count: newFiles.length }) + ' ' + m.file_duplicate_skipped({ count: duplicates }));
+      } else {
+        toast.success(m.file_added({ count: newFiles.length }));
+      }
     }
     
-    // Автоматически конвертируем новые файлы
     for (let i = files.length; i < updatedFiles.length; i++) {
       await convertOne(i);
     }
