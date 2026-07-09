@@ -2,24 +2,27 @@
 <script lang="ts">
   import { m } from '$lib/paraglide/messages';
   import { onMount } from 'svelte';
+  import { invoke } from '@tauri-apps/api/core';
+  import { toast } from '$lib/utils/toast';
   
   let { 
     sourceFormatId, 
     sourceFormatName, 
     selectedTarget = null, 
     isConverting = false, 
-    onConvert 
+    onfilesadd,
   } = $props<{
     sourceFormatId: string;
     sourceFormatName: string;
     selectedTarget?: { id: string; name: string } | null;
     isConverting?: boolean;
-    onConvert: (content: string, fileName: string) => Promise<void>;
+    onfilesadd: (files: { path: string; name: string; hash: string }[]) => void;
   }>();
   
   let textContent = $state('');
   let fileName = $state('');
   let error = $state<string | null>(null);
+  let isProcessing = $state(false);
   
   onMount(() => {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
@@ -35,9 +38,38 @@
       error = m.enter_text_or_file();
       return;
     }
+    if (isProcessing) return;
+    
     error = null;
-    const finalFileName = fileName || `input.${sourceFormatId}`;
-    await onConvert(textContent, finalFileName);
+    isProcessing = true;
+    
+    try {
+      // Создаём временный файл
+      const tempPath = await invoke<string>('create_temp_file', {
+        content: textContent,
+        extension: sourceFormatId,
+        name: fileName || 'input'
+      });
+      
+      // Вычисляем хэш (та же команда, что и для файлов)
+      const hash = await invoke<string>('hash_file', { path: tempPath });
+      
+      // Передаём в общую функцию
+      onfilesadd([{
+        path: tempPath,
+        name: fileName || `input.${sourceFormatId}`,
+        hash
+      }]);
+      
+      // Очищаем поле после успешной отправки
+      textContent = '';
+      error = null;
+    } catch (e) {
+      console.error('Text conversion failed:', e);
+      toast.error(m.text_convert_error());
+    } finally {
+      isProcessing = false;
+    }
   }
   
   function clearText() {
@@ -79,16 +111,17 @@
   <div class="mt-4 flex justify-end gap-2">
     <button
       onclick={clearText}
-      class="px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors"
+      disabled={isProcessing}
+      class="px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors disabled:opacity-50"
     >
       {m.clear_text()}
     </button>
     <button
       onclick={handleConvert}
-      disabled={!textContent.trim() || !selectedTarget || isConverting}
+      disabled={!textContent.trim() || !selectedTarget || isConverting || isProcessing}
       class="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
     >
-      {#if isConverting}
+      {#if isConverting || isProcessing}
         <span class="animate-spin">⏳</span> {m.text_converting()}
       {:else}
         🔄 {m.text_convert_to({ format: selectedTarget?.name || '...' })}

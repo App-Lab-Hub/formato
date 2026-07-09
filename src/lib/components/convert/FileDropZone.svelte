@@ -12,19 +12,14 @@
     sourceFormatId,
     sourceFormatName,
     sourceFormatExtensions = [sourceFormatId],
-    files = [],
-    fileHashes = new Map(),
-    onfileschange,
+    onfilesadd,
   }: {
     sourceFormatId: string;
     sourceFormatName: string;
     sourceFormatExtensions?: string[];
-    files: { path: string; name: string; id: string }[];
-    fileHashes: Map<string, string>;
-    onfileschange: (files: { path: string; name: string; id: string }[]) => void;
+    onfilesadd: (files: { path: string; name: string; hash: string }[]) => void;
   } = $props();
 
-  let _counter = $state(files.length);
   let isDragOver = $state(false);
   let dropzoneEl = $state<HTMLElement | null>(null);
   let pendingProcessed = false;
@@ -47,54 +42,29 @@
       return;
     }
 
-    const knownHashes = new Set(fileHashes.values());
-    const newPaths: { path: string; hash: string }[] = [];
-    let duplicateCount = 0;
+    const newFiles: { path: string; name: string; hash: string }[] = [];
 
     for (const path of validPaths) {
       try {
         const hash = await hashFilePath(path);
-        if (!knownHashes.has(hash)) {
-          knownHashes.add(hash);
-          newPaths.push({ path, hash });
-        } else {
-          duplicateCount++;
-        }
+        newFiles.push({
+          path,
+          name: path.split('/').pop() || path.split('\\').pop() || path,
+          hash
+        });
       } catch (e) {
         console.warn(`Failed to hash file: ${path}`, e);
       }
     }
 
-    if (newPaths.length === 0) {
+    if (newFiles.length > 0) {
+      onfilesadd(newFiles);
       if (!suppressToast) {
-        if (duplicateCount > 0) {
-          toast.warning(m.file_duplicate_all({ count: duplicateCount }));
-        } else {
-          toast.warning(m.file_no_new());
-        }
-      }
-      return;
-    }
-
-    const ids = newPaths.map(() => `${_counter++}-${Date.now()}`);
-    const newFiles = newPaths.map(({ path, hash }, idx) => {
-      const id = ids[idx];
-      fileHashes.set(id, hash);
-      return {
-        path,
-        name: path.split('/').pop() || path.split('\\').pop() || path,
-        id,
-      };
-    });
-
-    onfileschange([...files, ...newFiles]);
-        
-    if (!suppressToast) {
-      if (newFiles.length > 0) {
         toast.success(m.file_added({ count: newFiles.length }));
       }
-      if (duplicateCount > 0) {
-        toast.warning(m.file_duplicate_skipped({ count: duplicateCount }));
+    } else {
+      if (!suppressToast) {
+        toast.warning(m.file_no_new());
       }
     }
   }
@@ -114,16 +84,10 @@
     
     try {
       const paths: string[] = JSON.parse(pending);
-      const existingPaths = new Set(files.map(f => f.path));
-      const newPaths = paths.filter(p => !existingPaths.has(p));
-      
-      if (newPaths.length > 0) {
-        await processAndAddPaths(newPaths, true);
-      } else {
-        clearPendingFiles();
-      }
+      await processAndAddPaths(paths, true);
     } catch (e) {
       console.warn('Failed to process pending files:', e);
+    } finally {
       clearPendingFiles();
     }
   }

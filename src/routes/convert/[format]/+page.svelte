@@ -155,36 +155,52 @@
     toast.info(m.file_removed({ name: file.name }));
   }
 
-  async function convertText(content: string, fileName: string) {
-    if (!selectedTarget) {
-      toast.warning(m.text_select_format());
+  // ОБЩАЯ ФУНКЦИЯ ДЛЯ ДОБАВЛЕНИЯ ФАЙЛОВ
+  async function addFiles(filesToAdd: { path: string; name: string; hash: string }[]) {
+    const knownHashes = new Set(fileHashes.values());
+    const newFiles: { path: string; name: string; id: string }[] = [];
+    let duplicates = 0;
+    
+    for (const file of filesToAdd) {
+      // Проверка на дубликат
+      if (knownHashes.has(file.hash)) {
+        duplicates++;
+        continue;
+      }
+      
+      // Создаём ID и сохраняем хэш
+      const newId = `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      fileHashes.set(newId, file.hash);
+      
+      newFiles.push({
+        path: file.path,
+        name: file.name,
+        id: newId
+      });
+    }
+    
+    if (newFiles.length === 0) {
+      if (duplicates > 0) {
+        toast.warning(m.file_duplicate_all({ count: duplicates }));
+      } else {
+        toast.warning(m.file_no_new());
+      }
       return;
     }
     
-    try {
-      const tempPath = await invoke<string>('create_temp_file', {
-        content,
-        extension: sourceFormatId,
-        name: fileName || 'input'
-      });
-      
-      const newId = `text-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-      const newFile = {
-        path: tempPath,
-        name: fileName || `input.${sourceFormatId}`,
-        id: newId
-      };
-      
-      const updatedFiles = [...files, newFile];
-      handleFilesChange(updatedFiles);
-      
-      const fileIndex = updatedFiles.length - 1;
-      await convertOne(fileIndex);
-      
-      toast.success(m.text_converted());
-    } catch (e) {
-      console.error('Text conversion failed:', e);
-      toast.error(m.text_convert_error());
+    // Добавляем в список
+    const updatedFiles = [...files, ...newFiles];
+    handleFilesChange(updatedFiles);
+    
+    if (duplicates > 0) {
+      toast.success(m.file_added({ count: newFiles.length }) + ' ' + m.file_duplicate_skipped({ count: duplicates }));
+    } else {
+      toast.success(m.file_added({ count: newFiles.length }));
+    }
+    
+    // Автоматически конвертируем новые файлы
+    for (let i = files.length; i < updatedFiles.length; i++) {
+      await convertOne(i);
     }
   }
 
@@ -408,9 +424,7 @@ async function previewFileFn(fileId: string) {
               sourceFormatId={sourceFormatId}
               sourceFormatName={sourceFormat?.name ?? ''}
               sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
-              {files}
-              {fileHashes}
-              onfileschange={handleFilesChange}
+              onfilesadd={addFiles}
             />
           {:else}
             <TextInputZone
@@ -418,7 +432,7 @@ async function previewFileFn(fileId: string) {
               sourceFormatName={sourceFormat?.name ?? ''}
               {selectedTarget}
               isConverting={convertingFiles.size > 0}
-              onConvert={convertText}
+              onfilesadd={addFiles}
             />
           {/if}
           
