@@ -12,7 +12,7 @@
 	import { setLocale } from '$lib/paraglide/runtime';
 	import { page } from '$app/state';
 	import { applyTheme, watchSystemTheme } from '$lib/data/settings';
-	import { showContextMenu, createGlobalContextMenu } from '$lib/utils/context-menu';
+	import { create_popup } from '$lib/utils/context-menu';
 
 	let { children } = $props();
 	const isHome = browser && window.location.pathname === '/';
@@ -23,7 +23,9 @@
 	let lang = $derived(page.data?.settings?.language ?? 'en');
 	let settings = $derived(page.data?.settings);
 
-	// Применяем тему при загрузке настроек (applyTheme сам установит фон окна)
+	// Переменная для очистки обработчика
+	let cleanupContextMenu: (() => void) | null = null;
+
 	$effect(() => {
 		if (settings?.theme) {
 			applyTheme(settings.theme);
@@ -51,39 +53,39 @@
 			}
 		}
 
-		// Глобальное контекстное меню - полная замена стандартного
-		if (browser) {
-			window.addEventListener('contextmenu', async (e) => {
-				e.preventDefault();
-				e.stopPropagation();
-				e.stopImmediatePropagation();
-				
-				const target = e.target as HTMLElement;
-				
-				// Проверяем специальные атрибуты
-				const isIgnored = target.closest('[data-context-menu="ignore"]');
-				const isFileItem = target.closest('[data-file-item]');
-				const hasCustomHandler = target.closest('[data-context-menu-handler]');
-				
-				if (hasCustomHandler) {
-					return;
-				}
-				if (isFileItem) {
-					return;
-				}
-				if (isIgnored) {
-					return;
-				}
-
-				const currentPath = window.location.pathname;
-				const actions = await createGlobalContextMenu(currentPath);
-
-				await showContextMenu(e, { items: actions });
-			}, true);
+		// Удаляем старый обработчик если есть
+		if (cleanupContextMenu) {
+			cleanupContextMenu();
+			cleanupContextMenu = null;
 		}
+
+		// 🔥 СОЗДАЕМ МЕНЮ НА КЛИЕНТЕ
+		const contextMenuHandler = async (e: MouseEvent) => {
+			e.preventDefault();
+			e.stopPropagation();
+			
+			const target = e.target as HTMLElement;
+			
+			// Проверяем специальные атрибуты
+			const isIgnored = target.closest?.('[data-context-menu="ignore"]');
+			const isFileItem = target.closest?.('[data-file-item]');
+			const hasCustomHandler = target.closest?.('[data-context-menu-handler]');
+			
+			if (hasCustomHandler) return;
+			if (isFileItem) return;
+			if (isIgnored) return;
+
+			await create_popup();
+		};
+
+		window.addEventListener('contextmenu', contextMenuHandler, true);
+
+		// Сохраняем функцию для очистки
+		cleanupContextMenu = () => {
+			window.removeEventListener('contextmenu', contextMenuHandler, true);
+		};
 	});
 
-	// Следим за системной темой отдельно
 	onMount(() => {
 		if (browser && settings?.theme === 'system' ) {
 			const unwatch = watchSystemTheme(() => {
