@@ -1,6 +1,10 @@
 use crate::{AppState, db};
 use tauri::Manager;
 
+use std::fs;
+use std::path::PathBuf;
+use std::env::temp_dir;
+
 /// Показывает главное окно (вызывается после загрузки фронтенда)
 #[tauri::command]
 pub fn app_ready(app: tauri::AppHandle) {
@@ -90,4 +94,28 @@ pub async fn get_file_size(path: String) -> Result<u64, String> {
         .await
         .map(|m| m.len())
         .map_err(|e| format!("Cannot get file size: {e}"))
+}
+
+
+
+#[tauri::command]
+pub fn create_temp_file(content: String, extension: String, name: String) -> Result<String, String> {
+
+    
+    let temp_dir = temp_dir().join("formato_temp");
+    if !temp_dir.exists() {
+        fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
+    }
+    
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap()
+        .as_millis();
+    
+    let file_name = format!("{}_{}.{}", name, timestamp, extension);
+    let file_path = temp_dir.join(file_name);
+    
+    fs::write(&file_path, content).map_err(|e| e.to_string())?;
+    
+    Ok(file_path.to_string_lossy().to_string())
 }

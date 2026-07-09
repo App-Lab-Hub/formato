@@ -142,5 +142,8 @@
   "enter_text_prompt": "Введите текст в формате {format}...",
   "text_converting": "Конвертация текста...",
   "text_convert_to": "Конвертировать текст в {format}",
-  "text_select_format": "Выберите целевой формат для текста"
+  "text_select_format": "Выберите целевой формат для текста",
+
+  "text_converted": "Текст успешно сконвертирован",
+  "text_convert_error": "Ошибка конвертации текста"
 }

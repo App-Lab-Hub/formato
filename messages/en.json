@@ -142,5 +142,8 @@
   "enter_text_prompt": "Enter text in {format} format...",
   "text_converting": "Converting text...",
   "text_convert_to": "Convert text to {format}",
-  "text_select_format": "Select target format for text"
+  "text_select_format": "Select target format for text",
+
+  "text_converted": "Text converted successfully",
+  "text_convert_error": "Text conversion error"
 }

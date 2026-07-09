@@ -1,4 +1,4 @@
-<!-- // +page.svelte (convert страница) -->
+<!-- +page.svelte -->
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
@@ -10,6 +10,8 @@
   import SourceFormatHeader from '$lib/components/convert/SourceFormatHeader.svelte';
   import TargetFormatGrid from '$lib/components/convert/TargetFormatGrid.svelte';
   import FileDropZone from '$lib/components/convert/FileDropZone.svelte';
+  import TextInputZone from '$lib/components/convert/TextInputZone.svelte';
+  import FileList from '$lib/components/convert/FileList.svelte';
   import { save } from '@tauri-apps/plugin-dialog';
   import { writeTextFile } from '@tauri-apps/plugin-fs';
   import { onMount } from 'svelte';
@@ -39,6 +41,9 @@
   let convertingFiles = $state<Set<string>>(new Set());
   let counter = $state(0);
   let fileHashes = $state<Map<string, string>>(new Map());
+
+  // Режим ввода: 'file' или 'text'
+  let inputMode = $state<'file' | 'text'>('file');
 
   function loadFilesFromStorage() {
     if (!browser) return;
@@ -134,6 +139,53 @@
       if (!newIds.has(id)) fileHashes.delete(id);
     }
     files = newFiles;
+  }
+
+  function removeFile(index: number) {
+    const file = files[index];
+    if (!file) return;
+    
+    const newFiles = [...files];
+    newFiles.splice(index, 1);
+    handleFilesChange(newFiles);
+    
+    convertedFiles.delete(file.id);
+    fileHashes.delete(file.id);
+    
+    toast.info(m.file_removed({ name: file.name }));
+  }
+
+  async function convertText(content: string, fileName: string) {
+    if (!selectedTarget) {
+      toast.warning(m.text_select_format());
+      return;
+    }
+    
+    try {
+      const tempPath = await invoke<string>('create_temp_file', {
+        content,
+        extension: sourceFormatId,
+        name: fileName || 'input'
+      });
+      
+      const newId = `text-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const newFile = {
+        path: tempPath,
+        name: fileName || `input.${sourceFormatId}`,
+        id: newId
+      };
+      
+      const updatedFiles = [...files, newFile];
+      handleFilesChange(updatedFiles);
+      
+      const fileIndex = updatedFiles.length - 1;
+      await convertOne(fileIndex);
+      
+      toast.success(m.text_converted());
+    } catch (e) {
+      console.error('Text conversion failed:', e);
+      toast.error(m.text_convert_error());
+    }
   }
 
   async function convertOne(index: number, skipPreview = false) {
@@ -278,8 +330,6 @@ async function previewFileFn(fileId: string) {
       }));
     }
     
-    // Убираем theme из параметров WebviewWindow, оставляем только в URL
-    // и добавляем системную тему
     new WebviewWindow(windowId, {
       url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}&locale=${language}&theme=${theme}&windowId=${windowId}`,
       title,
@@ -325,24 +375,67 @@ async function previewFileFn(fileId: string) {
 
           <SourceFormatHeader format={sourceFormat} />
           <TargetFormatGrid formats={targetFormats} {selectedTarget} onselect={selectTarget} />
-                
-          <FileDropZone
-            sourceFormatId={sourceFormatId}
-            sourceFormatName={sourceFormat?.name ?? ''}
-            sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
-            {selectedTarget}
+          
+          <!-- Переключатель режимов -->
+          <div class="w-full max-w-4xl flex items-center gap-4 mb-2">
+            <button
+              onclick={() => inputMode = 'file'}
+              class={[
+                'px-6 py-2 rounded-lg text-sm font-medium transition-all',
+                inputMode === 'file' 
+                  ? 'bg-primary text-primary-foreground shadow-md' 
+                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+              ]}
+            >
+              📁 Файлы
+            </button>
+            <button
+              onclick={() => inputMode = 'text'}
+              class={[
+                'px-6 py-2 rounded-lg text-sm font-medium transition-all',
+                inputMode === 'text' 
+                  ? 'bg-primary text-primary-foreground shadow-md' 
+                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+              ]}
+            >
+              ✏️ Текст
+            </button>
+          </div>
+          
+          <!-- Только один компонент ввода в зависимости от режима -->
+          {#if inputMode === 'file'}
+            <FileDropZone
+              sourceFormatId={sourceFormatId}
+              sourceFormatName={sourceFormat?.name ?? ''}
+              sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
+              {files}
+              {fileHashes}
+              onfileschange={handleFilesChange}
+            />
+          {:else}
+            <TextInputZone
+              {sourceFormatId}
+              sourceFormatName={sourceFormat?.name ?? ''}
+              {selectedTarget}
+              isConverting={convertingFiles.size > 0}
+              onConvert={convertText}
+            />
+          {/if}
+          
+          <!-- FileList отображается всегда, если есть файлы -->
+          <FileList
             {files}
-            {convertingFiles}
+            {sourceFormatId}
+            {selectedTarget}
             {convertedFiles}
-            {counter}
-            {fileHashes}
+            {convertingFiles}
             showExtensions={settings?.show_extensions ?? true}
-            onfileschange={handleFilesChange}
             onconvertone={convertOne}
             onconvertall={convertAll}
             onclearall={clearAll}
             onpreview={previewFileFn}
             ondownload={downloadFile}
+            onremove={removeFile}
           />
         </main>
       </div>
