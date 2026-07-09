@@ -427,13 +427,11 @@ async function previewFileFn(fileId: string) {
               onfilesadd={addFiles}
             />
           {:else}
-            <TextInputZone
-              {sourceFormatId}
-              sourceFormatName={sourceFormat?.name ?? ''}
-              {selectedTarget}
-              isConverting={convertingFiles.size > 0}
-              onfilesadd={addFiles}
-            />
+              <TextInputZone
+                {sourceFormatId}
+                sourceFormatName={sourceFormat?.name ?? ''}
+                onfilesadd={addFiles}
+              />
           {/if}
           
           <!-- FileList отображается всегда, если есть файлы -->

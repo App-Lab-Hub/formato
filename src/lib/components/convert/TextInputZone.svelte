@@ -7,14 +7,10 @@
   let { 
     sourceFormatId, 
     sourceFormatName, 
-    selectedTarget = null, 
-    isConverting = false, 
     onfilesadd,
   } = $props<{
     sourceFormatId: string;
     sourceFormatName: string;
-    selectedTarget?: { id: string; name: string } | null;
-    isConverting?: boolean;
     onfilesadd: (files: { path: string; name: string }[], suppressToast?: boolean) => void;
   }>();
   
@@ -28,11 +24,7 @@
     fileName = `input.${sourceFormatId}`;
   });
   
-  async function handleConvert() {
-    if (!selectedTarget) {
-      error = m.text_select_format();
-      return;
-    }
+  async function handleAdd() {
     if (!textContent.trim()) {
       error = m.enter_text_or_file();
       return;
@@ -49,16 +41,16 @@
         name: fileName || 'input'
       });
       
-      // 👇 Пользовательский ввод — показываем тосты
       onfilesadd([{
         path: tempPath,
         name: fileName || `input.${sourceFormatId}`,
       }], false);
       
       textContent = '';
+      fileName = `input.${sourceFormatId}`;
       error = null;
     } catch (e) {
-      console.error('Text conversion failed:', e);
+      console.error('Failed to create text file:', e);
       error = m.text_convert_error();
     } finally {
       isProcessing = false;
@@ -110,14 +102,14 @@
       {m.clear_text()}
     </button>
     <button
-      onclick={handleConvert}
-      disabled={!textContent.trim() || !selectedTarget || isConverting || isProcessing}
+      onclick={handleAdd}
+      disabled={!textContent.trim() || isProcessing}
       class="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
     >
-      {#if isConverting || isProcessing}
-        <span class="animate-spin">⏳</span> {m.text_converting()}
+      {#if isProcessing}
+        <span class="animate-spin">⏳</span> {m.adding_text()}
       {:else}
-        🔄 {m.text_convert_to({ format: selectedTarget?.name || '...' })}
+        📄 {m.add_to_list()}
       {/if}
     </button>
   </div>

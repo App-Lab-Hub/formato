@@ -145,5 +145,8 @@
   "text_select_format": "Select target format for text",
 
   "text_converted": "Text converted successfully",
-  "text_convert_error": "Text conversion error"
+  "text_convert_error": "Text conversion error",
+
+  "add_to_list": "Add to list",
+  "adding_text": "Adding..."
 }
