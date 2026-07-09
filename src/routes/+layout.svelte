@@ -12,7 +12,6 @@
 	import { setLocale } from '$lib/paraglide/runtime';
 	import { page } from '$app/state';
 	import { applyTheme, watchSystemTheme } from '$lib/data/settings';
-	import { create_popup } from '$lib/utils/context-menu';
 
 	let { children } = $props();
 	const isHome = browser && window.location.pathname === '/';
@@ -22,9 +21,6 @@
 
 	let lang = $derived(page.data?.settings?.language ?? 'en');
 	let settings = $derived(page.data?.settings);
-
-	// Переменная для очистки обработчика
-	let cleanupContextMenu: (() => void) | null = null;
 
 	$effect(() => {
 		if (settings?.theme) {
@@ -52,38 +48,6 @@
 				onSplashComplete();
 			}
 		}
-
-		// Удаляем старый обработчик если есть
-		if (cleanupContextMenu) {
-			cleanupContextMenu();
-			cleanupContextMenu = null;
-		}
-
-		// 🔥 СОЗДАЕМ МЕНЮ НА КЛИЕНТЕ
-		const contextMenuHandler = async (e: MouseEvent) => {
-			e.preventDefault();
-			e.stopPropagation();
-			
-			const target = e.target as HTMLElement;
-			
-			// Проверяем специальные атрибуты
-			const isIgnored = target.closest?.('[data-context-menu="ignore"]');
-			const isFileItem = target.closest?.('[data-file-item]');
-			const hasCustomHandler = target.closest?.('[data-context-menu-handler]');
-			
-			if (hasCustomHandler) return;
-			if (isFileItem) return;
-			if (isIgnored) return;
-
-			await create_popup();
-		};
-
-		window.addEventListener('contextmenu', contextMenuHandler, true);
-
-		// Сохраняем функцию для очистки
-		cleanupContextMenu = () => {
-			window.removeEventListener('contextmenu', contextMenuHandler, true);
-		};
 	});
 
 	onMount(() => {

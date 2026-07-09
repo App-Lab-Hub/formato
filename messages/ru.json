@@ -127,5 +127,20 @@
   "file_not_found": "Файл не найден",
   "preview_error": "Не удалось открыть предпросмотр",
 
-  "preview_too_large_monaco": "Файл слишком большой для предпросмотра ({size}). Максимальный размер: {limit}."
+  "preview_too_large_monaco": "Файл слишком большой для предпросмотра ({size}). Максимальный размер: {limit}.",
+
+  "switch_to_text": "✏️ Переключиться на текст",
+  "switch_to_file": "📁 Переключиться на файл",
+  "clear_text": "Очистить",
+  "file_name": "Имя файла",
+  "characters": "символов",
+  "file": "файл",
+  "select_file": "выберите файл",
+  "drag_file_here": "Перетащите файл сюда или",
+  "file_read_error": "Ошибка чтения файла",
+  "enter_text_or_file": "Введите текст или загрузите файл",
+  "enter_text_prompt": "Введите текст в формате {format}...",
+  "text_converting": "Конвертация текста...",
+  "text_convert_to": "Конвертировать текст в {format}",
+  "text_select_format": "Выберите целевой формат для текста"
 }

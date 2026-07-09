@@ -127,5 +127,20 @@
   "file_not_found": "File not found",
   "preview_error": "Failed to open preview",
 
-  "preview_too_large_monaco": "File too large for preview ({size}). Maximum size: {limit}."
+  "preview_too_large_monaco": "File too large for preview ({size}). Maximum size: {limit}.",
+
+  "switch_to_text": "✏️ Switch to Text",
+  "switch_to_file": "📁 Switch to File",
+  "clear_text": "Clear",
+  "file_name": "File name",
+  "characters": "characters",
+  "file": "file",
+  "select_file": "select file",
+  "drag_file_here": "Drop file here or",
+  "file_read_error": "File read error",
+  "enter_text_or_file": "Enter text or upload a file",
+  "enter_text_prompt": "Enter text in {format} format...",
+  "text_converting": "Converting text...",
+  "text_convert_to": "Convert text to {format}",
+  "text_select_format": "Select target format for text"
 }
