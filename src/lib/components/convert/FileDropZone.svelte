@@ -11,7 +11,6 @@
   import TooltipContent from '$lib/components/ui/tooltip/tooltip-content.svelte';
   import { m } from '$lib/paraglide/messages';
   import { toast } from '$lib/utils/toast';
-  import { showContextMenu, getDefaultActions } from '$lib/utils/context-menu';
 
   let {
     sourceFormatId,
@@ -187,61 +186,6 @@
     return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
   }
 
-  // Функция для обработки контекстного меню файла
-  function handleFileContextMenu(e: MouseEvent, fileId: string) {
-    const file = files.find(f => f.id === fileId);
-    if (!file) return;
-
-    const isConverted = convertedFiles.has(fileId);
-    const isConverting = convertingFiles.has(fileId);
-
-    // Получаем стандартные действия для файла
-    const actions = getDefaultActions(fileId, {
-      onConvert: (id) => {
-        const index = files.findIndex(f => f.id === id);
-        if (index !== -1) onconvertone(index);
-      },
-      onDownload: (id) => ondownload(id),
-      onPreview: (id) => onpreview(id),
-      onRemove: (id) => {
-        const index = files.findIndex(f => f.id === id);
-        if (index !== -1) removeFile(index);
-      },
-      isConverted,
-      isConverting,
-    });
-
-    // Показываем контекстное меню
-    showContextMenu(e, { items: actions });
-  }
-
-  // Функция для контекстного меню пустой области в списке файлов
-  function handleEmptyAreaContextMenu(e: MouseEvent) {
-    e.preventDefault();
-    
-    const actions = [
-      {
-        label: 'Добавить файлы',
-        action: () => pickFile(),
-      },
-      {
-        label: '---',
-        action: () => {},
-      },
-      {
-        label: 'Очистить всё',
-        action: () => {
-          if (files.length > 0) {
-            clearAllWithAnimation();
-          }
-        },
-        disabled: files.length === 0,
-      },
-    ];
-
-    showContextMenu(e, { items: actions });
-  }
-
   onMount(() => {
     addPendingFiles();
     
@@ -310,12 +254,11 @@
   }
 </script>
 
-<!-- HTML с обработчиками контекстного меню -->
+<!-- HTML без контекстного меню -->
 
 <button
   bind:this={dropzoneEl}
   onclick={pickFile}
-  data-context-menu="ignore"
   class="group w-full max-w-4xl min-h-[180px] flex flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed bg-card/30 duration-300 cursor-pointer transition-all {isDragOver
     ? 'border-primary bg-primary/10'
     : 'dark:border-border light:border-purple-300/40 dark:hover:border-primary/50 light:hover:border-purple-500/60 dark:hover:bg-primary/5 light:hover:bg-purple-200/40'}"
@@ -336,10 +279,7 @@
 </button>
 
 {#if files.length > 0}
-  <div 
-    class="w-full max-w-4xl flex flex-col gap-4"
-    oncontextmenu={handleEmptyAreaContextMenu}
-  >
+  <div class="w-full max-w-4xl flex flex-col gap-4">
     <div class="flex items-center justify-between px-1">
       <div class="flex items-center gap-2">
         <span class="flex h-7 w-7 items-center justify-center rounded-full dark:bg-violet-500/20 light:bg-purple-300/60 text-xs font-bold dark:text-violet-400 light:text-purple-700">
@@ -354,7 +294,7 @@
         {#if selectedTarget}
           <Tooltip>
             <TooltipTrigger>
-              <button onclick={onconvertall} data-context-menu="ignore" class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:bg-violet-600 light:bg-purple-500 text-white hover:dark:bg-violet-700 hover:light:bg-purple-600 h-9 w-9 shadow-sm shadow-violet-500/20 group/btn">
+              <button onclick={onconvertall} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:bg-violet-600 light:bg-purple-500 text-white hover:dark:bg-violet-700 hover:light:bg-purple-600 h-9 w-9 shadow-sm shadow-violet-500/20 group/btn">
                 <Zap class="h-4 w-4 fill-current group-hover/btn:scale-110 transition-transform" />
               </button>
             </TooltipTrigger>
@@ -364,7 +304,7 @@
 
         <Tooltip>
           <TooltipTrigger>
-            <button onclick={clearAllWithAnimation} data-context-menu="ignore" class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-destructive/10 hover:text-destructive h-9 w-9 dark:text-muted-foreground light:text-purple-600/60 group/btn">
+            <button onclick={clearAllWithAnimation} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-destructive/10 hover:text-destructive h-9 w-9 dark:text-muted-foreground light:text-purple-600/60 group/btn">
               <ListX class="h-5 w-5 group-hover/btn:scale-110 transition-transform" />
             </button>
           </TooltipTrigger>
@@ -380,7 +320,6 @@
         <div
           data-file-item
           data-file-id={file.id}
-          oncontextmenu={(e) => handleFileContextMenu(e, file.id)}
           class="group relative flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 p-3.5 transition-all duration-200 dark:hover:bg-violet-500/10 light:hover:bg-purple-200/70 dark:hover:border-violet-500/20 light:hover:border-purple-400/50 hover:shadow-sm"
           class:opacity-70={isConverting}
         >
@@ -411,7 +350,7 @@
           <div class="flex items-center gap-1 shrink-0 pl-3 border-l dark:border-border/50 light:border-purple-300/40 ml-2">
             <Tooltip>
               <TooltipTrigger>
-                <button onclick={() => onpreview(file.id)} disabled={!savedPath} data-context-menu="ignore" class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:text-foreground light:hover:text-purple-800 h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <button onclick={() => onpreview(file.id)} disabled={!savedPath} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:text-foreground light:hover:text-purple-800 h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                   <Eye class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
@@ -420,7 +359,7 @@
 
             <Tooltip>
               <TooltipTrigger>
-                <button onclick={() => ondownload(file.id)} disabled={!savedPath} data-context-menu="ignore" class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:text-foreground light:hover:text-purple-800 h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <button onclick={() => ondownload(file.id)} disabled={!savedPath} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:text-foreground light:hover:text-purple-800 h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                   <Download class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
@@ -435,7 +374,7 @@
                       <LoaderCircle class="h-4 w-4 dark:text-violet-500 light:text-violet-600 animate-spin" />
                     </span>
                   {:else}
-                    <button onclick={() => onconvertone(i)} data-context-menu="ignore" class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-700 dark:hover:bg-violet-500 light:hover:bg-purple-500/50 dark:hover:text-white light:hover:text-white h-8 w-8 transition-all duration-200 bg-transparent hover:bg-purple-500/20">
+                    <button onclick={() => onconvertone(i)} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-700 dark:hover:bg-violet-500 light:hover:bg-purple-500/50 dark:hover:text-white light:hover:text-white h-8 w-8 transition-all duration-200 bg-transparent hover:bg-purple-500/20">
                       <Play class="h-4 w-4" />
                     </button>
                   {/if}
@@ -446,7 +385,7 @@
 
             <Tooltip>
               <TooltipTrigger>
-                <button onclick={() => removeFile(i)} disabled={isConverting} data-context-menu="ignore" class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <button onclick={() => removeFile(i)} disabled={isConverting} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
                   <X class="h-4 w-4" />
                 </button>
               </TooltipTrigger>

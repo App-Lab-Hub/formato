@@ -1,12 +1,23 @@
 // src/lib/utils/context-menu.ts
-import { Menu, MenuItem, PredefinedMenuItem } from "@tauri-apps/api/menu";
+import {
+  Menu,
+  MenuItem,
+  IconMenuItem,
+  PredefinedMenuItem,
+  Submenu,
+} from "@tauri-apps/api/menu";
+import { Image } from "@tauri-apps/api/image";
 import { toast } from "./toast";
+
+// Флаг, чтобы не показывать несколько меню одновременно
+let isMenuShowing = false;
 
 export interface ContextMenuAction {
   label: string;
   action: () => void;
-  icon?: string; // Для будущих иконок
+  icon?: string; // Можно использовать NativeIcon или путь к иконке
   disabled?: boolean;
+  accelerator?: string; // Горячие клавиши
 }
 
 export interface ContextMenuConfig {
@@ -18,8 +29,14 @@ export async function showContextMenu(
   e: MouseEvent,
   config: ContextMenuConfig,
 ): Promise<void> {
+  // Предотвращаем множественные меню
+  if (isMenuShowing) {
+    return;
+  }
+
   e.preventDefault();
   e.stopPropagation();
+  e.stopImmediatePropagation();
 
   const { items, onClose } = config;
 
@@ -27,10 +44,11 @@ export async function showContextMenu(
     return;
   }
 
+  isMenuShowing = true;
+
   try {
     const menuItems = [];
 
-    // Создаем пункты меню
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
 
@@ -41,37 +59,43 @@ export async function showContextMenu(
         continue;
       }
 
-      // Обычный пункт
+      // Обычный пункт меню с иконкой
       const menuItem = await MenuItem.new({
         text: item.label,
         enabled: !item.disabled,
+        accelerator: item.accelerator,
         action: () => {
+          isMenuShowing = false;
           item.action();
         },
       });
       menuItems.push(menuItem);
     }
 
-    // Создаем меню
     const menu = await Menu.new({
       items: menuItems,
     });
 
-    // Показываем меню
     await menu.popup();
 
-    // Вызываем onClose если есть
     if (onClose) {
-      // Немного задерживаем, чтобы меню успело открыться
-      setTimeout(onClose, 100);
+      setTimeout(() => {
+        isMenuShowing = false;
+        onClose();
+      }, 100);
+    } else {
+      setTimeout(() => {
+        isMenuShowing = false;
+      }, 100);
     }
   } catch (error) {
     console.error("Failed to show context menu:", error);
     toast.error("Не удалось открыть контекстное меню");
+    isMenuShowing = false;
   }
 }
 
-// Утилита для создания стандартных действий
+// Утилита для создания стандартных действий для файлов
 export function getDefaultActions(
   fileId: string,
   options: {
@@ -96,23 +120,26 @@ export function getDefaultActions(
 
   if (!isConverting) {
     actions.push({
-      label: "Конвертировать",
+      label: "🔄 Конвертировать",
       action: () => onConvert(fileId),
       disabled: false,
+      accelerator: "CmdOrCtrl+Enter",
     });
   }
 
   if (isConverted) {
     actions.push({
-      label: "Предпросмотр",
+      label: "👁️ Предпросмотр",
       action: () => onPreview(fileId),
       disabled: false,
+      accelerator: "CmdOrCtrl+P",
     });
 
     actions.push({
-      label: "Скачать",
+      label: "⬇️ Скачать",
       action: () => onDownload(fileId),
       disabled: false,
+      accelerator: "CmdOrCtrl+S",
     });
   }
 
@@ -121,9 +148,64 @@ export function getDefaultActions(
   }
 
   actions.push({
-    label: "Удалить",
+    label: "🗑️ Удалить",
     action: () => onRemove(fileId),
     disabled: isConverting,
+    accelerator: "Delete",
+  });
+
+  return actions;
+}
+
+// Создание глобального контекстного меню с подменю
+export async function createGlobalContextMenu(currentPath: string) {
+  const actions: ContextMenuAction[] = [];
+
+  // Навигация
+  if (currentPath !== "/") {
+    actions.push({
+      label: "🏠 На главную",
+      action: () => (window.location.href = "/"),
+      accelerator: "CmdOrCtrl+H",
+    });
+  }
+
+  if (currentPath !== "/settings") {
+    actions.push({
+      label: "⚙️ Настройки",
+      action: () => (window.location.href = "/settings"),
+      accelerator: "CmdOrCtrl+,",
+    });
+  }
+
+  if (currentPath !== "/about") {
+    actions.push({
+      label: "ℹ️ О программе",
+      action: () => (window.location.href = "/about"),
+    });
+  }
+
+  if (currentPath !== "/dependencies") {
+    actions.push({
+      label: "📦 Зависимости",
+      action: () => (window.location.href = "/dependencies"),
+    });
+  }
+
+  // Добавляем разделитель, если есть навигационные пункты
+  if (actions.length > 0) {
+    actions.push({ label: "---", action: () => {} });
+  }
+
+  // Дополнительные действия
+  actions.push({
+    label: "🔄 Обновить страницу",
+    action: () => {
+      setTimeout(() => {
+        window.location.reload();
+      }, 50);
+    },
+    accelerator: "CmdOrCtrl+R",
   });
 
   return actions;

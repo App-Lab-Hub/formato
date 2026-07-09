@@ -24,6 +24,7 @@
         "dragDropEnabled": true,
         "transparent": false,
         "theme": "Dark",
+
         "additionalBrowserArgs": "--enable-features=UseOzonePlatform --ozone-platform-hint=auto --enable-gpu-rasterization --ignore-gpu-blocklist --disable-features=CalculateNativeWinOcclusion"
       }
     ],
