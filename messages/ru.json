@@ -158,5 +158,7 @@
   "download_all_archive": "Скачать все как архив",
 
   "input_mode_files": "Файлы",
-  "input_mode_text": "Текст"
+  "input_mode_text": "Текст",
+
+  "files_removed_pending": "Удалено файлов: {count}"
 }

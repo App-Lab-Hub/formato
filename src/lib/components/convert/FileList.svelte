@@ -68,6 +68,11 @@
     const file = files[index];
     if (convertingFiles.has(file.id)) return;
 
+    // Сразу добавляем в sessionStorage через pendingRemoves
+    const pendingRemoves = JSON.parse(sessionStorage.getItem('pending_removes') || '[]');
+    pendingRemoves.push(file.id);
+    sessionStorage.setItem('pending_removes', JSON.stringify(pendingRemoves));
+
     const el = document.querySelector(`[data-file-id="${file.id}"]`) as HTMLElement;
     if (el) {
       await el.animate(

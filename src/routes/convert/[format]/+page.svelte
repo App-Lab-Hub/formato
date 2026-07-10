@@ -131,6 +131,33 @@ async function switchMode(mode: 'file' | 'text') {
   loadFilesFromStorage();
 
   onMount(() => {
+    // Проверяем pendingRemoves при загрузке
+    const pendingRemoves = JSON.parse(sessionStorage.getItem('pending_removes') || '[]');
+    if (pendingRemoves.length > 0) {
+      let removedCount = 0;
+      const newFiles = [...files];
+      
+      for (const id of pendingRemoves) {
+        const index = newFiles.findIndex(f => f.id === id);
+        if (index !== -1) {
+          // Файл не удалился - удаляем сейчас
+          const file = newFiles[index];
+          newFiles.splice(index, 1);
+          convertedFiles.delete(file.id);
+          fileHashes.delete(file.id);
+          removedCount++;
+        }
+      }
+      
+      if (removedCount > 0) {
+        handleFilesChange(newFiles);
+        // toast.info(m.files_removed_pending({ count: removedCount }));
+      }
+      
+      // Очищаем pendingRemoves
+      sessionStorage.removeItem('pending_removes');
+    }
+    
     if (sourceFormat) {
       targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
       if (savedTargetId) {
