@@ -21,6 +21,7 @@
   import { m } from '$lib/paraglide/messages';
   import { toast } from '$lib/utils/toast';
   import { formatFileSize, formatSize } from '$lib/utils/format';
+  import { Type,FolderOpen } from 'lucide-svelte';
 
   const sourceFormatId: string = page.params.format!;
   let settings = $derived(page.data.settings);
@@ -391,33 +392,35 @@ async function previewFileFn(fileId: string) {
 
           <SourceFormatHeader format={sourceFormat} />
           <TargetFormatGrid formats={targetFormats} {selectedTarget} onselect={selectTarget} />
-          
-          <!-- Переключатель режимов -->
-          <div class="w-full max-w-4xl flex items-center gap-4 mb-2">
-            <button
-              onclick={() => inputMode = 'file'}
-              class={[
-                'px-6 py-2 rounded-lg text-sm font-medium transition-all',
-                inputMode === 'file' 
-                  ? 'bg-primary text-primary-foreground shadow-md' 
-                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-              ]}
-            >
-              📁 Файлы
-            </button>
-            <button
-              onclick={() => inputMode = 'text'}
-              class={[
-                'px-6 py-2 rounded-lg text-sm font-medium transition-all',
-                inputMode === 'text' 
-                  ? 'bg-primary text-primary-foreground shadow-md' 
-                  : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-              ]}
-            >
-              ✏️ Текст
-            </button>
-          </div>
-          
+                  
+        <!-- Переключатель режимов -->
+        <div class="w-full max-w-4xl flex items-center gap-4 mb-2">
+          <button
+            onclick={() => inputMode = 'file'}
+            class={[
+              'cursor-pointer  px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+              inputMode === 'file' 
+                ? 'bg-primary text-primary-foreground shadow-md' 
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            ]}
+          >
+            <FolderOpen class="h-4 w-4" />
+            {m.input_mode_files()}
+          </button>
+          <button
+            onclick={() => inputMode = 'text'}
+            class={[
+              'cursor-pointer px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+              inputMode === 'text' 
+                ? 'bg-primary text-primary-foreground shadow-md' 
+                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+            ]}
+          >
+            <Type class="h-4 w-4" />
+            {m.input_mode_text()}
+          </button>
+        </div>
+        
           <!-- Только один компонент ввода в зависимости от режима -->
           {#if inputMode === 'file'}
             <FileDropZone
@@ -448,6 +451,7 @@ async function previewFileFn(fileId: string) {
             onpreview={previewFileFn}
             ondownload={downloadFile}
             onremove={removeFile}
+            settings={settings}
           />
         </main>
       </div>

@@ -148,5 +148,15 @@
   "text_convert_error": "Text conversion error",
 
   "add_to_list": "Add to list",
-  "adding_text": "Adding..."
+  "adding_text": "Adding...",
+
+  "no_files_to_archive": "No files to archive",
+  "convert_all_first": "Convert all files first",
+  "no_converted_files": "No converted files",
+  "archive_saved": "Archive saved: {name}",
+  "archive_error": "Error creating archive",
+  "download_all_archive": "Download all as archive",
+
+  "input_mode_files": "Files",
+  "input_mode_text": "Text"
 }

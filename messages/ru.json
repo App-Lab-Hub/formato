@@ -148,5 +148,15 @@
   "text_convert_error": "Ошибка конвертации текста",
 
   "add_to_list": "Добавить в список",
-  "adding_text": "Добавление..."
+  "adding_text": "Добавление...",
+
+  "no_files_to_archive": "Нет файлов для архивации",
+  "convert_all_first": "Сначала сконвертируйте все файлы",
+  "no_converted_files": "Нет сконвертированных файлов",
+  "archive_saved": "Архив сохранён: {name}",
+  "archive_error": "Ошибка при создании архива",
+  "download_all_archive": "Скачать все как архив",
+
+  "input_mode_files": "Файлы",
+  "input_mode_text": "Текст"
 }

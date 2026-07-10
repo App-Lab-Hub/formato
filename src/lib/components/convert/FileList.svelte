@@ -2,11 +2,15 @@
 <script lang="ts">
   import { m } from '$lib/paraglide/messages';
   import { Tooltip, TooltipContent, TooltipTrigger } from '$lib/components/ui/tooltip';
-  import { FileText, ArrowRight, Eye, Download, Play, X, LoaderCircle, Zap, ListX } from 'lucide-svelte';
+  import { FileText, ArrowRight, Eye, Download, Play, X, LoaderCircle, Zap, ListX, FolderArchive } from 'lucide-svelte';
   import { onMount } from 'svelte';
+  import { toast } from '$lib/utils/toast';
+  import { invoke } from '@tauri-apps/api/core';
+  import { save } from '@tauri-apps/plugin-dialog';
 
   type FileItem = { path: string; name: string; id: string };
   type TargetFormat = { id: string; name: string };
+  type ConvertedFile = { path: string; format: string };
 
   let {
     files,
@@ -21,11 +25,12 @@
     onpreview,
     ondownload,
     onremove,
+    settings,
   } = $props<{
     files: FileItem[];
     sourceFormatId: string;
     selectedTarget?: TargetFormat | null;
-    convertedFiles: Map<string, { path: string; format: string }>;
+    convertedFiles: Map<string, ConvertedFile>;
     convertingFiles: Set<string>;
     showExtensions?: boolean;
     onconvertone: (index: number) => void;
@@ -34,6 +39,7 @@
     onpreview: (fileId: string) => void;
     ondownload: (fileId: string) => void;
     onremove: (index: number) => void;
+    settings: { enable_archive: boolean; archive_format: string };
   }>();
   
   let isClearing = $state(false);
@@ -76,6 +82,69 @@
     onremove(index);
   }
 
+  async function downloadAllAsArchive() {
+    if (files.length === 0) {
+      toast.warning(m.no_files_to_archive());
+      return;
+    }
+
+    // Проверяем, что все файлы сконвертированы
+    const allConverted = files.every((f: FileItem) => convertedFiles.has(f.id));
+    if (!allConverted) {
+      toast.warning(m.convert_all_first());
+      return;
+    }
+
+    try {
+      // Получаем пути всех сконвертированных файлов
+      const convertedPaths: string[] = [];
+      for (const f of files) {
+        const converted = convertedFiles.get(f.id);
+        if (converted) {
+          convertedPaths.push(converted.path);
+        }
+      }
+
+      if (convertedPaths.length === 0) {
+        toast.warning(m.no_converted_files());
+        return;
+      }
+
+      // Формируем имя архива
+      const archiveFormat = settings?.archive_format || 'zip';
+      const defaultName = `converted_files.${archiveFormat}`;
+
+      const filePath = await save({
+        defaultPath: defaultName,
+        title: m.save_archive(),
+        filters: [
+          {
+            name: `${archiveFormat.toUpperCase()} Archive`,
+            extensions: [archiveFormat],
+          },
+        ],
+      });
+
+      if (!filePath) {
+        toast.info(m.save_cancelled());
+        return;
+      }
+
+      // Отправляем запрос на создание архива
+      await invoke('create_archive', {
+        files: convertedPaths,
+        outputPath: filePath,
+        format: archiveFormat,
+      });
+
+      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'archive';
+      toast.success(m.archive_saved({ name: fileName }));
+    } catch (e) {
+      console.error('[Download All Archive] Failed:', e);
+      toast.error(m.archive_error());
+    }
+  }
+
   function animateNewItems() {
     const items = document.querySelectorAll('[data-file-item]');
     items.forEach((el, i) => {
@@ -100,6 +169,14 @@
       }
     });
   }
+
+  // Проверяем, все ли файлы сконвертированы
+  const allConverted = $derived(
+    files.length > 0 && files.every((f: FileItem) => convertedFiles.has(f.id))
+  );
+
+  // Проверяем, включена ли архивация в настройках
+  const isArchiveEnabled = $derived(settings?.enable_archive ?? false);
 
   // Анимируем новые элементы после монтирования
   onMount(() => {
@@ -145,6 +222,23 @@
               <p>{m.convert_all()}</p>
             </TooltipContent>
           </Tooltip>
+        {/if}
+
+        <!-- Кнопка "Скачать все как архив" -->
+        {#if isArchiveEnabled && allConverted}
+        <Tooltip>
+            <TooltipTrigger>
+            <button 
+                onclick={downloadAllAsArchive} 
+                class="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:bg-violet-600 light:bg-purple-500 text-white hover:dark:bg-violet-700 hover:light:bg-purple-600 h-9 w-9 shadow-sm shadow-violet-500/20"
+            >
+                <FolderArchive class="h-4 w-4 group-hover:scale-110 transition-transform" />
+            </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
+            <p>{m.download_all_archive()}</p>
+            </TooltipContent>
+        </Tooltip>
         {/if}
 
         <Tooltip>
