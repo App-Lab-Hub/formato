@@ -24,6 +24,31 @@
   import { Type, FolderOpen } from 'lucide-svelte';
   import { animate } from '@motionone/dom';
 
+async function addPendingFiles() {
+  const storageKey = `pending_files_${sourceFormatId}`;
+  const pending = sessionStorage.getItem(storageKey);
+  if (!pending) return;
+  
+  try {
+    const paths: string[] = JSON.parse(pending);
+    const existingPaths = new Set(files.map(f => f.path));
+    const newPaths = paths.filter(p => !existingPaths.has(p));
+    
+    if (newPaths.length > 0) {
+      const filesToAdd = newPaths.map(path => ({
+        path,
+        name: path.split('/').pop() || path.split('\\').pop() || path,
+      }));
+      await addFiles(filesToAdd, true);
+    }
+  } catch (e) {
+    console.warn('Failed to process pending files:', e);
+  } finally {
+    sessionStorage.removeItem(storageKey);
+  }
+}
+
+
   const sourceFormatId: string = page.params.format!;
   let settings = $derived(page.data.settings);
   function getStorageKey(base: string): string {
@@ -130,69 +155,101 @@ async function switchMode(mode: 'file' | 'text') {
 
   loadFilesFromStorage();
 
-  onMount(() => {
-    // Проверяем pendingRemoves при загрузке
-    const pendingRemoves = JSON.parse(sessionStorage.getItem('pending_removes') || '[]');
-    if (pendingRemoves.length > 0) {
-      let removedCount = 0;
-      const newFiles = [...files];
-      
-      for (const id of pendingRemoves) {
-        const index = newFiles.findIndex(f => f.id === id);
-        if (index !== -1) {
-          // Файл не удалился - удаляем сейчас
-          const file = newFiles[index];
-          newFiles.splice(index, 1);
-          convertedFiles.delete(file.id);
-          fileHashes.delete(file.id);
-          removedCount++;
+// Первый onMount - для синхронных операций
+onMount(() => {
+  // // Проверяем pendingRemoves при загрузке
+  // const pendingRemoves = JSON.parse(sessionStorage.getItem('pending_removes') || '[]');
+  // if (pendingRemoves.length > 0) {
+  //   let removedCount = 0;
+  //   const newFiles = [...files];
+    
+  //   for (const id of pendingRemoves) {
+  //     const index = newFiles.findIndex(f => f.id === id);
+  //     if (index !== -1) {
+  //       const file = newFiles[index];
+  //       newFiles.splice(index, 1);
+  //       convertedFiles.delete(file.id);
+  //       fileHashes.delete(file.id);
+  //       removedCount++;
+  //     }
+  //   }
+    
+  //   if (removedCount > 0) {
+  //     handleFilesChange(newFiles);
+  //   }
+    
+  //   sessionStorage.removeItem('pending_removes');
+  // }
+
+  // Загружаем форматы
+  if (sourceFormat) {
+    targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
+    if (savedTargetId) {
+      const found = targetFormats.find(f => f.id === savedTargetId);
+      if (found) selectedTarget = found;
+    }
+    isLoading = false;
+    return;
+  }
+
+  if (!isFormatsLoaded()) {
+    const checkFormats = setInterval(() => {
+      if (isFormatsLoaded()) {
+        const f = getFormatById(sourceFormatId);
+        if (f) {
+          sourceFormat = f;
+          targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
+          if (savedTargetId) {
+            const found = targetFormats.find(f => f.id === savedTargetId);
+            if (found) selectedTarget = found;
+          }
+          isLoading = false;
+        } else {
+          loadError = m.format_not_found() + ` "${sourceFormatId}"`;
+          isLoading = false;
         }
+        clearInterval(checkFormats);
       }
-      
-      if (removedCount > 0) {
-        handleFilesChange(newFiles);
-        // toast.info(m.files_removed_pending({ count: removedCount }));
+    }, 100);
+    return () => clearInterval(checkFormats);
+  } else {
+    loadError = m.format_not_found() + ` "${sourceFormatId}"`;
+    isLoading = false;
+  }
+});
+
+// Второй onMount - для асинхронных операций
+onMount(async () => {
+
+
+  // Проверяем pendingRemoves при загрузке
+  const pendingRemoves = JSON.parse(sessionStorage.getItem('pending_removes') || '[]');
+  if (pendingRemoves.length > 0) {
+    let removedCount = 0;
+    const newFiles = [...files];
+    
+    for (const id of pendingRemoves) {
+      const index = newFiles.findIndex(f => f.id === id);
+      if (index !== -1) {
+        const file = newFiles[index];
+        newFiles.splice(index, 1);
+        convertedFiles.delete(file.id);
+        fileHashes.delete(file.id);
+        removedCount++;
       }
-      
-      // Очищаем pendingRemoves
-      sessionStorage.removeItem('pending_removes');
     }
     
-    if (sourceFormat) {
-      targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
-      if (savedTargetId) {
-        const found = targetFormats.find(f => f.id === savedTargetId);
-        if (found) selectedTarget = found;
-      }
-      isLoading = false;
-      return;
+    if (removedCount > 0) {
+      handleFilesChange(newFiles);
     }
+    
+    sessionStorage.removeItem('pending_removes');
+  }
+  
+  await addPendingFiles();
 
-    if (!isFormatsLoaded()) {
-      const checkFormats = setInterval(() => {
-        if (isFormatsLoaded()) {
-          const f = getFormatById(sourceFormatId);
-          if (f) {
-            sourceFormat = f;
-            targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
-            if (savedTargetId) {
-              const found = targetFormats.find(f => f.id === savedTargetId);
-              if (found) selectedTarget = found;
-            }
-            isLoading = false;
-          } else {
-            loadError = m.format_not_found() + ` "${sourceFormatId}"`;
-            isLoading = false;
-          }
-          clearInterval(checkFormats);
-        }
-      }, 100);
-      return () => clearInterval(checkFormats);
-    } else {
-      loadError = m.format_not_found() + ` "${sourceFormatId}"`;
-      isLoading = false;
-    }
-  });
+
+});
 
   $effect(() => {
     saveFilesToStorage();

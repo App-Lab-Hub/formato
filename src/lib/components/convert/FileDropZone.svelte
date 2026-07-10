@@ -51,24 +51,7 @@
     sessionStorage.removeItem(storageKey);
   }
 
-  async function addPendingFiles() {
-    if (pendingProcessed) return;
-    pendingProcessed = true;
 
-    const storageKey = `pending_files_${sourceFormatId}`;
-    const pending = sessionStorage.getItem(storageKey);
-    if (!pending) return;
-    
-    try {
-      const paths: string[] = JSON.parse(pending);
-      // 👇 Подавляем тосты для восстановления из sessionStorage
-      processAndAddPaths(paths, true);
-    } catch (e) {
-      console.warn('Failed to process pending files:', e);
-    } finally {
-      clearPendingFiles();
-    }
-  }
 
   async function pickFile() {
     const result = await open({
@@ -92,7 +75,7 @@
   }
 
   onMount(() => {
-    addPendingFiles();
+    // addPendingFiles();
     
     const webview = getCurrentWebview();
     const unlisten = webview.onDragDropEvent((event) => {
