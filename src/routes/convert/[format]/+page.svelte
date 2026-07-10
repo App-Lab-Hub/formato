@@ -342,7 +342,7 @@ async function switchMode(mode: 'file' | 'text') {
     try {
       const isArchive = settings?.enable_archive && settings?.archive_format;
       const ext = isArchive ? settings.archive_format : converted.format;
-      const defaultName = `${baseName}.${ext}`;
+      const defaultName = `formato_${baseName}.${ext}`;
       
       const filePath = await save({
         defaultPath: defaultName,
@@ -373,48 +373,48 @@ async function switchMode(mode: 'file' | 'text') {
     }
   }
 
-async function previewFileFn(fileId: string) {
-  const converted = convertedFiles.get(fileId);
-  const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
-  if (!savedPath) {
-    toast.warning(m.file_not_found());
-    return;
-  }
-  try {
-    const actualSize = await invoke<number>('get_file_size', { path: savedPath });
-    const format = converted?.format ?? sourceFormatId;
-    const file = files.find(f => f.id === fileId);
-    const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
-    const title = converted ? `${baseName}.${format}` : file?.name ?? 'file';
-    const windowId = `preview-${Date.now()}`;
-    const maxSizeMB = settings?.max_preview_size ?? 5;
-    const language = settings?.language ?? 'en';
-    const theme = settings?.theme ?? 'dark';
-    
-    const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
-    if (actualSize > maxSizeBytes) {
-      toast.warning(m.preview_too_large_monaco({ 
-        size: formatFileSize(actualSize),
-        limit: maxSizeMB === 0 ? m.preview_unlimited() : formatSize(maxSizeMB)
-      }));
+  async function previewFileFn(fileId: string) {
+    const converted = convertedFiles.get(fileId);
+    const savedPath = converted?.path ?? files.find(f => f.id === fileId)?.path;
+    if (!savedPath) {
+      toast.warning(m.file_not_found());
+      return;
     }
-    
-    new WebviewWindow(windowId, {
-      url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}&locale=${language}&theme=${theme}&windowId=${windowId}`,
-      title,
-      width: 900, height: 700,
-      resizable: true, center: true,
-      maximizable: true, minimizable: true, closable: true,
-      transparent: false,
-      backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
+    try {
+      const actualSize = await invoke<number>('get_file_size', { path: savedPath });
+      const format = converted?.format ?? sourceFormatId;
+      const file = files.find(f => f.id === fileId);
+      const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
+      const title = converted ? `${baseName}.${format}` : file?.name ?? 'file';
+      const windowId = `preview-${Date.now()}`;
+      const maxSizeMB = settings?.max_preview_size ?? 5;
+      const language = settings?.language ?? 'en';
+      const theme = settings?.theme ?? 'dark';
       
-      minWidth: 400, minHeight: 300
-    });
-  } catch (e) { 
-    console.error('Preview failed:', e);
-    toast.error(m.preview_error());
+      const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
+      if (actualSize > maxSizeBytes) {
+        toast.warning(m.preview_too_large_monaco({ 
+          size: formatFileSize(actualSize),
+          limit: maxSizeMB === 0 ? m.preview_unlimited() : formatSize(maxSizeMB)
+        }));
+      }
+      
+      new WebviewWindow(windowId, {
+        url: `/preview?path=${encodeURIComponent(savedPath)}&lang=${format}&title=${encodeURIComponent(title)}&size=${actualSize}&maxSize=${maxSizeMB}&locale=${language}&theme=${theme}&windowId=${windowId}`,
+        title,
+        width: 900, height: 700,
+        resizable: true, center: true,
+        maximizable: true, minimizable: true, closable: true,
+        transparent: false,
+        backgroundColor: { red: 30, green: 30, blue: 30, alpha: 1 },
+        
+        minWidth: 400, minHeight: 300
+      });
+    } catch (e) { 
+      console.error('Preview failed:', e);
+      toast.error(m.preview_error());
+    }
   }
-}
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') goBack();

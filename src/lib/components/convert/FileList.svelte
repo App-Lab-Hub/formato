@@ -110,9 +110,11 @@
         return;
       }
 
-      // Формируем имя архива
+      // Формируем имя архива с уникальным значением
       const archiveFormat = settings?.archive_format || 'zip';
-      const defaultName = `converted_files.${archiveFormat}`;
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).slice(2, 8);
+      const defaultName = `formato_${timestamp}_${randomId}.${archiveFormat}`;
 
       const filePath = await save({
         defaultPath: defaultName,
