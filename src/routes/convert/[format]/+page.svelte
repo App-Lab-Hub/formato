@@ -1,4 +1,4 @@
-<!-- +page.svelte (только скрипт) -->
+<!-- +page.svelte -->
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
@@ -14,14 +14,15 @@
   import FileList from '$lib/components/convert/FileList.svelte';
   import { save } from '@tauri-apps/plugin-dialog';
   import { writeTextFile } from '@tauri-apps/plugin-fs';
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import type { Format } from '$lib/types/format';
   import { browser } from '$app/environment';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { m } from '$lib/paraglide/messages';
   import { toast } from '$lib/utils/toast';
   import { formatFileSize, formatSize } from '$lib/utils/format';
-  import { Type,FolderOpen } from 'lucide-svelte';
+  import { Type, FolderOpen } from 'lucide-svelte';
+  import { animate } from '@motionone/dom';
 
   const sourceFormatId: string = page.params.format!;
   let settings = $derived(page.data.settings);
@@ -29,6 +30,7 @@
     return `convert_${sourceFormatId}_${base}`;
   }
   
+  let isAnimating = $state(false);
   let sourceFormat = $state<Format | undefined>(getFormatById(sourceFormatId));
   let isLoading = $state(!isFormatsLoaded() && !sourceFormat);
   let loadError = $state<string | null>(null);
@@ -44,6 +46,56 @@
   let fileHashes = $state<Map<string, string>>(new Map());
 
   let inputMode = $state<'file' | 'text'>('file');
+  let containerEl: HTMLDivElement | undefined = $state();
+
+
+async function switchMode(mode: 'file' | 'text') {
+  if (inputMode === mode || isAnimating) return;
+  
+  const container = containerEl;
+  if (!container) return;
+  
+  isAnimating = true;
+  
+  try {
+    // Находим текущий дочерний элемент
+    const currentChild = container.firstElementChild as HTMLElement;
+    
+    // Если есть текущий элемент — анимируем исчезновение
+    if (currentChild) {
+      await animate(currentChild, {
+        opacity: 0,
+      }, {
+        duration: 0.3,
+        easing: 'ease-in'
+      }).finished;
+    }
+    
+    // Меняем режим
+    inputMode = mode;
+    await tick();
+    
+    // Находим новый дочерний элемент
+    const newChild = container.firstElementChild as HTMLElement;
+    if (!newChild) return;
+    
+
+    
+    // Анимация появления
+    await new Promise(resolve => {
+      requestAnimationFrame(() => {
+        animate(newChild, {
+          opacity: [0, 1],
+        }, {
+          duration: 0.3,
+          easing: 'ease-out'
+        }).finished.then(resolve);
+      });
+    });
+  } finally {
+    isAnimating = false;
+  }
+}
 
   function loadFilesFromStorage() {
     if (!browser) return;
@@ -393,66 +445,69 @@ async function previewFileFn(fileId: string) {
           <SourceFormatHeader format={sourceFormat} />
           <TargetFormatGrid formats={targetFormats} {selectedTarget} onselect={selectTarget} />
                   
-        <!-- Переключатель режимов -->
-        <div class="w-full max-w-4xl flex items-center gap-4 mb-2">
-          <button
-            onclick={() => inputMode = 'file'}
-            class={[
-              'cursor-pointer  px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
-              inputMode === 'file' 
-                ? 'bg-primary text-primary-foreground shadow-md' 
-                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-            ]}
-          >
-            <FolderOpen class="h-4 w-4" />
-            {m.input_mode_files()}
-          </button>
-          <button
-            onclick={() => inputMode = 'text'}
-            class={[
-              'cursor-pointer px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
-              inputMode === 'text' 
-                ? 'bg-primary text-primary-foreground shadow-md' 
-                : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-            ]}
-          >
-            <Type class="h-4 w-4" />
-            {m.input_mode_text()}
-          </button>
-        </div>
-        
-          <!-- Только один компонент ввода в зависимости от режима -->
-          {#if inputMode === 'file'}
-            <FileDropZone
-              sourceFormatId={sourceFormatId}
-              sourceFormatName={sourceFormat?.name ?? ''}
-              sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
-              onfilesadd={addFiles}
-            />
-          {:else}
-              <TextInputZone
-                {sourceFormatId}
-                sourceFormatName={sourceFormat?.name ?? ''}
-                onfilesadd={addFiles}
-              />
-          {/if}
-          
-          <!-- FileList отображается всегда, если есть файлы -->
-          <FileList
-            {files}
-            {sourceFormatId}
-            {selectedTarget}
-            {convertedFiles}
-            {convertingFiles}
-            showExtensions={settings?.show_extensions ?? true}
-            onconvertone={convertOne}
-            onconvertall={convertAll}
-            onclearall={clearAll}
-            onpreview={previewFileFn}
-            ondownload={downloadFile}
-            onremove={removeFile}
-            settings={settings}
-          />
+
+<!-- Переключатель режимов -->
+<div class="w-full max-w-4xl flex items-center gap-4 mb-2">
+  <button
+    onclick={() => switchMode('file')}
+    class={[
+      'cursor-pointer px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+      inputMode === 'file' 
+        ? 'bg-primary text-primary-foreground shadow-md' 
+        : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+    ]}
+  >
+    <FolderOpen class="h-4 w-4" />
+    {m.input_mode_files()}
+  </button>
+  <button
+    onclick={() => switchMode('text')}
+    class={[
+      'cursor-pointer px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
+      inputMode === 'text' 
+        ? 'bg-primary text-primary-foreground shadow-md' 
+        : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+    ]}
+  >
+    <Type class="h-4 w-4" />
+    {m.input_mode_text()}
+  </button>
+</div>
+
+<!-- Контейнер с анимацией при смене режима -->
+<div class="w-full max-w-4xl relative overflow-hidden" bind:this={containerEl}>
+  {#if inputMode === 'file'}
+    <FileDropZone
+      sourceFormatId={sourceFormatId}
+      sourceFormatName={sourceFormat?.name ?? ''}
+      sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
+      onfilesadd={addFiles}
+    />
+  {:else}
+    <TextInputZone
+      {sourceFormatId}
+      sourceFormatName={sourceFormat?.name ?? ''}
+      onfilesadd={addFiles}
+    />
+  {/if}
+</div>
+
+<FileList
+  {files}
+  {sourceFormatId}
+  {selectedTarget}
+  {convertedFiles}
+  {convertingFiles}
+  showExtensions={settings?.show_extensions ?? true}
+  onconvertone={convertOne}
+  onconvertall={convertAll}
+  onclearall={clearAll}
+  onpreview={previewFileFn}
+  ondownload={downloadFile}
+  onremove={removeFile}
+  settings={settings}
+/> 
+
         </main>
       </div>
     </TooltipProvider>

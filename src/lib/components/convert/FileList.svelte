@@ -130,8 +130,8 @@
         return;
       }
 
-      // Отправляем запрос на создание архива
-      await invoke('create_archive', {
+      // 🔥 ИСПРАВЛЕНО: используем archive_multiple_files вместо create_archive
+      await invoke('archive_multiple_files', {
         files: convertedPaths,
         outputPath: filePath,
         format: archiveFormat,

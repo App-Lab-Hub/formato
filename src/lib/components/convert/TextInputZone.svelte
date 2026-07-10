@@ -111,7 +111,7 @@
     <button
       onclick={clearText}
       disabled={isProcessing || !textContent}
-      class="px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+      class="cursor-pointer px-4 py-2 bg-muted text-muted-foreground rounded-lg hover:bg-muted/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
     >
       <Trash2 class="h-4 w-4" />
       {m.clear_text()}
@@ -119,7 +119,7 @@
     <button
       onclick={handleAdd}
       disabled={!textContent.trim() || isProcessing}
-      class="px-6 py-2 bg-primary text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm shadow-violet-500/20"
+      class="cursor-pointer px-6 py-2 bg-primary text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm shadow-violet-500/20"
     >
       {#if isProcessing}
         <LoaderCircle class="h-4 w-4 animate-spin" />

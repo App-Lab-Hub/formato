@@ -54,7 +54,10 @@ pub fn run() {
             // settings
             settings::get_settings,
             settings::save_settings,
+            // archive
             archive::archive_file,
+            archive::archive_multiple_files,
+
         ])
         
         // Setup
