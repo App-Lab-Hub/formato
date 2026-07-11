@@ -68,10 +68,11 @@
     const file = files[index];
     if (convertingFiles.has(file.id)) return;
 
-    // Сразу добавляем в sessionStorage через pendingRemoves
-    const pendingRemoves = JSON.parse(sessionStorage.getItem('pending_removes') || '[]');
-    pendingRemoves.push(file.id);
-    sessionStorage.setItem('pending_removes', JSON.stringify(pendingRemoves));
+    // Храним ПУТЬ в pending_removes_${sourceFormatId}
+    const storageKey = `pending_removes_${sourceFormatId}`;
+    const pendingRemoves = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+    pendingRemoves.push(file.path);
+    sessionStorage.setItem(storageKey, JSON.stringify(pendingRemoves));
 
     const el = document.querySelector(`[data-file-id="${file.id}"]`) as HTMLElement;
     if (el) {

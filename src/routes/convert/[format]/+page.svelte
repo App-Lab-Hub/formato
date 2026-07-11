@@ -218,18 +218,19 @@ onMount(() => {
   }
 });
 
-// Второй onMount - для асинхронных операций
 onMount(async () => {
-
-
-  // Проверяем pendingRemoves при загрузке
-  const pendingRemoves = JSON.parse(sessionStorage.getItem('pending_removes') || '[]');
+  // 1. Обрабатываем pending_removes_${sourceFormatId}
+  const removesKey = `pending_removes_${sourceFormatId}`;
+  const pendingRemoves = JSON.parse(sessionStorage.getItem(removesKey) || '[]');
+  const removedPaths = new Set(pendingRemoves); // Сохраняем пути для фильтрации
+  
   if (pendingRemoves.length > 0) {
     let removedCount = 0;
     const newFiles = [...files];
     
-    for (const id of pendingRemoves) {
-      const index = newFiles.findIndex(f => f.id === id);
+    // Удаляем файлы по пути
+    for (const path of pendingRemoves) {
+      const index = newFiles.findIndex(f => f.path === path);
       if (index !== -1) {
         const file = newFiles[index];
         newFiles.splice(index, 1);
@@ -243,12 +244,42 @@ onMount(async () => {
       handleFilesChange(newFiles);
     }
     
-    sessionStorage.removeItem('pending_removes');
+    sessionStorage.removeItem(removesKey);
   }
+
+  // 2. Обрабатываем pending_files_${sourceFormatId} с фильтрацией от removedPaths
+  const filesKey = `pending_files_${sourceFormatId}`;
+  const pending = sessionStorage.getItem(filesKey);
   
-  await addPendingFiles();
+  if (pending) {
+    try {
+      const paths: string[] = JSON.parse(pending);
+      
+      // ✅ Фильтруем: убираем пути, которые есть в removedPaths (удаленные)
+      // и пути, которые уже есть в files
+      const existingPaths = new Set(files.map(f => f.path));
+      const newPaths = paths.filter(p => 
+        !existingPaths.has(p) && !removedPaths.has(p) // ← Фильтруем от удаленных!
+      );
+      
+      if (newPaths.length > 0) {
+        const filesToAdd = newPaths.map(path => ({
+          path,
+          name: path.split('/').pop() || path.split('\\').pop() || path,
+        }));
+        await addFiles(filesToAdd, true);
+      }
+      
+      // Очищаем pending_files после обработки
+      sessionStorage.removeItem(filesKey);
+    } catch (e) {
+      console.warn('Failed to process pending files:', e);
+      sessionStorage.removeItem(filesKey);
+    }
+  }
 
-
+  // 3. Существующая логика addPendingFiles (если осталась)
+  // await addPendingFiles();
 });
 
   $effect(() => {
