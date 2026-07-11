@@ -24,29 +24,9 @@
   import { Type, FolderOpen } from 'lucide-svelte';
   import { animate } from '@motionone/dom';
 
-async function addPendingFiles() {
-  const storageKey = `pending_files_${sourceFormatId}`;
-  const pending = sessionStorage.getItem(storageKey);
-  if (!pending) return;
-  
-  try {
-    const paths: string[] = JSON.parse(pending);
-    const existingPaths = new Set(files.map(f => f.path));
-    const newPaths = paths.filter(p => !existingPaths.has(p));
-    
-    if (newPaths.length > 0) {
-      const filesToAdd = newPaths.map(path => ({
-        path,
-        name: path.split('/').pop() || path.split('\\').pop() || path,
-      }));
-      await addFiles(filesToAdd, true);
-    }
-  } catch (e) {
-    console.warn('Failed to process pending files:', e);
-  } finally {
-    sessionStorage.removeItem(storageKey);
-  }
-}
+  let isClearing = $state(false);
+
+
 
 
   const sourceFormatId: string = page.params.format!;
@@ -287,6 +267,10 @@ onMount(async () => {
   });
 
   function goBack() { 
+    if (isClearing) {
+      toast.warning('Подождите, идет очистка файлов...');
+      return;
+    }
     goto('/'); 
   }
   
@@ -553,7 +537,10 @@ onMount(async () => {
     <TooltipProvider>
       <div class="flex flex-col bg-background text-foreground min-h-screen">
         <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
-          <button onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 dark:text-muted-foreground light:text-purple-700/70 dark:hover:text-primary light:hover:text-purple-800 transition-colors">
+          <button
+           class:opacity-50={isClearing}
+          class:cursor-not-allowed={isClearing}
+           onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 dark:text-muted-foreground light:text-purple-700/70 dark:hover:text-primary light:hover:text-purple-800 transition-colors">
             <span class="text-sm">← {m.settings_back()}</span>
           </button>
 
@@ -613,6 +600,7 @@ onMount(async () => {
   {selectedTarget}
   {convertedFiles}
   {convertingFiles}
+  bind:isClearing={isClearing} 
   showExtensions={settings?.show_extensions ?? true}
   onconvertone={convertOne}
   onconvertall={convertAll}
@@ -621,6 +609,7 @@ onMount(async () => {
   ondownload={downloadFile}
   onremove={removeFile}
   settings={settings}
+
 /> 
 
         </main>

@@ -12,38 +12,41 @@
   type TargetFormat = { id: string; name: string };
   type ConvertedFile = { path: string; format: string };
 
-  let {
-    files,
-    sourceFormatId,
-    selectedTarget = null,
-    convertedFiles,
-    convertingFiles,
-    showExtensions = true,
-    onconvertone,
-    onconvertall,
-    onclearall,
-    onpreview,
-    ondownload,
-    onremove,
-    settings,
-  } = $props<{
-    files: FileItem[];
-    sourceFormatId: string;
-    selectedTarget?: TargetFormat | null;
-    convertedFiles: Map<string, ConvertedFile>;
-    convertingFiles: Set<string>;
-    showExtensions?: boolean;
-    onconvertone: (index: number) => void;
-    onconvertall: () => void;
-    onclearall: () => void;
-    onpreview: (fileId: string) => void;
-    ondownload: (fileId: string) => void;
-    onremove: (index: number) => void;
-    settings: { enable_archive: boolean; archive_format: string };
-  }>();
-  
-  let isClearing = $state(false);
+let {
+  files,
+  sourceFormatId,
+  selectedTarget = null,
+  convertedFiles,
+  convertingFiles,
+  showExtensions = true,
+  onconvertone,
+  onconvertall,
+  onclearall,
+  onpreview,
+  ondownload,
+  onremove,
+  settings,
+  isClearing = $bindable(false),  // ← Используем $bindable
+} = $props<{
+  files: FileItem[];
+  sourceFormatId: string;
+  selectedTarget?: TargetFormat | null;
+  convertedFiles: Map<string, ConvertedFile>;
+  convertingFiles: Set<string>;
+  showExtensions?: boolean;
+  onconvertone: (index: number) => void;
+  onconvertall: () => void;
+  onclearall: () => void;
+  onpreview: (fileId: string) => void;
+  ondownload: (fileId: string) => void;
+  onremove: (index: number) => void;
+  settings: { enable_archive: boolean; archive_format: string };
+  isClearing: boolean;
+}>();
+
   let itemsAnimated = $state<Set<string>>(new Set());
+  
+
   
   async function clearAllWithAnimation() {
     if (isClearing) return;

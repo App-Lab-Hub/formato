@@ -110,7 +110,7 @@ pub fn create_temp_file(content: String, extension: String, name: String) -> Res
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
-        .as_millis();
+        .as_nanos();
     
     let file_name = format!("{}_{}.{}", name, timestamp, extension);
     let file_path = temp_dir.join(file_name);
