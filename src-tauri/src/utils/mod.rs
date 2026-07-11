@@ -2,8 +2,9 @@ use crate::{AppState, db};
 use tauri::Manager;
 
 use std::fs;
-use std::path::PathBuf;
-use std::env::temp_dir;
+use crate::paths::temp_dir;
+use std::time::{SystemTime, UNIX_EPOCH};
+
 
 /// Показывает главное окно (вызывается после загрузки фронтенда)
 #[tauri::command]
@@ -100,20 +101,15 @@ pub async fn get_file_size(path: String) -> Result<u64, String> {
 
 #[tauri::command]
 pub fn create_temp_file(content: String, extension: String, name: String) -> Result<String, String> {
-
+    let dir = temp_dir();
     
-    let temp_dir = temp_dir().join("formato_temp");
-    if !temp_dir.exists() {
-        fs::create_dir_all(&temp_dir).map_err(|e| e.to_string())?;
-    }
-    
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
         .unwrap()
         .as_nanos();
     
     let file_name = format!("{}_{}.{}", name, timestamp, extension);
-    let file_path = temp_dir.join(file_name);
+    let file_path = dir.join(file_name);
     
     fs::write(&file_path, content).map_err(|e| e.to_string())?;
     

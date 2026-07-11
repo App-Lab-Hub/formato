@@ -2,7 +2,7 @@
 <script lang="ts">
   import { m } from '$lib/paraglide/messages';
   import { Tooltip, TooltipContent, TooltipTrigger } from '$lib/components/ui/tooltip';
-  import { FileText, ArrowRight, Eye, Download, Play, X, LoaderCircle, Zap, ListX, FolderArchive } from 'lucide-svelte';
+  import { FileText, ArrowRight, Eye, Download, Play, X, LoaderCircle, Zap, ListX, FolderArchive, Trash2 } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import { toast } from '$lib/utils/toast';
   import { invoke } from '@tauri-apps/api/core';
@@ -344,7 +344,7 @@ let {
             <Tooltip>
               <TooltipTrigger>
                 <button onclick={() => removeFile(i)} disabled={isConverting} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
-                  <X class="h-4 w-4" />
+                  <Trash2 class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">

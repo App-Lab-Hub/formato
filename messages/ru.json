@@ -160,5 +160,9 @@
   "input_mode_files": "Файлы",
   "input_mode_text": "Текст",
 
-  "files_removed_pending": "Удалено файлов: {count}"
+  "files_removed_pending": "Удалено файлов: {count}",
+
+  "clearing_in_progress": "Подождите, идет очистка файлов...",
+
+  "files_title": "Файлы"
 }

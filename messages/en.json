@@ -160,5 +160,9 @@
   "input_mode_files": "Files",
   "input_mode_text": "Text",
 
-  "files_removed_pending": "Removed files: {count}"
+  "files_removed_pending": "Removed files: {count}",
+
+  "clearing_in_progress": "Please wait, files are being cleared...",
+
+  "files_title": "Files"
 }

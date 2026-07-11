@@ -1,6 +1,6 @@
 <!-- Header.svelte -->
 <script lang="ts">
-  import { Settings, Info } from 'lucide-svelte';
+  import { Settings, Info, FolderOpen } from 'lucide-svelte';
   import { m } from '$lib/paraglide/messages';
 
   let isClicked = false;
@@ -99,6 +99,15 @@
     </a>
 
     <nav class="flex items-center gap-1">
+      <!-- Ссылка на страницу управления файлами -->
+    <a 
+      href="/files" 
+      class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-base font-medium dark:text-purple-300/60 light:text-purple-700/70 dark:hover:text-purple-200 light:hover:text-purple-800 dark:hover:bg-purple-500/10 light:hover:bg-purple-300/40 transition-all duration-300"
+    >
+      <FolderOpen class="h-4 w-4" />
+      <span class="hidden sm:inline">{m.files_title()}</span>
+    </a>
+      
       <a 
         href="/about" 
         class="flex items-center gap-2 px-3.5 py-2 rounded-lg text-base font-medium dark:text-purple-300/60 light:text-purple-700/70 dark:hover:text-purple-200 light:hover:text-purple-800 dark:hover:bg-purple-500/10 light:hover:bg-purple-300/40 transition-all duration-300"

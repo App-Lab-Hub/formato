@@ -15,8 +15,16 @@
     "fs:allow-write-text-file",
     "fs:allow-read-text-file",
     "core:window:allow-close",
-
-    "core:menu:allow-new",
-    "core:menu:allow-popup"
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        {
+          "path": "$HOME/.local/share/formato/converted/*"
+        },
+        {
+          "path": "$HOME/.cache/formato/*"
+        }
+      ]
+    }
   ]
 }

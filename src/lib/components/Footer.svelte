@@ -11,6 +11,13 @@
     
     <div class="flex items-center gap-3 text-base">
       <a 
+        href="/files" 
+        class="dark:text-purple-300/50 light:text-purple-700/70 dark:hover:text-purple-200 light:hover:text-purple-800 transition-colors duration-200 font-medium"
+      >
+        {m.files_title()}
+      </a>
+      <span class="dark:text-purple-500/20 light:text-purple-400/30">|</span>
+      <a 
         href="/about" 
         class="dark:text-purple-300/50 light:text-purple-700/70 dark:hover:text-purple-200 light:hover:text-purple-800 transition-colors duration-200 font-medium"
       >

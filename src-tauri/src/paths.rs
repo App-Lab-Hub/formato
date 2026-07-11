@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 const APP_NAME: &str = "formato";
 
+// Постоянные данные (БД, конфиги)
 fn app_root() -> PathBuf {
     let data_dir = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
     let root = data_dir.join(APP_NAME);
@@ -32,6 +33,16 @@ pub fn config_dir() -> PathBuf {
     let dir = config_dir.join(APP_NAME);
     if !dir.exists() {
         std::fs::create_dir_all(&dir).expect("Failed to create config directory");
+    }
+    dir
+}
+
+// Временные файлы — используем cache_dir
+pub fn temp_dir() -> PathBuf {
+    let cache_dir = dirs::cache_dir().unwrap_or_else(|| PathBuf::from("."));
+    let dir = cache_dir.join(APP_NAME);
+    if !dir.exists() {
+        std::fs::create_dir_all(&dir).expect("Failed to create temp directory");
     }
     dir
 }
