@@ -401,6 +401,8 @@ onMount(async () => {
       sessionStorage.removeItem(getStorageKey('files'));
       sessionStorage.removeItem(getStorageKey('converted'));
       sessionStorage.removeItem(getStorageKey('hashes'));
+      sessionStorage.removeItem(`pending_files_${sourceFormatId}`);
+
     }
     toast.info(m.all_files_cleared());
   }

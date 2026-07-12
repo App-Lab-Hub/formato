@@ -17,8 +17,10 @@
   let searchQuery = $state('');
   let filterType = $state<'all' | 'converted' | 'temp'>('all');
   
-  // ✅ Храним путь файла, который сейчас удаляется
+  // Храним путь файла, который сейчас удаляется
   let deletingFilePath = $state<string | null>(null);
+  // Храним ID файлов для анимации удаления
+  let deletingFileIds = $state<Set<string>>(new Set());
 
   // Фильтрация
   let filteredFiles = $derived(
@@ -65,19 +67,24 @@
     }
   }
 
-  // ✅ Функция удаления файла
+  // Функция удаления файла с анимацией
   async function deleteFile(file: FileInfo) {
     if (deletingFilePath === file.path) return;
     
     if (!confirm(`Удалить файл "${file.name}"?`)) return;
     
+    // Добавляем файл в список удаляемых для анимации
+    deletingFileIds.add(file.path);
     deletingFilePath = file.path;
+    
     try {
       await invoke('delete_file', { path: file.path });
       
+      // Ждем немного для анимации
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
       // Обновляем список файлов
       await invoke<FileInfo[]>('get_files');
-      // Обновляем data.files через инвалидацию
       goto('/files?refresh=true', { invalidateAll: true });
       
       toast.success(`Файл "${file.name}" удалён`);
@@ -90,6 +97,7 @@
       toast.error(`Не удалось удалить файл: ${error}`);
     } finally {
       deletingFilePath = null;
+      deletingFileIds.delete(file.path);
     }
   }
 </script>
@@ -188,57 +196,65 @@
       {:else}
         <div class="flex flex-col gap-2">
           {#each filteredFiles as file (file.path)}
-          <div
-            role="button"
-            tabindex="0"
-            onkeydown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                selectedFile = file;
-              }
-            }}
-            onclick={() => selectedFile = file}
-            class="group flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/30 light:bg-purple-200/30 p-4 transition-all hover:dark:bg-card/50 hover:light:bg-purple-200/60 cursor-pointer"
-          >
-            <div class="shrink-0 w-10 h-10 rounded-lg dark:bg-violet-500/20 light:bg-purple-300/60 flex items-center justify-center">
-              <FileText class="h-5 w-5 dark:text-violet-400 light:text-purple-700" />
-            </div>
-            
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium dark:text-foreground light:text-purple-800 truncate">{file.name}</span>
-                <span class={[
-                  'shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md',
-                  getTypeColor(file.file_type)
-                ]}>
-                  {getTypeLabel(file.file_type)}
-                </span>
+            {@const isDeleting = deletingFileIds.has(file.path)}
+            <div
+              role="button"
+              tabindex="0"
+              onkeydown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  selectedFile = file;
+                }
+              }}
+              onclick={() => selectedFile = file}
+              class="group flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/30 light:bg-purple-200/30 p-4 transition-all duration-300 hover:dark:bg-card/50 hover:light:bg-purple-200/60 cursor-pointer"
+              class:opacity-50={isDeleting}
+              class:scale-95={isDeleting}
+              class:animate-pulse={isDeleting}
+            >
+              <div class="shrink-0 w-10 h-10 rounded-lg dark:bg-violet-500/20 light:bg-purple-300/60 flex items-center justify-center transition-all duration-300">
+                <FileText class="h-5 w-5 dark:text-violet-400 light:text-purple-700 transition-all duration-300" />
               </div>
-              <div class="flex items-center gap-4 text-xs dark:text-muted-foreground/70 light:text-purple-700/60">
-                <span class="flex items-center gap-1">
-                  <HardDrive class="h-3 w-3" />
-                  {formatFileSize(file.size)}
-                </span>
-                <span class="flex items-center gap-1">
-                  <Clock class="h-3 w-3" />
-                  {formatDate(file.created)}
-                </span>
+              
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-medium dark:text-foreground light:text-purple-800 truncate transition-all duration-300">{file.name}</span>
+                  <span class={[
+                    'shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md transition-all duration-300',
+                    getTypeColor(file.file_type)
+                  ]}>
+                    {getTypeLabel(file.file_type)}
+                  </span>
+                </div>
+                <div class="flex items-center gap-4 text-xs dark:text-muted-foreground/70 light:text-purple-700/60 transition-all duration-300">
+                  <span class="flex items-center gap-1">
+                    <HardDrive class="h-3 w-3" />
+                    {formatFileSize(file.size)}
+                  </span>
+                  <span class="flex items-center gap-1">
+                    <Clock class="h-3 w-3" />
+                    {formatDate(file.created)}
+                  </span>
+                </div>
               </div>
-            </div>
 
-            <div class="shrink-0 flex items-center gap-2">
-              <button
-                onclick={(e) => { 
-                  e.stopPropagation(); 
-                  deleteFile(file);
-                }}
-                disabled={deletingFilePath === file.path}
-                class="cursor-pointer p-2 rounded-lg dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
-              >
-                <Trash2 class="h-4 w-4" />
-              </button>
+              <div class="shrink-0 flex items-center gap-2">
+                <button
+                  onclick={(e) => { 
+                    e.stopPropagation(); 
+                    deleteFile(file);
+                  }}
+                  disabled={deletingFilePath === file.path}
+                  class="cursor-pointer p-2 rounded-lg dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive transition-all duration-200 opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  {#if deletingFileIds.has(file.path)}
+                    <div class="h-4 w-4 border-2 border-destructive border-t-transparent rounded-full animate-spin" />
+                  {:else}
+                    <Trash2 class="h-4 w-4" />
+                  {/if}
+                </button>
+              </div>
             </div>
-          </div>
           {/each}
         </div>
       {/if}
@@ -337,9 +353,14 @@
             }
           }}
           disabled={deletingFilePath === selectedFile?.path}
-          class="px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          class="px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
-          {deletingFilePath === selectedFile?.path ? 'Удаление...' : 'Удалить файл'}
+          {#if deletingFilePath === selectedFile?.path}
+            <div class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            Удаление...
+          {:else}
+            Удалить файл
+          {/if}
         </button>
       </div>
     </div>
