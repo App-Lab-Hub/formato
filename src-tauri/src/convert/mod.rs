@@ -1,4 +1,3 @@
-
 mod csv;
 mod xml;
 mod ini;
@@ -37,12 +36,12 @@ pub fn convert(path: &str, from: &str, to: &str) -> Result<String, String> {
     stringify(&value, to)
 }
 
-pub fn save_to_app_dir(content: &str, original_path: &str, to: &str) -> Result<String, String> {
+pub fn save_to_app_dir(content: &str, original_path: &str, to: &str, hash: &str) -> Result<String, String> {
     let input_path = PathBuf::from(original_path);
     let stem = input_path.file_stem().and_then(|s| s.to_str()).unwrap_or("converted");
     
     let output_dir = converted_dir();
-    let output_path = output_dir.join(format!("{}.{}", stem, to));
+    let output_path = output_dir.join(format!("{}_{}.{}", stem, hash, to));
     std::fs::write(&output_path, content).map_err(|e| format!("Cannot write file: {e}"))?;
     
     Ok(output_path.to_string_lossy().to_string())
@@ -91,7 +90,7 @@ pub async fn convert_file(
         convert(&path_clone, &from_clone, &to_clone)
     }).await.map_err(|e| format!("Task join error: {e}"))??;
     
-    let saved_path = save_to_app_dir(&output, &path, &to)?;
+    let saved_path = save_to_app_dir(&output, &path, &to, &input_hash)?;
     let extension = Path::new(&saved_path)
         .extension()
         .and_then(|e| e.to_str())
@@ -110,7 +109,8 @@ pub async fn convert_file(
     })
 }
 
-fn calculate_conversion_hash(path: &str, from: &str, to: &str) -> std::io::Result<String> {
+// Общая функция для вычисления хэша с опциональными дополнительными данными
+fn calculate_hash(path: &str, extra_data: &[&[u8]]) -> std::io::Result<String> {
     let file = File::open(path)?;
     let mut hasher = Xxh3::new();
 
@@ -133,38 +133,27 @@ fn calculate_conversion_hash(path: &str, from: &str, to: &str) -> std::io::Resul
         }
     }
 
-    hasher.update(from.as_bytes());
-    hasher.update(to.as_bytes());
-
-    Ok(format!("{:x}", hasher.digest()))
-}
-#[tauri::command]
-pub async fn hash_file(path: String) -> Result<String, String> {
-    calculate_file_hash(&path).map_err(|e| format!("Cannot hash file: {e}"))
-}
-
-fn calculate_file_hash(path: &str) -> std::io::Result<String> {
-    let file = File::open(path)?;
-    let mut hasher = Xxh3::new();
-
-    match unsafe { Mmap::map(&file) } {
-        Ok(mmap) => {
-            hasher.update(&mmap);
-        }
-        Err(_) => {
-            let mut file = file;
-            let mut buffer = [0; 65536];
-            loop {
-                let bytes_read = file.read(&mut buffer)?;
-                if bytes_read == 0 {
-                    break;
-                }
-                hasher.update(&buffer[..bytes_read]);
-            }
-        }
+    // Добавляем дополнительные данные (from, to)
+    for data in extra_data {
+        hasher.update(data);
     }
 
     Ok(format!("{:x}", hasher.digest()))
+}
+
+// Хэш файла + from + to
+fn calculate_conversion_hash(path: &str, from: &str, to: &str) -> std::io::Result<String> {
+    calculate_hash(path, &[from.as_bytes(), to.as_bytes()])
+}
+
+// Хэш файла (только содержимое)
+fn calculate_file_hash(path: &str) -> std::io::Result<String> {
+    calculate_hash(path, &[])
+}
+
+#[tauri::command]
+pub async fn hash_file(path: String) -> Result<String, String> {
+    calculate_file_hash(&path).map_err(|e| format!("Cannot hash file: {e}"))
 }
 
 
