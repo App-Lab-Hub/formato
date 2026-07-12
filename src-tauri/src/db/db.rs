@@ -163,7 +163,6 @@ pub async fn get_format_by_id(
 
 
 
-// src/db/conversions.rs
 
 use chrono::Utc;
 use crate::db::models::conversions;
@@ -195,5 +194,33 @@ pub async fn save_conversion(
     };
     
     model.insert(db).await.map_err(|e| format!("DB insert error: {e}"))?;
+    Ok(())
+}
+
+
+
+
+
+
+
+
+
+// ✅ Новая функция для удаления из БД по пути
+pub async fn delete_conversion_by_path(
+    db: &DatabaseConnection,
+    file_path: &str,
+) -> Result<(), String> {
+    let result = Entity::find()
+        .filter(Column::ConvertedPath.eq(file_path))
+        .one(db)
+        .await
+        .map_err(|e| format!("DB find error: {e}"))?;
+    
+    if let Some(model) = result {
+        let active_model: conversions::ActiveModel = model.into();
+        active_model.delete(db).await.map_err(|e| format!("DB delete error: {e}"))?;
+        println!("✅ Deleted from DB: {}", file_path);
+    }
+    
     Ok(())
 }

@@ -60,6 +60,8 @@ pub fn run() {
             archive::archive_multiple_files,
             // files
             files::get_files,
+            files::delete_file,
+
         ])
         
         // Setup

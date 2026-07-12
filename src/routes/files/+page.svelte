@@ -7,6 +7,8 @@
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { FileInfo } from '$lib/types/files';
   import { openPath } from "@tauri-apps/plugin-opener";
+  import { invoke } from '@tauri-apps/api/core';
+  import { toast } from '$lib/utils/toast';
 
   let { data }: PageProps = $props();
   
@@ -14,6 +16,9 @@
   let selectedFile = $state<FileInfo | null>(null);
   let searchQuery = $state('');
   let filterType = $state<'all' | 'converted' | 'temp'>('all');
+  
+  // ✅ Храним путь файла, который сейчас удаляется
+  let deletingFilePath = $state<string | null>(null);
 
   // Фильтрация
   let filteredFiles = $derived(
@@ -57,6 +62,34 @@
       });
     } catch {
       return 'Неизвестно';
+    }
+  }
+
+  // ✅ Функция удаления файла
+  async function deleteFile(file: FileInfo) {
+    if (deletingFilePath === file.path) return;
+    
+    if (!confirm(`Удалить файл "${file.name}"?`)) return;
+    
+    deletingFilePath = file.path;
+    try {
+      await invoke('delete_file', { path: file.path });
+      
+      // Обновляем список файлов
+      await invoke<FileInfo[]>('get_files');
+      // Обновляем data.files через инвалидацию
+      goto('/files?refresh=true', { invalidateAll: true });
+      
+      toast.success(`Файл "${file.name}" удалён`);
+      
+      if (selectedFile?.path === file.path) {
+        selectedFile = null;
+      }
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      toast.error(`Не удалось удалить файл: ${error}`);
+    } finally {
+      deletingFilePath = null;
     }
   }
 </script>
@@ -195,8 +228,12 @@
 
             <div class="shrink-0 flex items-center gap-2">
               <button
-                onclick={(e) => { e.stopPropagation(); /* TODO: удаление */ }}
-                class="p-2 rounded-lg dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                onclick={(e) => { 
+                  e.stopPropagation(); 
+                  deleteFile(file);
+                }}
+                disabled={deletingFilePath === file.path}
+                class="cursor-pointer p-2 rounded-lg dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
               >
                 <Trash2 class="h-4 w-4" />
               </button>
@@ -208,84 +245,104 @@
     </div>
   </div>
 
-  <!-- Модальное окно с информацией о файле -->
+<!-- Модальное окно с информацией о файле -->
 {#if selectedFile}
-<div 
-  role="button"
-  tabindex="0"
-  onkeydown={(e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      selectedFile = null;
-    }
-    if (e.key === 'Escape') {
-      selectedFile = null;
-    }
-  }}
-  onclick={() => selectedFile = null}
-  class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm cursor-pointer"
->
   <div 
-    class="max-w-lg w-full dark:bg-card light:bg-white rounded-2xl p-6 border dark:border-border/50 light:border-purple-300/40 shadow-xl"
-    onclick={(e) => e.stopPropagation()}
-    role="presentation"
+    role="button"
+    tabindex="0"
+    onkeydown={(e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        selectedFile = null;
+      }
+      if (e.key === 'Escape') {
+        selectedFile = null;
+      }
+    }}
+    onclick={() => selectedFile = null}
+    class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm cursor-pointer"
   >
-    <div class="flex items-start justify-between mb-4">
-      <h3 class="text-lg font-semibold dark:text-foreground light:text-purple-800 truncate">
-        {selectedFile.name}
-      </h3>
-      <button 
-        onclick={() => selectedFile = null}
-        class="p-1 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
-        aria-label="Закрыть"
-      >
-        <X class="h-5 w-5 dark:text-muted-foreground light:text-purple-600" />
-      </button>
-    </div>
+    <div 
+      class="max-w-lg w-full dark:bg-card light:bg-white rounded-2xl p-6 border dark:border-border/50 light:border-purple-300/40 shadow-xl"
+      onclick={(e) => e.stopPropagation()}
+      role="presentation"
+    >
+      <div class="flex items-start justify-between mb-4">
+        <h3 class="text-lg font-semibold dark:text-foreground light:text-purple-800 truncate">
+          {selectedFile.name}
+        </h3>
+        <button 
+          onclick={() => selectedFile = null}
+          class="p-1 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+          aria-label="Закрыть"
+        >
+          <X class="h-5 w-5 dark:text-muted-foreground light:text-purple-600" />
+        </button>
+      </div>
 
-    <div class="space-y-3 text-sm">
-      <div class="flex justify-between py-2 border-b dark:border-border/50 light:border-purple-300/40">
-        <span class="dark:text-muted-foreground light:text-purple-700/70">Тип</span>
-        <span class={['px-2 py-0.5 rounded-md text-xs font-semibold uppercase', getTypeColor(selectedFile.file_type)]}>
-          {getTypeLabel(selectedFile.file_type)}
-        </span>
-      </div>
-      <div class="flex justify-between py-2 border-b dark:border-border/50 light:border-purple-300/40">
-        <span class="dark:text-muted-foreground light:text-purple-700/70">Размер</span>
-        <span class="dark:text-foreground light:text-purple-800">{formatFileSize(selectedFile.size)}</span>
-      </div>
-      <div class="flex justify-between py-2 border-b dark:border-border/50 light:border-purple-300/40">
-        <span class="dark:text-muted-foreground light:text-purple-700/70">Создан</span>
-        <span class="dark:text-foreground light:text-purple-800">{formatDate(selectedFile.created)}</span>
-      </div>
-      <div class="py-2">
-        <span class="dark:text-muted-foreground light:text-purple-700/70 block mb-1 text-sm font-medium">Путь к файлу</span>
-        <div 
-          class="dark:bg-background/50 light:bg-purple-200/50 p-3 rounded-xl border dark:border-border/30 light:border-purple-300/30 cursor-pointer transition-colors hover:dark:bg-background/70 hover:light:bg-purple-200/70 group"
-          onclick={async () => {
-            if (!selectedFile) return;
-            console.log("path to file -> ",selectedFile.path);
-
-            await openPath(selectedFile.path);
-          }}
-          role="button"
-          tabindex="0"
-          onkeydown={async (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
+      <div class="space-y-3 text-sm">
+        <div class="flex justify-between py-2 border-b dark:border-border/50 light:border-purple-300/40">
+          <span class="dark:text-muted-foreground light:text-purple-700/70">Тип</span>
+          <span class={['px-2 py-0.5 rounded-md text-xs font-semibold uppercase', getTypeColor(selectedFile.file_type)]}>
+            {getTypeLabel(selectedFile.file_type)}
+          </span>
+        </div>
+        <div class="flex justify-between py-2 border-b dark:border-border/50 light:border-purple-300/40">
+          <span class="dark:text-muted-foreground light:text-purple-700/70">Размер</span>
+          <span class="dark:text-foreground light:text-purple-800">{formatFileSize(selectedFile.size)}</span>
+        </div>
+        <div class="flex justify-between py-2 border-b dark:border-border/50 light:border-purple-300/40">
+          <span class="dark:text-muted-foreground light:text-purple-700/70">Создан</span>
+          <span class="dark:text-foreground light:text-purple-800">{formatDate(selectedFile.created)}</span>
+        </div>
+        <div class="py-2">
+          <span class="dark:text-muted-foreground light:text-purple-700/70 block mb-1 text-sm font-medium">Путь к файлу</span>
+          <div 
+            class="dark:bg-background/50 light:bg-purple-200/50 p-3 rounded-xl border dark:border-border/30 light:border-purple-300/30 cursor-pointer transition-colors hover:dark:bg-background/70 hover:light:bg-purple-200/70 group"
+            onclick={async () => {
               if (!selectedFile) return;
               console.log("path to file -> ",selectedFile.path);
               await openPath(selectedFile.path);
+            }}
+            role="button"
+            tabindex="0"
+            onkeydown={async (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (!selectedFile) return;
+                console.log("path to file -> ",selectedFile.path);
+                await openPath(selectedFile.path);
+              }
+            }}
+          >
+            <code class="text-xs dark:text-foreground/70 light:text-purple-800/80 font-mono break-all select-all leading-relaxed group-hover:dark:text-foreground group-hover:light:text-purple-900 transition-colors">
+              {selectedFile.path}
+            </code>
+          </div>
+        </div>
+      </div>
+
+      <!-- Кнопка удаления -->
+      <div class="flex justify-end gap-2 mt-4 pt-3 border-t dark:border-border/50 light:border-purple-300/40">
+        <button
+          onclick={() => selectedFile = null}
+          class="px-4 py-2 rounded-lg text-sm font-medium dark:bg-card/30 light:bg-purple-200/30 hover:dark:bg-card/50 hover:light:bg-purple-200/50 transition-colors"
+        >
+          Отмена
+        </button>
+        <button
+          onclick={() => {
+            if (selectedFile) {
+              deleteFile(selectedFile);
             }
           }}
+          disabled={deletingFilePath === selectedFile?.path}
+          class="px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <code class="text-xs dark:text-foreground/70 light:text-purple-800/80 font-mono break-all select-all leading-relaxed group-hover:dark:text-foreground group-hover:light:text-purple-900 transition-colors">
-            {selectedFile.path}
-          </code>
-        </div>
+          {deletingFilePath === selectedFile?.path ? 'Удаление...' : 'Удалить файл'}
+        </button>
       </div>
     </div>
   </div>
-</div>
 {/if}
 </ScrollContainer>

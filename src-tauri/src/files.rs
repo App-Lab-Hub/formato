@@ -3,6 +3,8 @@ use std::fs;
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use crate::paths::{converted_dir, temp_dir};
+use crate::db::delete_conversion_by_path;
+use crate::AppState;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct FileInfo {
@@ -70,4 +72,37 @@ pub fn get_files() -> Result<Vec<FileInfo>, String> {
     }
     
     Ok(files)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+#[tauri::command]
+pub async fn delete_file(
+    state: tauri::State<'_, AppState>,
+    path: String,
+) -> Result<String, String> {
+    // 1. Удаляем из БД
+    let db_guard = state.db.lock().await;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    
+    delete_conversion_by_path(db, &path).await?;
+    
+    // 2. Удаляем физический файл
+    if std::path::Path::new(&path).exists() {
+        fs::remove_file(&path).map_err(|e| format!("Cannot delete file: {e}"))?;
+        println!("✅ Deleted file: {}", path);
+    } else {
+        println!("⚠️ File not found: {}", path);
+    }
+    
+    Ok(path)
 }
