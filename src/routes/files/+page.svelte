@@ -9,6 +9,8 @@
   import { openPath } from "@tauri-apps/plugin-opener";
   import { invoke } from '@tauri-apps/api/core';
   import { toast } from '$lib/utils/toast';
+  import { animate } from '@motionone/dom';
+  import { tick } from 'svelte';
 
   let { data }: PageProps = $props();
   
@@ -21,6 +23,10 @@
   let deletingFilePath = $state<string | null>(null);
   // Храним ID файлов для анимации удаления
   let deletingFileIds = $state<Set<string>>(new Set());
+  
+  // Реф для контейнера списка
+  let listContainer: HTMLDivElement | undefined = $state();
+  let isFilterAnimating = $state(false);
 
   // Фильтрация
   let filteredFiles = $derived(
@@ -73,15 +79,12 @@
     
     if (!confirm(`Удалить файл "${file.name}"?`)) return;
     
-    // Добавляем файл в список удаляемых для анимации
     deletingFileIds.add(file.path);
     deletingFilePath = file.path;
     
     try {
-      // Получаем элемент для анимации
       const el = document.querySelector(`[data-file-path="${file.path}"]`) as HTMLElement;
       if (el) {
-        // Анимация исчезновения вправо
         await el.animate(
           [
             { transform: 'translateX(0)', opacity: 1 },
@@ -92,8 +95,6 @@
       }
       
       await invoke('delete_file', { path: file.path });
-      
-      // Обновляем список файлов
       await invoke<FileInfo[]>('get_files');
       goto('/files?refresh=true', { invalidateAll: true });
       
@@ -108,6 +109,38 @@
     } finally {
       deletingFilePath = null;
       deletingFileIds.delete(file.path);
+    }
+  }
+
+  // Функция смены фильтра с анимацией (как в switchMode)
+  async function setFilter(type: 'all' | 'converted' | 'temp') {
+    if (filterType === type || isFilterAnimating) return;
+    if (!listContainer) return;
+    
+    isFilterAnimating = true;
+    
+    try {
+      // Анимация исчезновения
+      await animate(listContainer, {
+        opacity: 0,
+      }, {
+        duration: 0.3,
+        easing: 'ease-in'
+      }).finished;
+      
+      // Меняем фильтр
+      filterType = type;
+      await tick();
+      
+      // Анимация появления
+      await animate(listContainer, {
+        opacity: [0, 1],
+      }, {
+        duration: 0.3,
+        easing: 'ease-out'
+      }).finished;
+    } finally {
+      isFilterAnimating = false;
     }
   }
 </script>
@@ -160,7 +193,7 @@
         </div>
         <div class="flex gap-2">
           <button
-            onclick={() => filterType = 'all'}
+            onclick={() => setFilter('all')}
             class={[
               'px-4 py-2 rounded-xl text-sm font-medium transition-all',
               filterType === 'all' 
@@ -171,7 +204,7 @@
             Все
           </button>
           <button
-            onclick={() => filterType = 'converted'}
+            onclick={() => setFilter('converted')}
             class={[
               'px-4 py-2 rounded-xl text-sm font-medium transition-all',
               filterType === 'converted' 
@@ -182,7 +215,7 @@
             Сконвертированные
           </button>
           <button
-            onclick={() => filterType = 'temp'}
+            onclick={() => setFilter('temp')}
             class={[
               'px-4 py-2 rounded-xl text-sm font-medium transition-all',
               filterType === 'temp' 
@@ -204,7 +237,10 @@
           </p>
         </div>
       {:else}
-        <div class="flex flex-col gap-2">
+        <div 
+          bind:this={listContainer}
+          class="flex flex-col gap-2"
+        >
           {#each filteredFiles as file (file.path)}
             <div
               data-file-path={file.path}
