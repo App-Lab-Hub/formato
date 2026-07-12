@@ -9,10 +9,13 @@
     sourceFormatId, 
     sourceFormatName, 
     onfilesadd,
+    isAddToList = $bindable(false),  // ← Используем $bindable
+
   } = $props<{
     sourceFormatId: string;
     sourceFormatName: string;
     onfilesadd: (files: { path: string; name: string }[], suppressToast?: boolean) => void;
+    isAddToList: boolean;
   }>();
   
   let textContent = $state('');
@@ -26,11 +29,16 @@
   });
   
   async function handleAdd() {
+    isAddToList = true;
     if (!textContent.trim()) {
       error = m.enter_text_or_file();
+      isAddToList = false
       return;
     }
-    if (isProcessing) return;
+    if (isProcessing){ 
+      isAddToList = false
+      return
+    };
     
     error = null;
     isProcessing = true;
@@ -55,6 +63,7 @@
       console.error('Failed to create text file:', e);
       error = m.text_convert_error();
     } finally {
+      isAddToList = false;
       isProcessing = false;
     }
   }

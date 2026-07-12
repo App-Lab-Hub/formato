@@ -78,10 +78,20 @@
     deletingFilePath = file.path;
     
     try {
-      await invoke('delete_file', { path: file.path });
+      // Получаем элемент для анимации
+      const el = document.querySelector(`[data-file-path="${file.path}"]`) as HTMLElement;
+      if (el) {
+        // Анимация исчезновения вправо
+        await el.animate(
+          [
+            { transform: 'translateX(0)', opacity: 1 },
+            { transform: 'translateX(300px)', opacity: 0 },
+          ],
+          { duration: 300, easing: 'ease-in', fill: 'forwards' }
+        ).finished;
+      }
       
-      // Ждем немного для анимации
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await invoke('delete_file', { path: file.path });
       
       // Обновляем список файлов
       await invoke<FileInfo[]>('get_files');
@@ -196,8 +206,8 @@
       {:else}
         <div class="flex flex-col gap-2">
           {#each filteredFiles as file (file.path)}
-            {@const isDeleting = deletingFileIds.has(file.path)}
             <div
+              data-file-path={file.path}
               role="button"
               tabindex="0"
               onkeydown={(e) => {
@@ -207,26 +217,23 @@
                 }
               }}
               onclick={() => selectedFile = file}
-              class="group flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/30 light:bg-purple-200/30 p-4 transition-all duration-300 hover:dark:bg-card/50 hover:light:bg-purple-200/60 cursor-pointer"
-              class:opacity-50={isDeleting}
-              class:scale-95={isDeleting}
-              class:animate-pulse={isDeleting}
+              class="group flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/30 light:bg-purple-200/30 p-4 transition-all duration-200 hover:dark:bg-card/50 hover:light:bg-purple-200/60 cursor-pointer"
             >
-              <div class="shrink-0 w-10 h-10 rounded-lg dark:bg-violet-500/20 light:bg-purple-300/60 flex items-center justify-center transition-all duration-300">
-                <FileText class="h-5 w-5 dark:text-violet-400 light:text-purple-700 transition-all duration-300" />
+              <div class="shrink-0 w-10 h-10 rounded-lg dark:bg-violet-500/20 light:bg-purple-300/60 flex items-center justify-center">
+                <FileText class="h-5 w-5 dark:text-violet-400 light:text-purple-700" />
               </div>
               
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2">
-                  <span class="text-sm font-medium dark:text-foreground light:text-purple-800 truncate transition-all duration-300">{file.name}</span>
+                  <span class="text-sm font-medium dark:text-foreground light:text-purple-800 truncate">{file.name}</span>
                   <span class={[
-                    'shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md transition-all duration-300',
+                    'shrink-0 text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md',
                     getTypeColor(file.file_type)
                   ]}>
                     {getTypeLabel(file.file_type)}
                   </span>
                 </div>
-                <div class="flex items-center gap-4 text-xs dark:text-muted-foreground/70 light:text-purple-700/60 transition-all duration-300">
+                <div class="flex items-center gap-4 text-xs dark:text-muted-foreground/70 light:text-purple-700/60">
                   <span class="flex items-center gap-1">
                     <HardDrive class="h-3 w-3" />
                     {formatFileSize(file.size)}
@@ -245,13 +252,9 @@
                     deleteFile(file);
                   }}
                   disabled={deletingFilePath === file.path}
-                  class="cursor-pointer p-2 rounded-lg dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive transition-all duration-200 opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                  class="cursor-pointer p-2 rounded-lg dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  {#if deletingFileIds.has(file.path)}
-                    <div class="h-4 w-4 border-2 border-destructive border-t-transparent rounded-full animate-spin" />
-                  {:else}
-                    <Trash2 class="h-4 w-4" />
-                  {/if}
+                  <Trash2 class="h-4 w-4" />
                 </button>
               </div>
             </div>

@@ -25,6 +25,8 @@
   import { animate } from '@motionone/dom';
 
   let isClearing = $state(false);
+  let isAddToList = $state(false);
+  
 
 
 
@@ -234,8 +236,6 @@ onMount(async () => {
     }
   }
 
-  // 3. Существующая логика addPendingFiles (если осталась)
-  // await addPendingFiles();
 });
 
   $effect(() => {
@@ -247,9 +247,15 @@ onMount(async () => {
       toast.warning(m.clearing_in_progress());
       return;
     }
-    goto('/'); 
+    if (isAddToList) {
+      toast.warning(m.adding_in_progress());
+      return;
+    }
+
+    goto('/');
+
   }
-  
+    
   function selectTarget(format: Format) {
     if (selectedTarget?.id === format.id) {
       selectedTarget = null;
@@ -321,7 +327,9 @@ onMount(async () => {
     
     if (!suppressToast) {
       if (duplicates > 0) {
-        toast.success(m.file_added({ count: newFiles.length }) + ' ' + m.file_duplicate_skipped({ count: duplicates }));
+        toast.success(m.file_added({ count: newFiles.length }));
+        toast.warning(m.file_duplicate_skipped({ count: duplicates }));
+
       } else {
         toast.success(m.file_added({ count: newFiles.length }));
       }
@@ -568,6 +576,8 @@ onMount(async () => {
       {sourceFormatId}
       sourceFormatName={sourceFormat?.name ?? ''}
       onfilesadd={addFiles}
+      bind:isAddToList={isAddToList} 
+
     />
   {/if}
 </div>

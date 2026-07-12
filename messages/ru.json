@@ -164,5 +164,7 @@
 
   "clearing_in_progress": "Подождите, идет очистка файлов...",
 
-  "files_title": "Файлы"
+  "files_title": "Файлы",
+
+  "adding_in_progress": "Подождите, идет добавление файлов..."
 }

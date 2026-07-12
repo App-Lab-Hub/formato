@@ -164,5 +164,7 @@
 
   "clearing_in_progress": "Please wait, files are being cleared...",
 
-  "files_title": "Files"
+  "files_title": "Files",
+
+  "adding_in_progress": "Please wait, files are being added..."
 }
