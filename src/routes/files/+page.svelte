@@ -3,7 +3,7 @@
   import type { PageProps } from './$types';
   import { goto, invalidateAll } from '$app/navigation';
   import { formatFileSize } from '$lib/utils/format';
-  import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X, Trash, LoaderCircle } from 'lucide-svelte';
+  import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X, LoaderCircle } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { FileInfo } from '$lib/types/files';
   import { openPath } from "@tauri-apps/plugin-opener";
@@ -42,6 +42,9 @@
   // Флаг для переустановки БД
   let isResetting = $state(false);
 
+  // Показывать лоадер на месте списка
+  let showLoaderOnList = $state(false);
+
   // Фильтрация
   let filteredFiles = $derived(
     files.filter(f => {
@@ -56,6 +59,9 @@
   let totalSize = $derived(files.reduce((acc, f) => acc + f.size, 0));
   let convertedCount = $derived(files.filter(f => f.file_type === 'converted').length);
   let tempCount = $derived(files.filter(f => f.file_type === 'temp').length);
+
+  // Функция для задержки
+  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   function goBack() {
     goto('/');
@@ -72,6 +78,7 @@
     if (!confirmed) return;
     
     isResetting = true;
+    showLoaderOnList = true; // Всегда показываем лоадер
     
     try {
       if (selectedFile) {
@@ -79,6 +86,10 @@
       }
       
       await invoke('reset_database');
+      
+      // Минимальная задержка 1 секунда для лоадера
+      await delay(1000);
+      
       await invalidateAll();
       toast.success('База данных успешно переустановлена');
     } catch (error) {
@@ -86,6 +97,7 @@
       toast.error('Не удалось переустановить базу данных');
     } finally {
       isResetting = false;
+      showLoaderOnList = false;
     }
   }
 
@@ -224,37 +236,7 @@
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
-      const items = document.querySelectorAll('[data-file-path]');
-      const itemsToDelete: HTMLElement[] = [];
-      
-      items.forEach(el => {
-        const path = (el as HTMLElement).dataset.filePath;
-        if (path && filteredFiles.some(f => f.path === path)) {
-          itemsToDelete.push(el as HTMLElement);
-        }
-      });
-      
-      const animations = itemsToDelete.map(el =>
-        el.animate(
-          [
-            { transform: 'translateX(0px)', opacity: 1 },
-            { transform: 'translateX(300px)', opacity: 0 },
-          ],
-          {
-            duration: 300,
-            easing: 'ease-in',
-            fill: 'forwards'
-          }
-        ).finished
-      );
-      
-      await Promise.all(animations);
-      
-      itemsToDelete.forEach(el => {
-        el.style.transform = 'translateX(300px)';
-        el.style.opacity = '0';
-      });
-      
+      // Удаляем файлы без анимации, просто через лоадер
       let deletedCount = 0;
       for (const file of filteredFiles) {
         try {
@@ -264,6 +246,9 @@
           console.error(`Failed to delete ${file.path}:`, e);
         }
       }
+      
+      // Минимальная задержка 1 секунда для лоадера
+      await delay(1000);
       
       await invalidateAll();
       toast.success(m.files_deleted({ count: deletedCount }));
@@ -392,7 +377,8 @@
 <svelte:window on:keydown={handleKeydown} />
 
 <ScrollContainer>
-  <div class="min-h-screen bg-background text-foreground p-6 sm:p-8">
+<div class="min-h-screen flex flex-col">
+  <div class="flex-1 bg-background text-foreground px-6 pt-6 sm:pt-8 sm:px-8 pb-3">
     <!-- Заголовок -->
     <div class="max-w-7xl mx-auto">
       <div class="flex items-center gap-4 mb-6">
@@ -475,22 +461,24 @@
       </div>
 
       <!-- Список файлов -->
-      {#if isDeletingAll}
+      {#if isDeletingAll || isResetting}
         <div class="flex flex-col items-center justify-center py-20 gap-4">
-          <LoaderCircle class="h-12 w-12 text-primary animate-spin" />
-          <p class="dark:text-muted-foreground light:text-purple-700/70">Удаление файлов...</p>
+          <LoaderCircle class="h-16 w-16 text-primary animate-spin" />
+          <p class="dark:text-muted-foreground light:text-purple-700/70 text-lg">
+            {isDeletingAll ? 'Удаление файлов...' : 'Переустановка базы данных...'}
+          </p>
         </div>
       {:else if filteredFiles.length === 0}
         <div class="flex flex-col items-center justify-center py-20 gap-4">
-          <FolderOpen class="h-16 w-16 dark:text-muted-foreground/30 light:text-purple-400/30" />
-          <p class="dark:text-muted-foreground light:text-purple-700/70">
+          <FolderOpen class="h-20 w-20 dark:text-muted-foreground/30 light:text-purple-400/30" />
+          <p class="dark:text-muted-foreground light:text-purple-700/70 text-lg">
             {getEmptyMessage()}
           </p>
         </div>
       {:else}
         <div 
           bind:this={listContainer}
-          class="flex flex-col gap-2"
+          class="flex flex-col gap-2 w-full"
         >
           {#each filteredFiles as file (file.path)}
             <div
@@ -548,25 +536,35 @@
           {/each}
         </div>
       {/if}
-      
+
       <!-- Кнопка "Удалить все" -->
-      {#if filteredFiles.length > 0 && !isDeletingAll}
-        <div class="flex justify-end mt-4">
+      {#if filteredFiles.length > 0 && !isDeletingAll && !isResetting}
+        <div class="flex justify-end mt-5 mb-2">
           <button
             onclick={deleteAllFiltered}
             disabled={isDeletingAll}
             class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            <Trash class="h-4 w-4" />
-            Удалить все ({filteredFiles.length})
+            {#if isDeletingAll}
+              <LoaderCircle class="h-4 w-4 animate-spin" />
+              Удаление...
+            {:else}
+              <Trash2 class="h-4 w-4" />
+              Удалить все ({filteredFiles.length})
+            {/if}
           </button>
         </div>
       {/if}
     </div>
-    
-    <!-- Блок управления базой данных -->
-    <div class="max-w-7xl mx-auto mt-auto pt-4 border-t dark:border-border/50 light:border-purple-300/40">
-      <div class="flex items-center justify-between">
+  </div>
+
+  <footer class="mt-auto pb-5 bg-background ">
+    <div class="border-t dark:border-border/50 light:border-purple-300/40"></div>
+    <div class="px-6 sm:px-8">
+
+
+    <div class="max-w-7xl mx-auto ">
+      <div class="flex items-center justify-between mt-4">
         <div class="flex items-center gap-2">
           <Database class="h-4 w-4 dark:text-muted-foreground light:text-purple-600" />
           <span class="text-sm dark:text-muted-foreground light:text-purple-700/70">Управление базой данных</span>
@@ -589,7 +587,9 @@
         Удаляет все файлы и сбрасывает базу данных. Форматы будут пересозданы автоматически.
       </p>
     </div>
-  </div>
+        </div>
+  </footer>
+</div>
 
 <!-- Модальное окно с информацией о файле -->
 {#if selectedFile}
