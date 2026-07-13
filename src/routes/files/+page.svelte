@@ -13,6 +13,7 @@
   import { tick } from 'svelte';
   import { confirm } from '@tauri-apps/plugin-dialog';
   import { m } from '$lib/paraglide/messages';
+  import { loader } from '$lib/stores/loader.svelte';
 
   let { data }: PageProps = $props();
   
@@ -35,15 +36,6 @@
   let modalContent: HTMLDivElement | undefined = $state();
   let isModalOpening = $state(false);
   let isModalClosing = $state(false);
-  
-  // Флаг для массового удаления
-  let isDeletingAll = $state(false);
-  
-  // Флаг для переустановки БД
-  let isResetting = $state(false);
-
-  // Показывать лоадер на месте списка
-  let showLoaderOnList = $state(false);
 
   // Фильтрация
   let filteredFiles = $derived(
@@ -69,7 +61,7 @@
 
   // Функция переустановки базы данных
   async function resetDatabase() {
-    if (isResetting) return;
+    if (loader.isResetting) return;
     
     const confirmed = await confirm('Вы уверены, что хотите переустановить базу данных?\n\nБудут удалены:\n• Все сконвертированные файлы\n• Все временные файлы\n• Все записи в базе данных\n\nЭто действие необратимо!', {
       title: 'Переустановка базы данных',
@@ -77,8 +69,7 @@
     });
     if (!confirmed) return;
     
-    isResetting = true;
-    showLoaderOnList = true; // Всегда показываем лоадер
+    loader.startResetting();
     
     try {
       if (selectedFile) {
@@ -96,8 +87,7 @@
       console.error('Failed to reset database:', error);
       toast.error('Не удалось переустановить базу данных');
     } finally {
-      isResetting = false;
-      showLoaderOnList = false;
+      loader.stopResetting();
     }
   }
 
@@ -207,7 +197,7 @@
 
   // Функция удаления всех файлов по текущему фильтру
   async function deleteAllFiltered() {
-    if (isDeletingAll) return;
+    if (loader.isDeletingAll) return;
     if (filteredFiles.length === 0) {
       toast.warning(m.no_files_to_delete());
       return;
@@ -228,7 +218,7 @@
     });
     if (!confirmed) return;
     
-    isDeletingAll = true;
+    loader.startDeletingAll();
     
     try {
       if (selectedFile) {
@@ -256,7 +246,7 @@
       console.error('Failed to delete files:', error);
       toast.error(m.delete_error());
     } finally {
-      isDeletingAll = false;
+      loader.stopDeletingAll();
     }
   }
 
@@ -461,11 +451,11 @@
       </div>
 
       <!-- Список файлов -->
-      {#if isDeletingAll || isResetting}
+      {#if loader.isDeletingAll || loader.isResetting}
         <div class="flex flex-col items-center justify-center py-20 gap-4">
           <LoaderCircle class="h-16 w-16 text-primary animate-spin" />
           <p class="dark:text-muted-foreground light:text-purple-700/70 text-lg">
-            {isDeletingAll ? 'Удаление файлов...' : 'Переустановка базы данных...'}
+            {loader.isDeletingAll ? 'Удаление файлов...' : 'Переустановка базы данных...'}
           </p>
         </div>
       {:else if filteredFiles.length === 0}
@@ -538,14 +528,14 @@
       {/if}
 
       <!-- Кнопка "Удалить все" -->
-      {#if filteredFiles.length > 0 && !isDeletingAll && !isResetting}
+      {#if filteredFiles.length > 0 && !loader.isDeletingAll && !loader.isResetting}
         <div class="flex justify-end mt-5 mb-2">
           <button
             onclick={deleteAllFiltered}
-            disabled={isDeletingAll}
+            disabled={loader.isDeletingAll}
             class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
-            {#if isDeletingAll}
+            {#if loader.isDeletingAll}
               <LoaderCircle class="h-4 w-4 animate-spin" />
               Удаление...
             {:else}
@@ -561,33 +551,31 @@
   <footer class="mt-auto pb-5 bg-background ">
     <div class="border-t dark:border-border/50 light:border-purple-300/40"></div>
     <div class="px-6 sm:px-8">
-
-
-    <div class="max-w-7xl mx-auto ">
-      <div class="flex items-center justify-between mt-4">
-        <div class="flex items-center gap-2">
-          <Database class="h-4 w-4 dark:text-muted-foreground light:text-purple-600" />
-          <span class="text-sm dark:text-muted-foreground light:text-purple-700/70">Управление базой данных</span>
+      <div class="max-w-7xl mx-auto ">
+        <div class="flex items-center justify-between mt-4">
+          <div class="flex items-center gap-2">
+            <Database class="h-4 w-4 dark:text-muted-foreground light:text-purple-600" />
+            <span class="text-sm dark:text-muted-foreground light:text-purple-700/70">Управление базой данных</span>
+          </div>
+          <button
+            onclick={resetDatabase}
+            disabled={loader.isResetting}
+            class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium dark:bg-amber-500/20 light:bg-amber-400/30 dark:text-amber-400 light:text-amber-700 dark:hover:bg-amber-500/30 light:hover:bg-amber-400/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {#if loader.isResetting}
+              <LoaderCircle class="h-4 w-4 animate-spin" />
+              Переустановка...
+            {:else}
+              <Database class="h-4 w-4" />
+              Переустановить БД
+            {/if}
+          </button>
         </div>
-        <button
-          onclick={resetDatabase}
-          disabled={isResetting}
-          class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium dark:bg-amber-500/20 light:bg-amber-400/30 dark:text-amber-400 light:text-amber-700 dark:hover:bg-amber-500/30 light:hover:bg-amber-400/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-        >
-          {#if isResetting}
-            <LoaderCircle class="h-4 w-4 animate-spin" />
-            Переустановка...
-          {:else}
-            <Database class="h-4 w-4" />
-            Переустановить БД
-          {/if}
-        </button>
+        <p class="text-xs dark:text-muted-foreground/50 light:text-purple-600/50 mt-1">
+          Удаляет все файлы и сбрасывает базу данных. Форматы будут пересозданы автоматически.
+        </p>
       </div>
-      <p class="text-xs dark:text-muted-foreground/50 light:text-purple-600/50 mt-1">
-        Удаляет все файлы и сбрасывает базу данных. Форматы будут пересозданы автоматически.
-      </p>
     </div>
-        </div>
   </footer>
 </div>
 
