@@ -50,6 +50,7 @@ pub fn run() {
             utils::get_formats,
             utils::get_format_by_id,
             utils::get_file_size,
+            db::reset_database,
             
             utils::create_temp_file,
             // settings

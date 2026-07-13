@@ -3,7 +3,7 @@
   import type { PageProps } from './$types';
   import { goto, invalidateAll } from '$app/navigation';
   import { formatFileSize } from '$lib/utils/format';
-  import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X, Trash } from 'lucide-svelte';
+  import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X, Trash, LoaderCircle } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { FileInfo } from '$lib/types/files';
   import { openPath } from "@tauri-apps/plugin-opener";
@@ -38,6 +38,9 @@
   
   // Флаг для массового удаления
   let isDeletingAll = $state(false);
+  
+  // Флаг для переустановки БД
+  let isResetting = $state(false);
 
   // Фильтрация
   let filteredFiles = $derived(
@@ -56,6 +59,34 @@
 
   function goBack() {
     goto('/');
+  }
+
+  // Функция переустановки базы данных
+  async function resetDatabase() {
+    if (isResetting) return;
+    
+    const confirmed = await confirm('Вы уверены, что хотите переустановить базу данных?\n\nБудут удалены:\n• Все сконвертированные файлы\n• Все временные файлы\n• Все записи в базе данных\n\nЭто действие необратимо!', {
+      title: 'Переустановка базы данных',
+      kind: 'warning',
+    });
+    if (!confirmed) return;
+    
+    isResetting = true;
+    
+    try {
+      if (selectedFile) {
+        await closeModal();
+      }
+      
+      await invoke('reset_database');
+      await invalidateAll();
+      toast.success('База данных успешно переустановлена');
+    } catch (error) {
+      console.error('Failed to reset database:', error);
+      toast.error('Не удалось переустановить базу данных');
+    } finally {
+      isResetting = false;
+    }
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -146,7 +177,6 @@
       await invalidateAll();
       toast.success(m.file_deleted({ name: file.name }));
       
-      // Если удалили последний файл в текущем фильтре и это не 'all'
       if (filterType !== 'all' && files.filter(f => f.file_type === filterType).length === 0) {
         filterType = 'all';
       }
@@ -237,7 +267,6 @@
       
       await invalidateAll();
       toast.success(m.files_deleted({ count: deletedCount }));
-
     } catch (error) {
       console.error('Failed to delete files:', error);
       toast.error(m.delete_error());
@@ -446,7 +475,12 @@
       </div>
 
       <!-- Список файлов -->
-      {#if filteredFiles.length === 0}
+      {#if isDeletingAll}
+        <div class="flex flex-col items-center justify-center py-20 gap-4">
+          <LoaderCircle class="h-12 w-12 text-primary animate-spin" />
+          <p class="dark:text-muted-foreground light:text-purple-700/70">Удаление файлов...</p>
+        </div>
+      {:else if filteredFiles.length === 0}
         <div class="flex flex-col items-center justify-center py-20 gap-4">
           <FolderOpen class="h-16 w-16 dark:text-muted-foreground/30 light:text-purple-400/30" />
           <p class="dark:text-muted-foreground light:text-purple-700/70">
@@ -516,7 +550,7 @@
       {/if}
       
       <!-- Кнопка "Удалить все" -->
-      {#if filteredFiles.length > 0}
+      {#if filteredFiles.length > 0 && !isDeletingAll}
         <div class="flex justify-end mt-4">
           <button
             onclick={deleteAllFiltered}
@@ -524,10 +558,36 @@
             class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Trash class="h-4 w-4" />
-            {isDeletingAll ? 'Удаление...' : `Удалить все (${filteredFiles.length})`}
+            Удалить все ({filteredFiles.length})
           </button>
         </div>
       {/if}
+    </div>
+    
+    <!-- Блок управления базой данных -->
+    <div class="max-w-7xl mx-auto mt-auto pt-4 border-t dark:border-border/50 light:border-purple-300/40">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <Database class="h-4 w-4 dark:text-muted-foreground light:text-purple-600" />
+          <span class="text-sm dark:text-muted-foreground light:text-purple-700/70">Управление базой данных</span>
+        </div>
+        <button
+          onclick={resetDatabase}
+          disabled={isResetting}
+          class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium dark:bg-amber-500/20 light:bg-amber-400/30 dark:text-amber-400 light:text-amber-700 dark:hover:bg-amber-500/30 light:hover:bg-amber-400/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+        >
+          {#if isResetting}
+            <LoaderCircle class="h-4 w-4 animate-spin" />
+            Переустановка...
+          {:else}
+            <Database class="h-4 w-4" />
+            Переустановить БД
+          {/if}
+        </button>
+      </div>
+      <p class="text-xs dark:text-muted-foreground/50 light:text-purple-600/50 mt-1">
+        Удаляет все файлы и сбрасывает базу данных. Форматы будут пересозданы автоматически.
+      </p>
     </div>
   </div>
 

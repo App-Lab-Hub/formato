@@ -1,7 +1,7 @@
 // src/db/db.rs
 
 use sea_orm::prelude::Expr;
-use sea_orm::sea_query::Func;
+use sea_orm::sea_query::{Func,Table};
 use sea_orm::{ConnectionTrait, DbErr, TransactionSession};
 use sea_orm::{ActiveModelTrait, EntityTrait, Set};
 use sea_orm::{ConnectOptions, Database, DatabaseConnection};
@@ -16,7 +16,7 @@ use crate::paths::db_path;
 use crate::db::models::{Formats, FormatModel, FormatActiveModel, Conversions, ConversionModel, ConversionActiveModel};
 use crate::db::models::formats::Column as FormatColumn;
 use crate::db::models::conversions::Column as ConversionColumn;
-
+use crate::AppState;
 // ============================================================
 // ИНИЦИАЛИЗАЦИЯ БД
 // ============================================================
@@ -222,5 +222,67 @@ pub async fn delete_conversion_by_path(
         println!("✅ Deleted from DB: {}", file_path);
     }
     
+    Ok(())
+}
+
+
+
+
+
+#[tauri::command]
+pub async fn reset_database(state: tauri::State<'_, AppState>) -> Result<(), String> {
+    let db_guard = state.db.lock().await;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+
+    println!("🔄 Resetting database and cleaning files...");
+
+    // 1. Удаляем папки и создаем заново
+    let converted_dir = crate::paths::converted_dir();
+    if converted_dir.exists() {
+        std::fs::remove_dir_all(&converted_dir)
+            .map_err(|e| format!("Failed to remove converted dir: {e}"))?;
+        println!("🗑️ Deleted converted dir");
+    }
+    // Создаем папку заново
+    std::fs::create_dir_all(&converted_dir)
+        .map_err(|e| format!("Failed to create converted dir: {e}"))?;
+    println!("✅ Recreated converted dir");
+
+    let temp_dir = crate::paths::temp_dir();
+    if temp_dir.exists() {
+        std::fs::remove_dir_all(&temp_dir)
+            .map_err(|e| format!("Failed to remove temp dir: {e}"))?;
+        println!("🗑️ Deleted temp dir");
+    }
+    // Создаем папку заново
+    std::fs::create_dir_all(&temp_dir)
+        .map_err(|e| format!("Failed to create temp dir: {e}"))?;
+    println!("✅ Recreated temp dir");
+
+    // 2. Выполняем сырые SQL запросы для удаления таблиц
+    let sql = "
+        DROP TABLE IF EXISTS conversions;
+        DROP TABLE IF EXISTS formats;
+    ";
+
+    db.execute_unprepared(sql)
+        .await
+        .map_err(|e| format!("Failed to reset database: {e}"))?;
+
+    println!("✅ Tables dropped");
+
+    // 3. Создаем таблицы заново
+    crate::create_tables!(
+        db,
+        Formats,
+        Conversions
+    );
+
+    println!("✅ Tables recreated");
+
+    init_formats(db).await
+        .map_err(|e| format!("Failed to reinit formats: {e}"))?;
+
+    println!("✅ Database reset complete!");
     Ok(())
 }
