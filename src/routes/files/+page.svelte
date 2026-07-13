@@ -11,6 +11,7 @@
   import { toast } from '$lib/utils/toast';
   import { animate } from '@motionone/dom';
   import { tick } from 'svelte';
+  import { confirm } from '@tauri-apps/plugin-dialog';
 
   let { data }: PageProps = $props();
   
@@ -92,53 +93,61 @@
     }
   }
 
-  // Функция удаления файла с анимацией
-  async function deleteFile(file: FileInfo) {
-    if (deletingFilePath === file.path) return;
-    
-    // if (!confirm(`Удалить файл "${file.name}"?`)) return;
-    
-    // Если модальное окно открыто, сначала закрываем его
-    if (selectedFile) {
-      await closeModal();
-      // Небольшая задержка для завершения анимации закрытия
-      await new Promise(resolve => setTimeout(resolve, 300));
-    }
-    
-    deletingFileIds.add(file.path);
-    deletingFilePath = file.path;
-    
-    try {
-      const el = document.querySelector(`[data-file-path="${file.path}"]`) as HTMLElement;
-      if (el) {
-        await el.animate(
-          [
-            { transform: 'translateX(0)', opacity: 1 },
-            { transform: 'translateX(300px)', opacity: 0 },
-          ],
-          { duration: 300, easing: 'ease-in', fill: 'forwards' }
-        ).finished;
-      }
-      
-      await invoke('delete_file', { path: file.path });
-      // await invoke<FileInfo[]>('get_files');
-      // goto('/files?refresh=true', { invalidateAll: true });
-      await invalidateAll();
-      toast.success(`Файл "${file.name}" удалён`);
-      
-      if (selectedFile?.path === file.path) {
-        selectedFile = null;
-      }
-    } catch (error) {
-      console.error('Failed to delete file:', error);
-      toast.error(`Не удалось удалить файл: ${error}`);
-    } finally {
-      deletingFilePath = null;
-      deletingFileIds.delete(file.path);
-    }
+// Функция удаления файла с анимацией
+async function deleteFile(file: FileInfo) {
+  if (deletingFilePath === file.path) return;
+  
+  // Используем Tauri dialog для подтверждения
+  const confirmed = await confirm(`Удалить файл "${file.name}"?`, {
+    title: 'Подтверждение удаления',
+    kind: 'warning',
+  });
+  if (!confirmed) return;
+  
+  // Если модальное окно открыто, сначала закрываем его
+  if (selectedFile) {
+    await closeModal();
+    // Небольшая задержка для завершения анимации закрытия
+    await new Promise(resolve => setTimeout(resolve, 300));
   }
+  
+  deletingFileIds.add(file.path);
+  deletingFilePath = file.path;
+  
+  try {
+    const el = document.querySelector(`[data-file-path="${file.path}"]`) as HTMLElement;
+    if (el) {
+      const animation = el.animate(
+        [
+          { transform: 'translateX(0px)', opacity: 1 },
+          { transform: 'translateX(300px)', opacity: 0 },
+        ],
+        {
+          duration: 300,
+          easing: 'ease-in',
+          fill: 'forwards'
+        }
+      );
+      await animation.finished;
+    }
+    
+    await invoke('delete_file', { path: file.path });
+    await invalidateAll();
+    toast.success(`Файл "${file.name}" удалён`);
+    
+    if (selectedFile?.path === file.path) {
+      selectedFile = null;
+    }
+  } catch (error) {
+    console.error('Failed to delete file:', error);
+    toast.error(`Не удалось удалить файл: ${error}`);
+  } finally {
+    deletingFilePath = null;
+    deletingFileIds.delete(file.path);
+  }
+}
 
-  // Функция удаления всех файлов по текущему фильтру
+// Функция удаления всех файлов по текущему фильтру
 async function deleteAllFiltered() {
   if (isDeletingAll) return;
   if (filteredFiles.length === 0) {
@@ -147,7 +156,13 @@ async function deleteAllFiltered() {
   }
   
   const typeLabel = filterType === 'all' ? 'всех' : filterType === 'converted' ? 'сконвертированных' : 'временных';
-  // if (!confirm(`Удалить ${typeLabel} файлов (${filteredFiles.length} шт.)?`)) return;
+  
+  // Используем Tauri dialog для подтверждения
+  const confirmed = await confirm(`Удалить ${typeLabel} файлов (${filteredFiles.length} шт.)?`, {
+    title: 'Подтверждение удаления',
+    kind: 'warning',
+  });
+  if (!confirmed) return;
   
   isDeletingAll = true;
   
@@ -174,10 +189,14 @@ async function deleteAllFiltered() {
     const animations = itemsToDelete.map(el =>
       el.animate(
         [
-          { transform: 'translateX(0)', opacity: 1 },
+          { transform: 'translateX(0px)', opacity: 1 },
           { transform: 'translateX(300px)', opacity: 0 },
         ],
-        { duration: 300, easing: 'ease-in', fill: 'forwards' }
+        {
+          duration: 300,
+          easing: 'ease-in',
+          fill: 'forwards'
+        }
       ).finished
     );
     
