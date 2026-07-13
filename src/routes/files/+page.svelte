@@ -1,7 +1,7 @@
 <!-- src/routes/files/+page.svelte -->
 <script lang="ts">
   import type { PageProps } from './$types';
-  import { goto, invalidateAll } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import { formatFileSize } from '$lib/utils/format';
   import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
@@ -11,7 +11,6 @@
   import { toast } from '$lib/utils/toast';
   import { animate } from '@motionone/dom';
   import { tick } from 'svelte';
-  import { onMount } from 'svelte';
 
   let { data }: PageProps = $props();
   
@@ -33,6 +32,7 @@
   let modalOverlay: HTMLDivElement | undefined = $state();
   let modalContent: HTMLDivElement | undefined = $state();
   let isModalOpening = $state(false);
+  let isModalClosing = $state(false);
 
   // Фильтрация
   let filteredFiles = $derived(
@@ -56,21 +56,12 @@
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') {
       if (selectedFile) {
-        // Если модалка открыта — закрываем её
         closeModal();
       } else {
-        // Иначе уходим на главную
         goBack();
       }
     }
   }
-
-  onMount(() => {
-    window.addEventListener('keydown', handleKeydown);
-    return () => {
-      window.removeEventListener('keydown', handleKeydown);
-    };
-  });
 
   function getTypeLabel(type: string) {
     return type === 'converted' ? 'Сконвертированные' : 'Временные';
@@ -127,9 +118,8 @@
       }
       
       await invoke('delete_file', { path: file.path });
-      // await invoke<FileInfo[]>('get_files');
-      await invalidateAll();
-      // goto('/files?refresh=true', { invalidateAll: true });
+      await invoke<FileInfo[]>('get_files');
+      goto('/files?refresh=true', { invalidateAll: true });
       
       toast.success(`Файл "${file.name}" удалён`);
       
@@ -176,6 +166,27 @@
 
   // Открытие модального окна с анимацией
   async function openModal(file: FileInfo) {
+    // Если модалка уже открыта и это тот же файл — ничего не делаем
+    if (selectedFile?.path === file.path) return;
+    
+    // Если модалка закрывается — ждем
+    if (isModalClosing) {
+      // Ждем завершения закрытия
+      await new Promise(resolve => {
+        const checkInterval = setInterval(() => {
+          if (!isModalClosing) {
+            clearInterval(checkInterval);
+            resolve(null);
+          }
+        }, 50);
+      });
+    }
+    
+    // Если модалка уже открыта — закрываем её
+    if (selectedFile) {
+      await closeModal();
+    }
+    
     if (isModalOpening) return;
     isModalOpening = true;
     
@@ -206,8 +217,10 @@
 
   // Закрытие модального окна с анимацией
   async function closeModal() {
-    if (isModalOpening) return;
-    isModalOpening = true;
+    if (isModalOpening || !selectedFile) return;
+    if (isModalClosing) return;
+    
+    isModalClosing = true;
     
     if (modalContent) {
       await animate(modalContent, {
@@ -229,7 +242,7 @@
     }
     
     selectedFile = null;
-    isModalOpening = false;
+    isModalClosing = false;
   }
 </script>
 
@@ -422,7 +435,7 @@
         </h3>
         <button 
           onclick={() => closeModal()}
-          class="p-1 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
+          class="cursor-pointer p-1 rounded-lg hover:bg-muted/50 transition-colors"
           aria-label="Закрыть"
         >
           <X class="h-5 w-5 dark:text-muted-foreground light:text-purple-600" />
@@ -447,7 +460,7 @@
         <div class="py-2">
           <span class="dark:text-muted-foreground light:text-purple-700/70 block mb-1 text-sm font-medium">Путь к файлу</span>
           <div 
-            class="cursor-pointer dark:bg-background/50 light:bg-purple-200/50 p-3 rounded-xl border dark:border-border/30 light:border-purple-300/30 cursor-pointer transition-colors hover:dark:bg-background/70 hover:light:bg-purple-200/70 group"
+            class="dark:bg-background/50 light:bg-purple-200/50 p-3 rounded-xl border dark:border-border/30 light:border-purple-300/30 cursor-pointer transition-colors hover:dark:bg-background/70 hover:light:bg-purple-200/70 group"
             onclick={async () => {
               if (!selectedFile) return;
               console.log("path to file -> ",selectedFile.path);
