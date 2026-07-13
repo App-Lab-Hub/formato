@@ -63,8 +63,8 @@
   async function resetDatabase() {
     if (loader.isResetting) return;
     
-    const confirmed = await confirm('Вы уверены, что хотите переустановить базу данных?\n\nБудут удалены:\n• Все сконвертированные файлы\n• Все временные файлы\n• Все записи в базе данных\n\nЭто действие необратимо!', {
-      title: 'Переустановка базы данных',
+    const confirmed = await confirm(m.confirm_reset_database(), {
+      title: m.confirm_reset_database_title(),
       kind: 'warning',
     });
     if (!confirmed) return;
@@ -82,10 +82,10 @@
       await delay(1000);
       
       await invalidateAll();
-      toast.success('База данных успешно переустановлена');
+      toast.success(m.database_reset_success());
     } catch (error) {
       console.error('Failed to reset database:', error);
-      toast.error('Не удалось переустановить базу данных');
+      toast.error(m.database_reset_error());
     } finally {
       loader.stopResetting();
     }
@@ -102,7 +102,7 @@
   }
 
   function getTypeLabel(type: string) {
-    return type === 'converted' ? 'Сконвертированные' : 'Временные';
+    return type === 'converted' ? m.file_type_converted() : m.file_type_temp();
   }
 
   function getTypeColor(type: string) {
@@ -114,8 +114,12 @@
   function formatDate(dateStr: string) {
     try {
       const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return 'Неизвестно';
-      return date.toLocaleString('ru-RU', {
+      if (isNaN(date.getTime())) return m.files_date_unknown();
+      
+      // Используем язык из настроек
+      const locale = data.settings?.language || 'en';
+      
+      return date.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US', {
         day: '2-digit',
         month: '2-digit',
         year: 'numeric',
@@ -123,18 +127,18 @@
         minute: '2-digit'
       });
     } catch {
-      return 'Неизвестно';
+      return m.files_date_unknown();
     }
   }
 
   function getEmptyMessage() {
-    if (searchQuery) return 'Нет файлов по вашему запросу';
+    if (searchQuery) return m.files_no_search_results();
     
     switch (filterType) {
-      case 'all': return 'Нет файлов в папках';
-      case 'converted': return 'Нет сконвертированных файлов';
-      case 'temp': return 'Нет временных файлов';
-      default: return 'Нет файлов';
+      case 'all': return m.files_empty_all();
+      case 'converted': return m.files_empty_converted();
+      case 'temp': return m.files_empty_temp();
+      default: return m.files_empty();
     }
   }
 
@@ -376,29 +380,29 @@
           onclick={goBack}
           class="cursor-pointer flex items-center gap-2 dark:text-muted-foreground light:text-purple-700/70 dark:hover:text-primary light:hover:text-purple-800 transition-colors"
         >
-          <span class="text-sm">← Назад</span>
+          <span class="text-sm">← {m.settings_back()}</span>
         </button>
         <h1 class="text-2xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
-          Управление файлами
+          {m.files_management_title()}
         </h1>
       </div>
 
       <!-- Статистика -->
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <div class="dark:bg-card/50 light:bg-purple-200/40 rounded-xl p-4 border dark:border-border/50 light:border-purple-300/40">
-          <p class="text-xs dark:text-muted-foreground light:text-purple-700/70">Всего файлов</p>
+          <p class="text-xs dark:text-muted-foreground light:text-purple-700/70">{m.files_total()}</p>
           <p class="text-2xl font-bold dark:text-foreground light:text-purple-800">{totalFiles}</p>
         </div>
         <div class="dark:bg-card/50 light:bg-purple-200/40 rounded-xl p-4 border dark:border-border/50 light:border-purple-300/40">
-          <p class="text-xs dark:text-muted-foreground light:text-purple-700/70">Общий размер</p>
+          <p class="text-xs dark:text-muted-foreground light:text-purple-700/70">{m.files_total_size()}</p>
           <p class="text-2xl font-bold dark:text-foreground light:text-purple-800">{formatFileSize(totalSize)}</p>
         </div>
         <div class="dark:bg-card/50 light:bg-purple-200/40 rounded-xl p-4 border dark:border-border/50 light:border-purple-300/40">
-          <p class="text-xs dark:text-muted-foreground light:text-purple-700/70">Сконвертированные</p>
+          <p class="text-xs dark:text-muted-foreground light:text-purple-700/70">{m.files_converted_count()}</p>
           <p class="text-2xl font-bold text-emerald-400">{convertedCount}</p>
         </div>
         <div class="dark:bg-card/50 light:bg-purple-200/40 rounded-xl p-4 border dark:border-border/50 light:border-purple-300/40">
-          <p class="text-xs dark:text-muted-foreground light:text-purple-700/70">Временные</p>
+          <p class="text-xs dark:text-muted-foreground light:text-purple-700/70">{m.files_temp_count()}</p>
           <p class="text-2xl font-bold text-amber-400">{tempCount}</p>
         </div>
       </div>
@@ -408,7 +412,7 @@
         <div class="flex-1">
           <input
             type="text"
-            placeholder="Поиск файлов..."
+            placeholder={m.files_search_placeholder()}
             bind:value={searchQuery}
             class="w-full px-4 py-2 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 dark:text-foreground light:text-purple-800 placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
@@ -423,7 +427,7 @@
                 : 'dark:bg-card/30 light:bg-purple-200/30 dark:hover:bg-card/50 light:hover:bg-purple-200/50'
             ]}
           >
-            Все
+            {m.files_filter_all()}
           </button>
           <button
             onclick={() => setFilter('converted')}
@@ -434,7 +438,7 @@
                 : 'dark:bg-card/30 light:bg-purple-200/30 dark:hover:bg-card/50 light:hover:bg-purple-200/50'
             ]}
           >
-            Сконвертированные
+            {m.files_filter_converted()}
           </button>
           <button
             onclick={() => setFilter('temp')}
@@ -445,7 +449,7 @@
                 : 'dark:bg-card/30 light:bg-purple-200/30 dark:hover:bg-card/50 light:hover:bg-purple-200/50'
             ]}
           >
-            Временные
+            {m.files_filter_temp()}
           </button>
         </div>
       </div>
@@ -455,7 +459,7 @@
         <div class="flex flex-col items-center justify-center py-20 gap-4">
           <LoaderCircle class="h-16 w-16 text-primary animate-spin" />
           <p class="dark:text-muted-foreground light:text-purple-700/70 text-lg">
-            {loader.isDeletingAll ? 'Удаление файлов...' : 'Переустановка базы данных...'}
+            {loader.isDeletingAll ? m.files_deleting_progress() : m.files_resetting_progress()}
           </p>
         </div>
       {:else if filteredFiles.length === 0}
@@ -537,10 +541,10 @@
           >
             {#if loader.isDeletingAll}
               <LoaderCircle class="h-4 w-4 animate-spin" />
-              Удаление...
+              {m.files_deleting()}
             {:else}
               <Trash2 class="h-4 w-4" />
-              Удалить все ({filteredFiles.length})
+              {m.files_delete_all({ count: filteredFiles.length })}
             {/if}
           </button>
         </div>
@@ -554,7 +558,7 @@
         <div class="flex items-center justify-between mt-4">
           <div class="flex items-center gap-2">
             <Database class="h-4 w-4 dark:text-muted-foreground light:text-purple-600" />
-            <span class="text-sm dark:text-muted-foreground light:text-purple-700/70">Управление базой данных</span>
+            <span class="text-sm dark:text-muted-foreground light:text-purple-700/70">{m.files_database_management()}</span>
           </div>
           <button
             onclick={resetDatabase}
@@ -563,15 +567,15 @@
           >
             {#if loader.isResetting}
               <LoaderCircle class="h-4 w-4 animate-spin" />
-              Переустановка...
+              {m.files_resetting()}
             {:else}
               <Database class="h-4 w-4" />
-              Переустановить БД
+              {m.files_reset_database()}
             {/if}
           </button>
         </div>
         <p class="text-xs dark:text-muted-foreground/50 light:text-purple-600/50 mt-1">
-          Удаляет все файлы и сбрасывает базу данных. Форматы будут пересозданы автоматически.
+          {m.files_reset_database_description()}
         </p>
       </div>
     </div>
@@ -611,7 +615,7 @@
         <button 
           onclick={() => closeModal()}
           class="cursor-pointer p-1 rounded-lg hover:bg-muted/50 transition-colors"
-          aria-label="Закрыть"
+          aria-label={m.files_modal_close()}
         >
           <X class="h-5 w-5 dark:text-muted-foreground light:text-purple-600" />
         </button>
@@ -619,21 +623,21 @@
 
       <div class="space-y-3 text-sm">
         <div class="flex justify-between py-2 border-b dark:border-border/50 light:border-purple-300/40">
-          <span class="dark:text-muted-foreground light:text-purple-700/70">Тип</span>
+          <span class="dark:text-muted-foreground light:text-purple-700/70">{m.files_modal_type()}</span>
           <span class={['px-2 py-0.5 rounded-md text-xs font-semibold uppercase', getTypeColor(selectedFile.file_type)]}>
             {getTypeLabel(selectedFile.file_type)}
           </span>
         </div>
         <div class="flex justify-between py-2 border-b dark:border-border/50 light:border-purple-300/40">
-          <span class="dark:text-muted-foreground light:text-purple-700/70">Размер</span>
+          <span class="dark:text-muted-foreground light:text-purple-700/70">{m.files_modal_size()}</span>
           <span class="dark:text-foreground light:text-purple-800">{formatFileSize(selectedFile.size)}</span>
         </div>
         <div class="flex justify-between py-2 border-b dark:border-border/50 light:border-purple-300/40">
-          <span class="dark:text-muted-foreground light:text-purple-700/70">Создан</span>
+          <span class="dark:text-muted-foreground light:text-purple-700/70">{m.files_modal_created()}</span>
           <span class="dark:text-foreground light:text-purple-800">{formatDate(selectedFile.created)}</span>
         </div>
         <div class="py-2">
-          <span class="dark:text-muted-foreground light:text-purple-700/70 block mb-1 text-sm font-medium">Путь к файлу</span>
+          <span class="dark:text-muted-foreground light:text-purple-700/70 block mb-1 text-sm font-medium">{m.files_modal_path()}</span>
           <div 
             class="dark:bg-background/50 light:bg-purple-200/50 p-3 rounded-xl border dark:border-border/30 light:border-purple-300/30 cursor-pointer transition-colors hover:dark:bg-background/70 hover:light:bg-purple-200/70 group"
             onclick={async () => {
@@ -665,7 +669,7 @@
           onclick={() => closeModal()}
           class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium dark:bg-card/30 light:bg-purple-200/30 hover:dark:bg-card/50 hover:light:bg-purple-200/50 transition-colors"
         >
-          Отмена
+          {m.files_modal_cancel()}
         </button>
         <button
           onclick={() => {
@@ -678,9 +682,9 @@
         >
           {#if deletingFilePath === selectedFile?.path}
             <div class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" ></div>
-            Удаление...
+            {m.files_deleting()}
           {:else}
-            Удалить файл
+            {m.files_modal_delete()}
           {/if}
         </button>
       </div>
