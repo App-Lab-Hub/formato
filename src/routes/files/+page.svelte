@@ -94,157 +94,166 @@
     }
   }
 
-// Функция удаления файла с анимацией
-async function deleteFile(file: FileInfo) {
-  if (deletingFilePath === file.path) return;
-  
-  // Используем Tauri dialog для подтверждения с переводом
-  const confirmed = await confirm(m.confirm_delete_file({ name: file.name }), {
-    title: m.confirm_delete_title(),
-    kind: 'warning',
-  });
-  if (!confirmed) return;
-  
-  // Если модальное окно открыто, сначала закрываем его
-  if (selectedFile) {
-    await closeModal();
-    // Небольшая задержка для завершения анимации закрытия
-    await new Promise(resolve => setTimeout(resolve, 300));
-  }
-  
-  deletingFileIds.add(file.path);
-  deletingFilePath = file.path;
-  
-  try {
-    const el = document.querySelector(`[data-file-path="${file.path}"]`) as HTMLElement;
-    if (el) {
-      const animation = el.animate(
-        [
-          { transform: 'translateX(0px)', opacity: 1 },
-          { transform: 'translateX(300px)', opacity: 0 },
-        ],
-        {
-          duration: 300,
-          easing: 'ease-in',
-          fill: 'forwards'
-        }
-      );
-      await animation.finished;
-      // Фиксируем финальное состояние
-      el.style.transform = 'translateX(300px)';
-      el.style.opacity = '0';
-    }
+  function getEmptyMessage() {
+    if (searchQuery) return 'Нет файлов по вашему запросу';
     
-    await invoke('delete_file', { path: file.path });
-    await invalidateAll();
-    toast.success(m.file_deleted({ name: file.name }));
-    
-    if (selectedFile?.path === file.path) {
-      selectedFile = null;
+    switch (filterType) {
+      case 'all': return 'Нет файлов в папках';
+      case 'converted': return 'Нет сконвертированных файлов';
+      case 'temp': return 'Нет временных файлов';
+      default: return 'Нет файлов';
     }
-  } catch (error) {
-    console.error('Failed to delete file:', error);
-    toast.error(m.delete_error());
-  } finally {
-    deletingFilePath = null;
-    deletingFileIds.delete(file.path);
   }
-}
 
-// Функция удаления всех файлов по текущему фильтру
-async function deleteAllFiltered() {
-  if (isDeletingAll) return;
-  if (filteredFiles.length === 0) {
-    toast.warning(m.no_files_to_delete());
-    return;
-  }
-  
-  const typeLabel = filterType === 'all' 
-    ? m.delete_type_all() 
-    : filterType === 'converted' 
-      ? m.delete_type_converted() 
-      : m.delete_type_temp();
-  
-  // Используем Tauri dialog для подтверждения с переводом
-  const confirmed = await confirm(m.confirm_delete_all({ 
-    type: typeLabel, 
-    count: filteredFiles.length 
-  }), {
-    title: m.confirm_delete_title(),
-    kind: 'warning',
-  });
-  if (!confirmed) return;
-  
-  isDeletingAll = true;
-  
-  try {
-    // Закрываем модалку если открыта
+  // Функция удаления файла с анимацией
+  async function deleteFile(file: FileInfo) {
+    if (deletingFilePath === file.path) return;
+    
+    const confirmed = await confirm(m.confirm_delete_file({ name: file.name }), {
+      title: m.confirm_delete_title(),
+      kind: 'warning',
+    });
+    if (!confirmed) return;
+    
     if (selectedFile) {
       await closeModal();
       await new Promise(resolve => setTimeout(resolve, 300));
     }
     
-    // Получаем все элементы для анимации
-    const items = document.querySelectorAll('[data-file-path]');
-    const itemsToDelete: HTMLElement[] = [];
+    deletingFileIds.add(file.path);
+    deletingFilePath = file.path;
     
-    // Фильтруем элементы по текущему фильтру
-    items.forEach(el => {
-      const path = (el as HTMLElement).dataset.filePath;
-      if (path && filteredFiles.some(f => f.path === path)) {
-        itemsToDelete.push(el as HTMLElement);
+    try {
+      const el = document.querySelector(`[data-file-path="${file.path}"]`) as HTMLElement;
+      if (el) {
+        const animation = el.animate(
+          [
+            { transform: 'translateX(0px)', opacity: 1 },
+            { transform: 'translateX(300px)', opacity: 0 },
+          ],
+          {
+            duration: 300,
+            easing: 'ease-in',
+            fill: 'forwards'
+          }
+        );
+        await animation.finished;
+        el.style.transform = 'translateX(300px)';
+        el.style.opacity = '0';
       }
-    });
-    
-    // Запускаем анимации параллельно
-    const animations = itemsToDelete.map(el =>
-      el.animate(
-        [
-          { transform: 'translateX(0px)', opacity: 1 },
-          { transform: 'translateX(300px)', opacity: 0 },
-        ],
-        {
-          duration: 300,
-          easing: 'ease-in',
-          fill: 'forwards'
-        }
-      ).finished
-    );
-    
-    // Ждем завершения всех анимаций
-    await Promise.all(animations);
-    
-    // Фиксируем финальное состояние
-    itemsToDelete.forEach(el => {
-      el.style.transform = 'translateX(300px)';
-      el.style.opacity = '0';
-    });
-    
-    // Удаляем файлы
-    let deletedCount = 0;
-    for (const file of filteredFiles) {
-      try {
-        await invoke('delete_file', { path: file.path });
-        deletedCount++;
-      } catch (e) {
-        console.error(`Failed to delete ${file.path}:`, e);
+      
+      await invoke('delete_file', { path: file.path });
+      await invalidateAll();
+      toast.success(m.file_deleted({ name: file.name }));
+      
+      // Если удалили последний файл в текущем фильтре и это не 'all'
+      if (filterType !== 'all' && files.filter(f => f.file_type === filterType).length === 0) {
+        filterType = 'all';
       }
+      
+      if (selectedFile?.path === file.path) {
+        selectedFile = null;
+      }
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      toast.error(m.delete_error());
+    } finally {
+      deletingFilePath = null;
+      deletingFileIds.delete(file.path);
+    }
+  }
+
+  // Функция удаления всех файлов по текущему фильтру
+  async function deleteAllFiltered() {
+    if (isDeletingAll) return;
+    if (filteredFiles.length === 0) {
+      toast.warning(m.no_files_to_delete());
+      return;
     }
     
-    await invalidateAll();
-    toast.success(m.files_deleted({ count: deletedCount }));
-  } catch (error) {
-    console.error('Failed to delete files:', error);
-    toast.error(m.delete_error());
-  } finally {
-    isDeletingAll = false;
+    const typeLabel = filterType === 'all' 
+      ? m.delete_type_all() 
+      : filterType === 'converted' 
+        ? m.delete_type_converted() 
+        : m.delete_type_temp();
+    
+    const confirmed = await confirm(m.confirm_delete_all({ 
+      type: typeLabel, 
+      count: filteredFiles.length 
+    }), {
+      title: m.confirm_delete_title(),
+      kind: 'warning',
+    });
+    if (!confirmed) return;
+    
+    isDeletingAll = true;
+    
+    try {
+      if (selectedFile) {
+        await closeModal();
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      const items = document.querySelectorAll('[data-file-path]');
+      const itemsToDelete: HTMLElement[] = [];
+      
+      items.forEach(el => {
+        const path = (el as HTMLElement).dataset.filePath;
+        if (path && filteredFiles.some(f => f.path === path)) {
+          itemsToDelete.push(el as HTMLElement);
+        }
+      });
+      
+      const animations = itemsToDelete.map(el =>
+        el.animate(
+          [
+            { transform: 'translateX(0px)', opacity: 1 },
+            { transform: 'translateX(300px)', opacity: 0 },
+          ],
+          {
+            duration: 300,
+            easing: 'ease-in',
+            fill: 'forwards'
+          }
+        ).finished
+      );
+      
+      await Promise.all(animations);
+      
+      itemsToDelete.forEach(el => {
+        el.style.transform = 'translateX(300px)';
+        el.style.opacity = '0';
+      });
+      
+      let deletedCount = 0;
+      for (const file of filteredFiles) {
+        try {
+          await invoke('delete_file', { path: file.path });
+          deletedCount++;
+        } catch (e) {
+          console.error(`Failed to delete ${file.path}:`, e);
+        }
+      }
+      
+      await invalidateAll();
+      toast.success(m.files_deleted({ count: deletedCount }));
+
+    } catch (error) {
+      console.error('Failed to delete files:', error);
+      toast.error(m.delete_error());
+    } finally {
+      isDeletingAll = false;
+    }
   }
-}
 
   // Функция смены фильтра с анимацией
   async function setFilter(type: 'all' | 'converted' | 'temp') {
     if (filterType === type || isFilterAnimating) return;
-    if (!listContainer) return;
+    
+    if (!listContainer) {
+      filterType = type;
+      return;
+    }
     
     isFilterAnimating = true;
     
@@ -265,6 +274,9 @@ async function deleteAllFiltered() {
         duration: 0.3,
         easing: 'ease-out'
       }).finished;
+    } catch (error) {
+      console.warn('Filter animation failed:', error);
+      filterType = type;
     } finally {
       isFilterAnimating = false;
     }
@@ -272,10 +284,8 @@ async function deleteAllFiltered() {
 
   // Открытие модального окна с анимацией
   async function openModal(file: FileInfo) {
-    // Если модалка уже открыта и это тот же файл — ничего не делаем
     if (selectedFile?.path === file.path) return;
     
-    // Если модалка закрывается — ждем
     if (isModalClosing) {
       await new Promise(resolve => {
         const checkInterval = setInterval(() => {
@@ -287,7 +297,6 @@ async function deleteAllFiltered() {
       });
     }
     
-    // Если модалка уже открыта — закрываем её
     if (selectedFile) {
       await closeModal();
     }
@@ -437,11 +446,11 @@ async function deleteAllFiltered() {
       </div>
 
       <!-- Список файлов -->
-      {#if files.length === 0}
+      {#if filteredFiles.length === 0}
         <div class="flex flex-col items-center justify-center py-20 gap-4">
           <FolderOpen class="h-16 w-16 dark:text-muted-foreground/30 light:text-purple-400/30" />
           <p class="dark:text-muted-foreground light:text-purple-700/70">
-            {searchQuery ? 'Нет файлов по вашему запросу' : 'Нет файлов в папках'}
+            {getEmptyMessage()}
           </p>
         </div>
       {:else}
