@@ -1,9 +1,9 @@
 <!-- src/routes/files/+page.svelte -->
 <script lang="ts">
   import type { PageProps } from './$types';
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   import { formatFileSize } from '$lib/utils/format';
-  import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X } from 'lucide-svelte';
+  import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X, Trash } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { FileInfo } from '$lib/types/files';
   import { openPath } from "@tauri-apps/plugin-opener";
@@ -33,6 +33,9 @@
   let modalContent: HTMLDivElement | undefined = $state();
   let isModalOpening = $state(false);
   let isModalClosing = $state(false);
+  
+  // Флаг для массового удаления
+  let isDeletingAll = $state(false);
 
   // Фильтрация
   let filteredFiles = $derived(
@@ -93,7 +96,7 @@
   async function deleteFile(file: FileInfo) {
     if (deletingFilePath === file.path) return;
     
-    if (!confirm(`Удалить файл "${file.name}"?`)) return;
+    // if (!confirm(`Удалить файл "${file.name}"?`)) return;
     
     // Если модальное окно открыто, сначала закрываем его
     if (selectedFile) {
@@ -118,9 +121,9 @@
       }
       
       await invoke('delete_file', { path: file.path });
-      await invoke<FileInfo[]>('get_files');
-      goto('/files?refresh=true', { invalidateAll: true });
-      
+      // await invoke<FileInfo[]>('get_files');
+      // goto('/files?refresh=true', { invalidateAll: true });
+      await invalidateAll();
       toast.success(`Файл "${file.name}" удалён`);
       
       if (selectedFile?.path === file.path) {
@@ -134,6 +137,73 @@
       deletingFileIds.delete(file.path);
     }
   }
+
+  // Функция удаления всех файлов по текущему фильтру
+async function deleteAllFiltered() {
+  if (isDeletingAll) return;
+  if (filteredFiles.length === 0) {
+    toast.warning('Нет файлов для удаления');
+    return;
+  }
+  
+  const typeLabel = filterType === 'all' ? 'всех' : filterType === 'converted' ? 'сконвертированных' : 'временных';
+  // if (!confirm(`Удалить ${typeLabel} файлов (${filteredFiles.length} шт.)?`)) return;
+  
+  isDeletingAll = true;
+  
+  try {
+    // Закрываем модалку если открыта
+    if (selectedFile) {
+      await closeModal();
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
+    // Получаем все элементы для анимации
+    const items = document.querySelectorAll('[data-file-path]');
+    const itemsToDelete: HTMLElement[] = [];
+    
+    // Фильтруем элементы по текущему фильтру
+    items.forEach(el => {
+      const path = (el as HTMLElement).dataset.filePath;
+      if (path && filteredFiles.some(f => f.path === path)) {
+        itemsToDelete.push(el as HTMLElement);
+      }
+    });
+    
+    // Запускаем анимации параллельно
+    const animations = itemsToDelete.map(el =>
+      el.animate(
+        [
+          { transform: 'translateX(0)', opacity: 1 },
+          { transform: 'translateX(300px)', opacity: 0 },
+        ],
+        { duration: 300, easing: 'ease-in', fill: 'forwards' }
+      ).finished
+    );
+    
+    // Ждем завершения всех анимаций
+    await Promise.all(animations);
+    
+    // Удаляем файлы
+    let deletedCount = 0;
+    for (const file of filteredFiles) {
+      try {
+        await invoke('delete_file', { path: file.path });
+        deletedCount++;
+      } catch (e) {
+        console.error(`Failed to delete ${file.path}:`, e);
+      }
+    }
+    
+    await invalidateAll();
+    toast.success(`Удалено ${deletedCount} файлов`);
+  } catch (error) {
+    console.error('Failed to delete files:', error);
+    toast.error('Не удалось удалить файлы');
+  } finally {
+    isDeletingAll = false;
+  }
+}
 
   // Функция смены фильтра с анимацией
   async function setFilter(type: 'all' | 'converted' | 'temp') {
@@ -171,7 +241,6 @@
     
     // Если модалка закрывается — ждем
     if (isModalClosing) {
-      // Ждем завершения закрытия
       await new Promise(resolve => {
         const checkInterval = setInterval(() => {
           if (!isModalClosing) {
@@ -398,6 +467,20 @@
               </div>
             </div>
           {/each}
+        </div>
+      {/if}
+      
+      <!-- Кнопка "Удалить все" -->
+      {#if filteredFiles.length > 0}
+        <div class="flex justify-end mt-4">
+          <button
+            onclick={deleteAllFiltered}
+            disabled={isDeletingAll}
+            class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            <Trash class="h-4 w-4" />
+            {isDeletingAll ? 'Удаление...' : `Удалить все (${filteredFiles.length})`}
+          </button>
         </div>
       {/if}
     </div>
