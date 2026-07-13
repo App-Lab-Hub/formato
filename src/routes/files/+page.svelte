@@ -12,6 +12,7 @@
   import { animate } from '@motionone/dom';
   import { tick } from 'svelte';
   import { confirm } from '@tauri-apps/plugin-dialog';
+  import { m } from '$lib/paraglide/messages';
 
   let { data }: PageProps = $props();
   
@@ -97,9 +98,9 @@
 async function deleteFile(file: FileInfo) {
   if (deletingFilePath === file.path) return;
   
-  // Используем Tauri dialog для подтверждения
-  const confirmed = await confirm(`Удалить файл "${file.name}"?`, {
-    title: 'Подтверждение удаления',
+  // Используем Tauri dialog для подтверждения с переводом
+  const confirmed = await confirm(m.confirm_delete_file({ name: file.name }), {
+    title: m.confirm_delete_title(),
     kind: 'warning',
   });
   if (!confirmed) return;
@@ -129,18 +130,21 @@ async function deleteFile(file: FileInfo) {
         }
       );
       await animation.finished;
+      // Фиксируем финальное состояние
+      el.style.transform = 'translateX(300px)';
+      el.style.opacity = '0';
     }
     
     await invoke('delete_file', { path: file.path });
     await invalidateAll();
-    toast.success(`Файл "${file.name}" удалён`);
+    toast.success(m.file_deleted({ name: file.name }));
     
     if (selectedFile?.path === file.path) {
       selectedFile = null;
     }
   } catch (error) {
     console.error('Failed to delete file:', error);
-    toast.error(`Не удалось удалить файл: ${error}`);
+    toast.error(m.delete_error());
   } finally {
     deletingFilePath = null;
     deletingFileIds.delete(file.path);
@@ -151,15 +155,22 @@ async function deleteFile(file: FileInfo) {
 async function deleteAllFiltered() {
   if (isDeletingAll) return;
   if (filteredFiles.length === 0) {
-    toast.warning('Нет файлов для удаления');
+    toast.warning(m.no_files_to_delete());
     return;
   }
   
-  const typeLabel = filterType === 'all' ? 'всех' : filterType === 'converted' ? 'сконвертированных' : 'временных';
+  const typeLabel = filterType === 'all' 
+    ? m.delete_type_all() 
+    : filterType === 'converted' 
+      ? m.delete_type_converted() 
+      : m.delete_type_temp();
   
-  // Используем Tauri dialog для подтверждения
-  const confirmed = await confirm(`Удалить ${typeLabel} файлов (${filteredFiles.length} шт.)?`, {
-    title: 'Подтверждение удаления',
+  // Используем Tauri dialog для подтверждения с переводом
+  const confirmed = await confirm(m.confirm_delete_all({ 
+    type: typeLabel, 
+    count: filteredFiles.length 
+  }), {
+    title: m.confirm_delete_title(),
     kind: 'warning',
   });
   if (!confirmed) return;
@@ -203,6 +214,12 @@ async function deleteAllFiltered() {
     // Ждем завершения всех анимаций
     await Promise.all(animations);
     
+    // Фиксируем финальное состояние
+    itemsToDelete.forEach(el => {
+      el.style.transform = 'translateX(300px)';
+      el.style.opacity = '0';
+    });
+    
     // Удаляем файлы
     let deletedCount = 0;
     for (const file of filteredFiles) {
@@ -215,10 +232,10 @@ async function deleteAllFiltered() {
     }
     
     await invalidateAll();
-    toast.success(`Удалено ${deletedCount} файлов`);
+    toast.success(m.files_deleted({ count: deletedCount }));
   } catch (error) {
     console.error('Failed to delete files:', error);
-    toast.error('Не удалось удалить файлы');
+    toast.error(m.delete_error());
   } finally {
     isDeletingAll = false;
   }

@@ -6,7 +6,7 @@
   import { onMount } from 'svelte';
   import { toast } from '$lib/utils/toast';
   import { invoke } from '@tauri-apps/api/core';
-  import { save } from '@tauri-apps/plugin-dialog';
+  import { confirm, save } from '@tauri-apps/plugin-dialog';
 
   type FileItem = { path: string; name: string; id: string };
   type TargetFormat = { id: string; name: string };
@@ -48,48 +48,63 @@ let {
   
 
   
-  async function clearAllWithAnimation() {
-    if (isClearing) return;
-    isClearing = true;
-    
-    const items = document.querySelectorAll('[data-file-item]');
-    const animations = Array.from(items).map(el =>
-      (el as HTMLElement).animate(
-        [
-          { transform: 'translateX(0)', opacity: 1 },
-          { transform: 'translateX(300px)', opacity: 0 },
-        ],
-        { duration: 300, easing: 'ease-in', fill: 'forwards' },
-      ).finished,
-    );
-    await Promise.all(animations);
-    await onclearall();
-    isClearing = false;
+async function removeFile(index: number) {
+  const file = files[index];
+  if (convertingFiles.has(file.id)) return;
+
+  // Подтверждение удаления через Tauri dialog с переводом
+  const confirmed = await confirm(m.confirm_delete_file({ name: file.name }), {
+    title: m.confirm_delete_title(),
+    kind: 'warning',
+  });
+  if (!confirmed) return;
+
+  // Храним ПУТЬ в pending_removes_${sourceFormatId}
+  const storageKey = `pending_removes_${sourceFormatId}`;
+  const pendingRemoves = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
+  pendingRemoves.push(file.path);
+  sessionStorage.setItem(storageKey, JSON.stringify(pendingRemoves));
+
+  const el = document.querySelector(`[data-file-id="${file.id}"]`) as HTMLElement;
+  if (el) {
+    await el.animate(
+      [
+        { transform: 'translateX(0)', opacity: 1 },
+        { transform: 'translateX(300px)', opacity: 0 },
+      ],
+      { duration: 300, easing: 'ease-in', fill: 'forwards' },
+    ).finished;
   }
+
+  onremove(index);
+}
+
+async function clearAllWithAnimation() {
+  if (isClearing) return;
   
-  async function removeFile(index: number) {
-    const file = files[index];
-    if (convertingFiles.has(file.id)) return;
-
-    // Храним ПУТЬ в pending_removes_${sourceFormatId}
-    const storageKey = `pending_removes_${sourceFormatId}`;
-    const pendingRemoves = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
-    pendingRemoves.push(file.path);
-    sessionStorage.setItem(storageKey, JSON.stringify(pendingRemoves));
-
-    const el = document.querySelector(`[data-file-id="${file.id}"]`) as HTMLElement;
-    if (el) {
-      await el.animate(
-        [
-          { transform: 'translateX(0)', opacity: 1 },
-          { transform: 'translateX(300px)', opacity: 0 },
-        ],
-        { duration: 300, easing: 'ease-in', fill: 'forwards' },
-      ).finished;
-    }
-
-    onremove(index);
-  }
+  // Подтверждение очистки всех файлов через Tauri dialog с переводом
+  const confirmed = await confirm(m.confirm_clear_all(), {
+    title: m.confirm_clear_all_title(),
+    kind: 'warning',
+  });
+  if (!confirmed) return;
+  
+  isClearing = true;
+  
+  const items = document.querySelectorAll('[data-file-item]');
+  const animations = Array.from(items).map(el =>
+    (el as HTMLElement).animate(
+      [
+        { transform: 'translateX(0)', opacity: 1 },
+        { transform: 'translateX(300px)', opacity: 0 },
+      ],
+      { duration: 300, easing: 'ease-in', fill: 'forwards' },
+    ).finished,
+  );
+  await Promise.all(animations);
+  await onclearall();
+  isClearing = false;
+}
 
   async function downloadAllAsArchive() {
     if (files.length === 0) {

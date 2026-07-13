@@ -166,5 +166,18 @@
 
   "files_title": "Файлы",
 
-  "adding_in_progress": "Подождите, идет добавление файлов..."
+  "adding_in_progress": "Подождите, идет добавление файлов...",
+
+  "confirm_delete_file": "Удалить файл \"{name}\"?",
+  "confirm_delete_title": "Подтверждение удаления",
+  "confirm_clear_all": "Удалить все файлы?",
+  "confirm_clear_all_title": "Подтверждение очистки",
+  "confirm_delete_all": "Удалить {type} файлов ({count} шт.)?",
+  "file_deleted": "Файл \"{name}\" удалён",
+  "files_deleted": "Удалено {count} файлов",
+  "delete_error": "Не удалось удалить файл",
+  "no_files_to_delete": "Нет файлов для удаления",
+  "delete_type_all": "всех",
+  "delete_type_converted": "сконвертированных",
+  "delete_type_temp": "временных"
 }

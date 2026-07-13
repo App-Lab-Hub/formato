@@ -166,5 +166,18 @@
 
   "files_title": "Files",
 
-  "adding_in_progress": "Please wait, files are being added..."
+  "adding_in_progress": "Please wait, files are being added...",
+
+  "confirm_delete_file": "Delete file \"{name}\"?",
+  "confirm_delete_title": "Confirm deletion",
+  "confirm_clear_all": "Delete all files?",
+  "confirm_clear_all_title": "Confirm clear all",
+  "confirm_delete_all": "Delete {type} files ({count} pcs.)?",
+  "file_deleted": "File \"{name}\" deleted",
+  "files_deleted": "{count} files deleted",
+  "delete_error": "Failed to delete file",
+  "no_files_to_delete": "No files to delete",
+  "delete_type_all": "all",
+  "delete_type_converted": "converted",
+  "delete_type_temp": "temporary"
 }
