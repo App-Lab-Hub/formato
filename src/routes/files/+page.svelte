@@ -548,10 +548,9 @@
     </div>
   </div>
 
-  <footer class="mt-auto pb-5 bg-background ">
-    <div class="border-t dark:border-border/50 light:border-purple-300/40"></div>
+  <footer class="mt-auto pb-5 dark:bg-background/80 light:bg-purple-200/50 backdrop-blur-xl border-t dark:border-border/50 light:border-purple-300/40">
     <div class="px-6 sm:px-8">
-      <div class="max-w-7xl mx-auto ">
+      <div class="max-w-7xl mx-auto">
         <div class="flex items-center justify-between mt-4">
           <div class="flex items-center gap-2">
             <Database class="h-4 w-4 dark:text-muted-foreground light:text-purple-600" />
