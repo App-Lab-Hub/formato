@@ -130,13 +130,15 @@
       disabled={!textContent.trim() || isProcessing}
       class="cursor-pointer px-6 py-2 bg-primary text-white rounded-lg hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-sm shadow-violet-500/20"
     >
-      {#if isProcessing}
+            <Plus class="h-4 w-4" />
+        {m.add_to_list()}
+      <!-- {#if isProcessing}
         <LoaderCircle class="h-4 w-4 animate-spin" />
         {m.adding_text()}
       {:else}
         <Plus class="h-4 w-4" />
         {m.add_to_list()}
-      {/if}
+      {/if} -->
     </button>
   </div>
 </div>

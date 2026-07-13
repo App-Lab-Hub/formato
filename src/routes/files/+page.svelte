@@ -1,7 +1,7 @@
 <!-- src/routes/files/+page.svelte -->
 <script lang="ts">
   import type { PageProps } from './$types';
-  import { goto } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
   import { formatFileSize } from '$lib/utils/format';
   import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
@@ -11,6 +11,7 @@
   import { toast } from '$lib/utils/toast';
   import { animate } from '@motionone/dom';
   import { tick } from 'svelte';
+  import { onMount } from 'svelte';
 
   let { data }: PageProps = $props();
   
@@ -27,6 +28,11 @@
   // Реф для контейнера списка
   let listContainer: HTMLDivElement | undefined = $state();
   let isFilterAnimating = $state(false);
+
+  // Реф для модального окна
+  let modalOverlay: HTMLDivElement | undefined = $state();
+  let modalContent: HTMLDivElement | undefined = $state();
+  let isModalOpening = $state(false);
 
   // Фильтрация
   let filteredFiles = $derived(
@@ -46,6 +52,25 @@
   function goBack() {
     goto('/');
   }
+
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      if (selectedFile) {
+        // Если модалка открыта — закрываем её
+        closeModal();
+      } else {
+        // Иначе уходим на главную
+        goBack();
+      }
+    }
+  }
+
+  onMount(() => {
+    window.addEventListener('keydown', handleKeydown);
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+    };
+  });
 
   function getTypeLabel(type: string) {
     return type === 'converted' ? 'Сконвертированные' : 'Временные';
@@ -79,6 +104,13 @@
     
     if (!confirm(`Удалить файл "${file.name}"?`)) return;
     
+    // Если модальное окно открыто, сначала закрываем его
+    if (selectedFile) {
+      await closeModal();
+      // Небольшая задержка для завершения анимации закрытия
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    
     deletingFileIds.add(file.path);
     deletingFilePath = file.path;
     
@@ -95,8 +127,9 @@
       }
       
       await invoke('delete_file', { path: file.path });
-      await invoke<FileInfo[]>('get_files');
-      goto('/files?refresh=true', { invalidateAll: true });
+      // await invoke<FileInfo[]>('get_files');
+      await invalidateAll();
+      // goto('/files?refresh=true', { invalidateAll: true });
       
       toast.success(`Файл "${file.name}" удалён`);
       
@@ -112,7 +145,7 @@
     }
   }
 
-  // Функция смены фильтра с анимацией (как в switchMode)
+  // Функция смены фильтра с анимацией
   async function setFilter(type: 'all' | 'converted' | 'temp') {
     if (filterType === type || isFilterAnimating) return;
     if (!listContainer) return;
@@ -120,7 +153,6 @@
     isFilterAnimating = true;
     
     try {
-      // Анимация исчезновения
       await animate(listContainer, {
         opacity: 0,
       }, {
@@ -128,11 +160,9 @@
         easing: 'ease-in'
       }).finished;
       
-      // Меняем фильтр
       filterType = type;
       await tick();
       
-      // Анимация появления
       await animate(listContainer, {
         opacity: [0, 1],
       }, {
@@ -143,7 +173,67 @@
       isFilterAnimating = false;
     }
   }
+
+  // Открытие модального окна с анимацией
+  async function openModal(file: FileInfo) {
+    if (isModalOpening) return;
+    isModalOpening = true;
+    
+    selectedFile = file;
+    await tick();
+    
+    if (modalOverlay) {
+      await animate(modalOverlay, {
+        opacity: [0, 1],
+      }, {
+        duration: 0.3,
+        easing: 'ease-out'
+      }).finished;
+    }
+    
+    if (modalContent) {
+      await animate(modalContent, {
+        scale: [0.9, 1],
+        opacity: [0, 1],
+      }, {
+        duration: 0.3,
+        easing: 'ease-out'
+      }).finished;
+    }
+    
+    isModalOpening = false;
+  }
+
+  // Закрытие модального окна с анимацией
+  async function closeModal() {
+    if (isModalOpening) return;
+    isModalOpening = true;
+    
+    if (modalContent) {
+      await animate(modalContent, {
+        scale: [1, 0.9],
+        opacity: [1, 0],
+      }, {
+        duration: 0.25,
+        easing: 'ease-in'
+      }).finished;
+    }
+    
+    if (modalOverlay) {
+      await animate(modalOverlay, {
+        opacity: [1, 0],
+      }, {
+        duration: 0.25,
+        easing: 'ease-in'
+      }).finished;
+    }
+    
+    selectedFile = null;
+    isModalOpening = false;
+  }
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <ScrollContainer>
   <div class="min-h-screen bg-background text-foreground p-6 sm:p-8">
@@ -195,7 +285,7 @@
           <button
             onclick={() => setFilter('all')}
             class={[
-              'px-4 py-2 rounded-xl text-sm font-medium transition-all',
+              'cursor-pointer px-4 py-2 rounded-xl text-sm font-medium transition-all',
               filterType === 'all' 
                 ? 'dark:bg-primary light:bg-purple-500 text-white' 
                 : 'dark:bg-card/30 light:bg-purple-200/30 dark:hover:bg-card/50 light:hover:bg-purple-200/50'
@@ -206,7 +296,7 @@
           <button
             onclick={() => setFilter('converted')}
             class={[
-              'px-4 py-2 rounded-xl text-sm font-medium transition-all',
+              'cursor-pointer px-4 py-2 rounded-xl text-sm font-medium transition-all',
               filterType === 'converted' 
                 ? 'bg-emerald-500 text-white' 
                 : 'dark:bg-card/30 light:bg-purple-200/30 dark:hover:bg-card/50 light:hover:bg-purple-200/50'
@@ -217,7 +307,7 @@
           <button
             onclick={() => setFilter('temp')}
             class={[
-              'px-4 py-2 rounded-xl text-sm font-medium transition-all',
+              'cursor-pointer px-4 py-2 rounded-xl text-sm font-medium transition-all',
               filterType === 'temp' 
                 ? 'bg-amber-500 text-white' 
                 : 'dark:bg-card/30 light:bg-purple-200/30 dark:hover:bg-card/50 light:hover:bg-purple-200/50'
@@ -249,10 +339,10 @@
               onkeydown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  selectedFile = file;
+                  openModal(file);
                 }
               }}
-              onclick={() => selectedFile = file}
+              onclick={() => openModal(file)}
               class="group flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/30 light:bg-purple-200/30 p-4 transition-all duration-200 hover:dark:bg-card/50 hover:light:bg-purple-200/60 cursor-pointer"
             >
               <div class="shrink-0 w-10 h-10 rounded-lg dark:bg-violet-500/20 light:bg-purple-300/60 flex items-center justify-center">
@@ -303,31 +393,35 @@
 <!-- Модальное окно с информацией о файле -->
 {#if selectedFile}
   <div 
+    bind:this={modalOverlay}
     role="button"
     tabindex="0"
     onkeydown={(e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
-        selectedFile = null;
+        closeModal();
       }
       if (e.key === 'Escape') {
-        selectedFile = null;
+        closeModal();
       }
     }}
-    onclick={() => selectedFile = null}
+    onclick={() => closeModal()}
     class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm cursor-pointer"
+    style="opacity: 0;"
   >
     <div 
-      class="max-w-lg w-full dark:bg-card light:bg-white rounded-2xl p-6 border dark:border-border/50 light:border-purple-300/40 shadow-xl"
+      bind:this={modalContent}
+      class="cursor-default max-w-lg w-full dark:bg-card light:bg-white rounded-2xl p-6 border dark:border-border/50 light:border-purple-300/40 shadow-xl"
       onclick={(e) => e.stopPropagation()}
       role="presentation"
+      style="opacity: 0; transform: scale(0.9);"
     >
       <div class="flex items-start justify-between mb-4">
         <h3 class="text-lg font-semibold dark:text-foreground light:text-purple-800 truncate">
           {selectedFile.name}
         </h3>
         <button 
-          onclick={() => selectedFile = null}
+          onclick={() => closeModal()}
           class="p-1 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
           aria-label="Закрыть"
         >
@@ -353,7 +447,7 @@
         <div class="py-2">
           <span class="dark:text-muted-foreground light:text-purple-700/70 block mb-1 text-sm font-medium">Путь к файлу</span>
           <div 
-            class="dark:bg-background/50 light:bg-purple-200/50 p-3 rounded-xl border dark:border-border/30 light:border-purple-300/30 cursor-pointer transition-colors hover:dark:bg-background/70 hover:light:bg-purple-200/70 group"
+            class="cursor-pointer dark:bg-background/50 light:bg-purple-200/50 p-3 rounded-xl border dark:border-border/30 light:border-purple-300/30 cursor-pointer transition-colors hover:dark:bg-background/70 hover:light:bg-purple-200/70 group"
             onclick={async () => {
               if (!selectedFile) return;
               console.log("path to file -> ",selectedFile.path);
@@ -380,8 +474,8 @@
       <!-- Кнопка удаления -->
       <div class="flex justify-end gap-2 mt-4 pt-3 border-t dark:border-border/50 light:border-purple-300/40">
         <button
-          onclick={() => selectedFile = null}
-          class="px-4 py-2 rounded-lg text-sm font-medium dark:bg-card/30 light:bg-purple-200/30 hover:dark:bg-card/50 hover:light:bg-purple-200/50 transition-colors"
+          onclick={() => closeModal()}
+          class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium dark:bg-card/30 light:bg-purple-200/30 hover:dark:bg-card/50 hover:light:bg-purple-200/50 transition-colors"
         >
           Отмена
         </button>
@@ -392,10 +486,10 @@
             }
           }}
           disabled={deletingFilePath === selectedFile?.path}
-          class="px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {#if deletingFilePath === selectedFile?.path}
-            <div class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div class="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" ></div>
             Удаление...
           {:else}
             Удалить файл
