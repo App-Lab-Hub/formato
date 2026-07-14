@@ -14,6 +14,7 @@
   import { confirm } from '@tauri-apps/plugin-dialog';
   import { m } from '$lib/paraglide/messages';
   import { loader } from '$lib/stores/loader.svelte';
+  import Tabs from '$lib/components/Tabs.svelte';
 
   let { data }: PageProps = $props();
   
@@ -408,7 +409,7 @@
       </div>
 
       <!-- Фильтры -->
-      <div class="flex flex-col sm:flex-row gap-3 mb-6">
+      <!-- <div class="flex flex-col sm:flex-row gap-3 mb-6">
         <div class="flex-1">
           <input
             type="text"
@@ -452,7 +453,11 @@
             {m.files_filter_temp()}
           </button>
         </div>
-      </div>
+      </div> -->
+     
+     
+      <Tabs></Tabs>
+
 
       <!-- Список файлов -->
       {#if loader.isDeletingAll || loader.isResetting}

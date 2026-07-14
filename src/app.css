@@ -382,3 +382,16 @@
     background-color 0s,
     box-shadow 0s !important;
 }
+
+/* ================================== */
+/* Плавный сдвиг плашки силами браузера без участия JS-движка анимаций */
+.tab-indicator {
+  transform: translateX(0%);
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+/* Если активен register, смещаем плашку ровно на её ширину (100%) */
+.tabs-container[data-active="register"] .tab-indicator {
+  transform: translateX(100%);
+}
