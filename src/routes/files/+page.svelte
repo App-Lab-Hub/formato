@@ -454,9 +454,24 @@
           </button>
         </div>
       </div> -->
-     
-     
-      <Tabs></Tabs>
+
+    <!-- Фильтры -->
+    <div class="flex flex-col sm:flex-row gap-3 mb-6">
+      <div class="flex-1">
+        <input
+          type="text"
+          placeholder={m.files_search_placeholder()}
+          bind:value={searchQuery}
+          class="w-full px-4 py-2 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 dark:text-foreground light:text-purple-800 placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+        />
+      </div>
+      
+      <!-- Tabs - только визуал, логика на странице -->
+      <Tabs 
+        filterType={filterType}
+        onFilterChange={setFilter}
+      />
+    </div>
 
 
       <!-- Список файлов -->

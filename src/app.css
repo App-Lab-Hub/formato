@@ -385,13 +385,44 @@
 
 /* ================================== */
 /* Плавный сдвиг плашки силами браузера без участия JS-движка анимаций */
+/* Плавный сдвиг плашки */
+/* Плавный сдвиг плашки */
+/* Плавный сдвиг плашки */
+
 .tab-indicator {
   transform: translateX(0%);
-  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.3s ease;
   will-change: transform;
 }
 
-/* Если активен register, смещаем плашку ровно на её ширину (100%) */
-.tabs-container[data-active="register"] .tab-indicator {
-  transform: translateX(100%);
+.tabs-container[data-active="all"] .tab-indicator {
+  transform: translateX(0%);
+}
+
+.tabs-container[data-active="converted"] .tab-indicator {
+  transform: translateX(calc(100% + 6px));
+}
+
+.tabs-container[data-active="temp"] .tab-indicator {
+  transform: translateX(calc(200% + 12px));
+}
+
+@media (max-width: 640px) {
+  .tabs-container {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .tabs-container button {
+    font-size: 10px;
+    padding-left: 4px;
+    padding-right: 4px;
+    width: auto !important;
+  }
+
+  .tab-indicator {
+    width: calc(33.333% - 4px) !important;
+  }
 }

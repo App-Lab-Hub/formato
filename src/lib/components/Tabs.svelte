@@ -1,37 +1,78 @@
+<!-- src/lib/components/Tabs.svelte -->
 <script lang="ts">
-  // Храним активную вкладку ('login' или 'register')
-  let activeTab = $state('login');
+  import { FolderOpen, Database, Clock } from 'lucide-svelte';
+  import { m } from '$lib/paraglide/messages';
+
+  let { 
+    filterType = 'all',
+    onFilterChange
+  }: {
+    filterType?: 'all' | 'converted' | 'temp';
+    onFilterChange?: (type: 'all' | 'converted' | 'temp') => void;
+  } = $props();
+
+  function setFilter(type: 'all' | 'converted' | 'temp') {
+    if (type === filterType) return;
+    if (onFilterChange) {
+      onFilterChange(type);
+    }
+  }
 </script>
 
-<div class="flex justify-center mt-2">
-  <!-- Передаем состояние активного таба через data-аттрибут для CSS -->
+<div class="flex items-center w-full sm:w-auto">
   <div 
-    data-active={activeTab}
-    class="tabs-container relative flex items-center w-fit dark:bg-[#1a1c20] bg-muted p-1 text-foreground rounded-md border h-10"
+    data-active={filterType}
+    class="tabs-container relative flex items-center w-full sm:w-fit dark:bg-card/30 light:bg-purple-200/30 p-1 rounded-xl border dark:border-border/50 light:border-purple-300/40 h-10 min-w-[200px]"
   >
-    
-    <!-- Единая скользящая плашка заднего фона (её невозможно продублировать кликами) -->
-    <div class="tab-indicator absolute top-1 bottom-1 left-1 bg-background dark:bg-card border dark:border-neutral-800 shadow-sm rounded-sm z-10 w-[calc(50%-4px)]"></div>
+    <!-- Плавающая плашка -->
+    <div class="tab-indicator absolute top-1 bottom-1 left-1 rounded-lg z-10 shadow-lg shadow-primary/20"
+      style="
+        width: calc(33.333% - 6px);
+        background: {filterType === 'all' 
+          ? 'linear-gradient(135deg, #8b5cf6, #6d28d9)' 
+          : filterType === 'converted' 
+            ? 'linear-gradient(135deg, #10b981, #059669)'
+            : 'linear-gradient(135deg, #f59e0b, #d97706)'};
+      "
+    ></div>
 
-    <!-- Кнопка Login -->
+    <!-- Все файлы -->
     <button
       type="button"
-      onclick={() => activeTab = 'login'}
-      class="relative z-20 px-4 py-1.5 text-sm font-medium uppercase transition-colors duration-200 w-24 text-center rounded-sm"
-      class:text-muted-foreground={activeTab !== 'login'}
+      onclick={() => setFilter('all')}
+      class="relative z-20 px-2 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium transition-colors duration-200 text-center rounded-lg flex items-center justify-center gap-1 whitespace-nowrap w-24"
+      class:text-white={filterType === 'all'}
+      class:text-muted-foreground={filterType !== 'all'}
+      class:hover:text-foreground={filterType !== 'all'}
     >
-      <span class="uppercase">Login</span>
+      <FolderOpen class="h-3.5 w-3.5 flex-shrink-0" />
+      <span class="truncate">{m.files_filter_all()}</span>
     </button>
 
-    <!-- Кнопка Register -->
+    <!-- Сконвертированные -->
     <button
       type="button"
-      onclick={() => activeTab = 'register'}
-      class="relative z-20 px-4 py-1.5 text-sm font-medium uppercase transition-colors duration-200 w-24 text-center rounded-sm"
-      class:text-muted-foreground={activeTab !== 'register'}
+      onclick={() => setFilter('converted')}
+      class="relative z-20 px-2 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium transition-colors duration-200 text-center rounded-lg flex items-center justify-center gap-1 whitespace-nowrap w-24"
+      class:text-white={filterType === 'converted'}
+      class:text-muted-foreground={filterType !== 'converted'}
+      class:hover:text-foreground={filterType !== 'converted'}
     >
-      <span class="uppercase">Register</span>
+      <Database class="h-3.5 w-3.5 flex-shrink-0" />
+      <span class="truncate">{m.files_filter_converted()}</span>
+    </button>
+
+    <!-- Временные -->
+    <button
+      type="button"
+      onclick={() => setFilter('temp')}
+      class="relative z-20 px-2 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium transition-colors duration-200 text-center rounded-lg flex items-center justify-center gap-1 whitespace-nowrap w-24"
+      class:text-white={filterType === 'temp'}
+      class:text-muted-foreground={filterType !== 'temp'}
+      class:hover:text-foreground={filterType !== 'temp'}
+    >
+      <Clock class="h-3.5 w-3.5 flex-shrink-0" />
+      <span class="truncate">{m.files_filter_temp()}</span>
     </button>
   </div>
 </div>
-

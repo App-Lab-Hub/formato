@@ -12,6 +12,7 @@
 	import { setLocale } from '$lib/paraglide/runtime';
 	import { page } from '$app/state';
 	import { applyTheme, watchSystemTheme } from '$lib/data/settings';
+  import TooltipProvider from "$lib/components/ui/tooltip/tooltip-provider.svelte";
 
 	let { children } = $props();
 	const isHome = browser && window.location.pathname === '/';
@@ -81,5 +82,7 @@
 {/if}
 
 {#key lang}
+<TooltipProvider>
 	<div class="bg-background text-foreground">{@render children?.()}</div>
+</TooltipProvider>
 {/key}

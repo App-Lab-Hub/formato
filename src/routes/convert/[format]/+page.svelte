@@ -520,7 +520,7 @@ onMount(async () => {
       </button>
     </div>
   {:else if sourceFormat}
-    <TooltipProvider>
+
       <div class="flex flex-col bg-background text-foreground min-h-screen">
         <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
           <button
@@ -602,6 +602,5 @@ onMount(async () => {
 
         </main>
       </div>
-    </TooltipProvider>
   {/if}
 </ScrollContainer>
