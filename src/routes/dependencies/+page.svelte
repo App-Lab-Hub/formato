@@ -7,6 +7,7 @@
   import { slide } from 'svelte/transition';
   import { cubicIn, cubicOut } from 'svelte/easing';
   import { m } from '$lib/paraglide/messages';
+  import BackButton from '$lib/components/BackButton.svelte';
 
   let { data }: { data: { deps: DependenciesData } } = $props();
 
@@ -67,18 +68,20 @@
     count += deps.cargo.targetDependencies?.length || 0;
     return count;
   }
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') goBack();
+  }
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
 
 <ScrollContainer>
   <div class="flex flex-col bg-background text-foreground min-h-screen">
     <main class="flex flex-col items-center px-8 py-16 w-full">
       
-      <div class="w-full max-w-[1700px] flex justify-start mb-8">
-        <button onclick={goBack} class="cursor-pointer flex items-center gap-2 dark:text-muted-foreground light:text-purple-700/70 dark:hover:text-primary light:hover:text-purple-800 transition-colors">
-          <ArrowLeft class="h-5 w-5" />
-          <span class="text-sm">{m.settings_back()}</span>
-        </button>
-      </div>
+      <BackButton
+          onClick={goBack} 
+      />
 
       <div class="w-full max-w-[1700px]">
         <div class="text-center mb-12">

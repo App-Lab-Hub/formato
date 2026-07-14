@@ -18,6 +18,7 @@
   import Tooltip from '$lib/components/ui/tooltip/tooltip.svelte';
   import TooltipTrigger from '$lib/components/ui/tooltip/tooltip-trigger.svelte';
   import TooltipContent from '$lib/components/ui/tooltip/tooltip-content.svelte';
+  import BackButton from '$lib/components/BackButton.svelte';
 
   let { data }: PageProps = $props();
   
@@ -380,12 +381,9 @@
     <!-- Заголовок -->
     <div class="max-w-7xl mx-auto">
       <div class="flex items-center gap-4 mb-6">
-        <button 
-          onclick={goBack}
-          class="cursor-pointer flex items-center gap-2 dark:text-muted-foreground light:text-purple-700/70 dark:hover:text-primary light:hover:text-purple-800 transition-colors"
-        >
-          <span class="text-sm">← {m.settings_back()}</span>
-        </button>
+        <BackButton
+            onClick={goBack} 
+        />
         <h1 class="text-2xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
           {m.files_management_title()}
         </h1>

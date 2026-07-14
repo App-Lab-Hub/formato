@@ -7,6 +7,7 @@
   import { getSettings, saveSettings, type AppSettings } from '$lib/data/settings';
   import { formatSize } from '$lib/utils/format';
   import { m } from '$lib/paraglide/messages';
+  import BackButton from '$lib/components/BackButton.svelte';
 
   let settings = $state<AppSettings>(getSettings());
   let theme = $state(settings.theme);
@@ -43,21 +44,21 @@
   $effect(() => {
     save();
   });
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') goBack();
+  }
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
+
 <!-- src/routes/settings/+page.svelte -->
 <ScrollContainer>
   <div class="flex flex-col bg-background text-foreground min-h-full">
     <main class="flex flex-col items-center px-8 py-16">
       
-      <div class="w-full max-w-[1700px] flex justify-start mb-8">
-        <button 
-          onclick={() => goto('/')} 
-          class="cursor-pointer flex items-center gap-2 dark:text-muted-foreground light:text-purple-700/70 dark:hover:text-primary light:hover:text-purple-800 transition-colors"
-        >
-          <ArrowLeft class="h-5 w-5" />
-          <span class="text-sm">{m.settings_back()}</span>
-        </button>
-      </div>
+      <BackButton
+          onClick={goBack} 
+      />
 
       <div class="w-full max-w-[1700px]">
         <div class="text-center mb-12">

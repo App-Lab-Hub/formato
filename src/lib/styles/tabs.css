@@ -1,0 +1,75 @@
+.tab-indicator {
+  transform: translateX(0%);
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.3s ease;
+  will-change: transform;
+}
+
+.tabs-container[data-active="all"] .tab-indicator {
+  transform: translateX(0%);
+}
+
+.tabs-container[data-active="converted"] .tab-indicator {
+  transform: translateX(calc(100% + 6px));
+}
+
+.tabs-container[data-active="temp"] .tab-indicator {
+  transform: translateX(calc(200% + 12px));
+}
+
+@media (max-width: 640px) {
+  .tabs-container {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .tabs-container button {
+    font-size: 10px;
+    padding-left: 4px;
+    padding-right: 4px;
+    width: auto !important;
+  }
+
+  .tab-indicator {
+    width: calc(33.333% - 4px) !important;
+  }
+}
+
+/* ============================================================ */
+/* ДЛЯ MODE-ИНДИКАТОРА (2 кнопки: file/text) */
+/* ============================================================ */
+.mode-indicator {
+  transform: translateX(0%);
+  transition:
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    background 0.3s ease;
+  will-change: transform;
+  width: calc(50% - 4px);
+}
+
+.mode-container[data-active="file"] .mode-indicator {
+  transform: translateX(0%);
+}
+
+.mode-container[data-active="text"] .mode-indicator {
+  transform: translateX(calc(100% + 4px));
+}
+
+@media (max-width: 640px) {
+  .mode-container {
+    width: 100%;
+    min-width: unset;
+  }
+
+  .mode-container button {
+    font-size: 10px;
+    padding-left: 4px;
+    padding-right: 4px;
+    width: auto !important;
+  }
+
+  .mode-indicator {
+    width: calc(50% - 2px) !important;
+  }
+}

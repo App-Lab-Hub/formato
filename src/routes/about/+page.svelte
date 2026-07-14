@@ -9,6 +9,7 @@
   import { getFormats } from '$lib/data/formats';
   import FormatoLogo from '$lib/components/FormatoLogo.svelte';
   import { m } from '$lib/paraglide/messages';
+  import BackButton from '$lib/components/BackButton.svelte';
 
   let formats = getFormats();
 
@@ -22,22 +23,24 @@
       document.documentElement.style.backgroundColor = '';
     };
   });
+  function handleKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') goBack();
+  }
 </script>
+
+<svelte:window on:keydown={handleKeydown} />
+
 
 <ScrollContainer>
   <div class="flex flex-col bg-background text-foreground min-h-full">
     <main class="flex flex-col items-center px-8 py-16">
       
-      <div class="w-full max-w-[1700px] flex justify-start mb-8">
-        <button 
-          onclick={goBack} 
-          class="flex items-center gap-2 dark:text-muted-foreground light:text-purple-700/70 dark:hover:text-primary light:hover:text-purple-800 transition-colors"
-        >
-          <ArrowLeft class="h-5 w-5" />
-          <span class="text-sm">{m.settings_back()}</span>
-        </button>
-      </div>
 
+    <BackButton onClick={goBack} />
+
+
+
+      
       <div class="w-full max-w-[1700px]">
         <FormatoLogo/>
         <div class="max-w-4xl mx-auto">

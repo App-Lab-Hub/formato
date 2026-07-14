@@ -89,6 +89,7 @@
     }
   });
 </script>
+
 <ScrollContainer>
   <div class="min-h-full flex flex-col bg-background text-foreground">
     <Header />
