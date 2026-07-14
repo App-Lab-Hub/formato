@@ -18,7 +18,7 @@
 
 <button 
   onclick={onClick} 
-  disabled={disabled}
+  disabled={disabled} 
   class="cursor-pointer absolute top-6 left-6 group shrink-0 flex items-center gap-1 px-5 py-3 rounded-2xl transition-all duration-300 !overflow-visible
     dark:bg-card/30 light:bg-white/50 backdrop-blur-sm
     border dark:border-purple-500/10 light:border-purple-300/30
