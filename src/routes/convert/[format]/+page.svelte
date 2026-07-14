@@ -23,6 +23,7 @@
   import { formatFileSize, formatSize } from '$lib/utils/format';
   import { Type, FolderOpen } from 'lucide-svelte';
   import { animate } from '@motionone/dom';
+  import ModeTabs from '$lib/components/convert/ModeTabs.svelte';
 
   let isClearing = $state(false);
   let isAddToList = $state(false);
@@ -532,55 +533,33 @@ onMount(async () => {
 
           <SourceFormatHeader format={sourceFormat} />
           <TargetFormatGrid formats={targetFormats} {selectedTarget} onselect={selectTarget} />
-                  
+          
+        <div class="w-full max-w-4xl">
+          <ModeTabs 
+            mode={inputMode}
+            onModeChange={(mode) => switchMode(mode)}
+          />
+        </div>
 
-<!-- Переключатель режимов -->
-<div class="w-full max-w-4xl flex items-center gap-4 mb-2">
-  <button
-    onclick={() => switchMode('file')}
-    class={[
-      'cursor-pointer px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
-      inputMode === 'file' 
-        ? 'bg-primary text-primary-foreground shadow-md' 
-        : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-    ]}
-  >
-    <FolderOpen class="h-4 w-4" />
-    {m.input_mode_files()}
-  </button>
-  <button
-    onclick={() => switchMode('text')}
-    class={[
-      'cursor-pointer px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2',
-      inputMode === 'text' 
-        ? 'bg-primary text-primary-foreground shadow-md' 
-        : 'bg-muted hover:bg-muted/80 text-muted-foreground'
-    ]}
-  >
-    <Type class="h-4 w-4" />
-    {m.input_mode_text()}
-  </button>
-</div>
+        <!-- Контейнер с анимацией при смене режима -->
+        <div class="w-full max-w-4xl relative overflow-hidden" bind:this={containerEl}>
+          {#if inputMode === 'file'}
+            <FileDropZone
+              sourceFormatId={sourceFormatId}
+              sourceFormatName={sourceFormat?.name ?? ''}
+              sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
+              onfilesadd={addFiles}
+            />
+          {:else}
+            <TextInputZone
+              {sourceFormatId}
+              sourceFormatName={sourceFormat?.name ?? ''}
+              onfilesadd={addFiles}
+              bind:isAddToList={isAddToList} 
 
-<!-- Контейнер с анимацией при смене режима -->
-<div class="w-full max-w-4xl relative overflow-hidden" bind:this={containerEl}>
-  {#if inputMode === 'file'}
-    <FileDropZone
-      sourceFormatId={sourceFormatId}
-      sourceFormatName={sourceFormat?.name ?? ''}
-      sourceFormatExtensions={sourceFormat?.extensions ?? [sourceFormatId]}
-      onfilesadd={addFiles}
-    />
-  {:else}
-    <TextInputZone
-      {sourceFormatId}
-      sourceFormatName={sourceFormat?.name ?? ''}
-      onfilesadd={addFiles}
-      bind:isAddToList={isAddToList} 
-
-    />
-  {/if}
-</div>
+            />
+          {/if}
+        </div>
 
 <FileList
   {files}
