@@ -15,6 +15,9 @@
   import { m } from '$lib/paraglide/messages';
   import { loader } from '$lib/stores/loader.svelte';
   import Tabs from '$lib/components/Tabs.svelte';
+  import Tooltip from '$lib/components/ui/tooltip/tooltip.svelte';
+  import TooltipTrigger from '$lib/components/ui/tooltip/tooltip-trigger.svelte';
+  import TooltipContent from '$lib/components/ui/tooltip/tooltip-content.svelte';
 
   let { data }: PageProps = $props();
   
@@ -408,52 +411,6 @@
         </div>
       </div>
 
-      <!-- Фильтры -->
-      <!-- <div class="flex flex-col sm:flex-row gap-3 mb-6">
-        <div class="flex-1">
-          <input
-            type="text"
-            placeholder={m.files_search_placeholder()}
-            bind:value={searchQuery}
-            class="w-full px-4 py-2 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 dark:text-foreground light:text-purple-800 placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
-          />
-        </div>
-        <div class="flex gap-2">
-          <button
-            onclick={() => setFilter('all')}
-            class={[
-              'cursor-pointer px-4 py-2 rounded-xl text-sm font-medium transition-all',
-              filterType === 'all' 
-                ? 'dark:bg-primary light:bg-purple-500 text-white' 
-                : 'dark:bg-card/30 light:bg-purple-200/30 dark:hover:bg-card/50 light:hover:bg-purple-200/50'
-            ]}
-          >
-            {m.files_filter_all()}
-          </button>
-          <button
-            onclick={() => setFilter('converted')}
-            class={[
-              'cursor-pointer px-4 py-2 rounded-xl text-sm font-medium transition-all',
-              filterType === 'converted' 
-                ? 'bg-emerald-500 text-white' 
-                : 'dark:bg-card/30 light:bg-purple-200/30 dark:hover:bg-card/50 light:hover:bg-purple-200/50'
-            ]}
-          >
-            {m.files_filter_converted()}
-          </button>
-          <button
-            onclick={() => setFilter('temp')}
-            class={[
-              'cursor-pointer px-4 py-2 rounded-xl text-sm font-medium transition-all',
-              filterType === 'temp' 
-                ? 'bg-amber-500 text-white' 
-                : 'dark:bg-card/30 light:bg-purple-200/30 dark:hover:bg-card/50 light:hover:bg-purple-200/50'
-            ]}
-          >
-            {m.files_filter_temp()}
-          </button>
-        </div>
-      </div> -->
 
     <!-- Фильтры -->
     <div class="flex flex-col sm:flex-row gap-3 mb-6">
@@ -534,17 +491,25 @@
                 </div>
               </div>
 
+              <!-- В блоке с кнопкой удаления -->
               <div class="shrink-0 flex items-center gap-2">
-                <button
-                  onclick={(e) => { 
-                    e.stopPropagation(); 
-                    deleteFile(file);
-                  }}
-                  disabled={deletingFilePath === file.path}
-                  class="cursor-pointer p-2 rounded-lg dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
-                >
-                  <Trash2 class="h-4 w-4" />
-                </button>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <button
+                      onclick={(e) => { 
+                        e.stopPropagation(); 
+                        deleteFile(file);
+                      }}
+                      disabled={deletingFilePath === file.path}
+                      class="cursor-pointer p-2 rounded-lg dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 disabled:opacity-30 disabled:cursor-not-allowed"
+                    >
+                      <Trash2 class="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
+                    <p>{m.remove_file()}</p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
             </div>
           {/each}

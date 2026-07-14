@@ -217,5 +217,11 @@
   "database_reset_success": "База данных успешно переустановлена",
   "database_reset_error": "Не удалось переустановить базу данных",
 
-  "files_date_unknown": "Неизвестно"
+  "files_date_unknown": "Неизвестно",
+
+  "files_filter_all_tooltip": "Показать все файлы",
+  "files_filter_converted_tooltip": "Показать только сконвертированные файлы",
+  "files_filter_temp_tooltip": "Показать только временные файлы",
+
+  "remove_file": "Удалить файл"
 }

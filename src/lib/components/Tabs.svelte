@@ -2,6 +2,9 @@
 <script lang="ts">
   import { FolderOpen, Database, Clock } from 'lucide-svelte';
   import { m } from '$lib/paraglide/messages';
+  import Tooltip from '$lib/components/ui/tooltip/tooltip.svelte';
+  import TooltipTrigger from '$lib/components/ui/tooltip/tooltip-trigger.svelte';
+  import TooltipContent from '$lib/components/ui/tooltip/tooltip-content.svelte';
 
   let { 
     filterType = 'all',
@@ -37,42 +40,63 @@
     ></div>
 
     <!-- Все файлы -->
-    <button
-      type="button"
-      onclick={() => setFilter('all')}
-      class="relative z-20 px-2 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium transition-colors duration-200 text-center rounded-lg flex items-center justify-center gap-1 whitespace-nowrap w-24"
-      class:text-white={filterType === 'all'}
-      class:text-muted-foreground={filterType !== 'all'}
-      class:hover:text-foreground={filterType !== 'all'}
-    >
-      <FolderOpen class="h-3.5 w-3.5 flex-shrink-0" />
-      <span class="truncate">{m.files_filter_all()}</span>
-    </button>
+    <Tooltip>
+      <TooltipTrigger>
+        <button
+          type="button"
+          onclick={() => setFilter('all')}
+          class="cursor-pointer relative z-20 px-2 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium transition-colors duration-200 text-center rounded-lg flex items-center justify-center gap-1 whitespace-nowrap w-24"
+          class:text-white={filterType === 'all'}
+          class:text-muted-foreground={filterType !== 'all'}
+          class:hover:text-foreground={filterType !== 'all'}
+        >
+          <FolderOpen class="h-3.5 w-3.5 flex-shrink-0" />
+          <span class="truncate">{m.files_filter_all()}</span>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
+        <p>{m.files_filter_all_tooltip()}</p>
+      </TooltipContent>
+    </Tooltip>
 
     <!-- Сконвертированные -->
-    <button
-      type="button"
-      onclick={() => setFilter('converted')}
-      class="relative z-20 px-2 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium transition-colors duration-200 text-center rounded-lg flex items-center justify-center gap-1 whitespace-nowrap w-24"
-      class:text-white={filterType === 'converted'}
-      class:text-muted-foreground={filterType !== 'converted'}
-      class:hover:text-foreground={filterType !== 'converted'}
-    >
-      <Database class="h-3.5 w-3.5 flex-shrink-0" />
-      <span class="truncate">{m.files_filter_converted()}</span>
-    </button>
+    <Tooltip>
+      <TooltipTrigger>
+        <button
+          type="button"
+          onclick={() => setFilter('converted')}
+          class="cursor-pointer relative z-20 px-2 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium transition-colors duration-200 text-center rounded-lg flex items-center justify-center gap-1 whitespace-nowrap w-24"
+          class:text-white={filterType === 'converted'}
+          class:text-muted-foreground={filterType !== 'converted'}
+          class:hover:text-foreground={filterType !== 'converted'}
+        >
+          <Database class="h-3.5 w-3.5 flex-shrink-0" />
+          <span class="truncate">{m.files_filter_converted()}</span>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
+        <p>{m.files_filter_converted_tooltip()}</p>
+      </TooltipContent>
+    </Tooltip>
 
     <!-- Временные -->
-    <button
-      type="button"
-      onclick={() => setFilter('temp')}
-      class="relative z-20 px-2 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium transition-colors duration-200 text-center rounded-lg flex items-center justify-center gap-1 whitespace-nowrap w-24"
-      class:text-white={filterType === 'temp'}
-      class:text-muted-foreground={filterType !== 'temp'}
-      class:hover:text-foreground={filterType !== 'temp'}
-    >
-      <Clock class="h-3.5 w-3.5 flex-shrink-0" />
-      <span class="truncate">{m.files_filter_temp()}</span>
-    </button>
+    <Tooltip>
+      <TooltipTrigger>
+        <button
+          type="button"
+          onclick={() => setFilter('temp')}
+          class="cursor-pointer relative z-20 px-2 sm:px-4 py-1.5 text-[11px] sm:text-sm font-medium transition-colors duration-200 text-center rounded-lg flex items-center justify-center gap-1 whitespace-nowrap w-24"
+          class:text-white={filterType === 'temp'}
+          class:text-muted-foreground={filterType !== 'temp'}
+          class:hover:text-foreground={filterType !== 'temp'}
+        >
+          <Clock class="h-3.5 w-3.5 flex-shrink-0" />
+          <span class="truncate">{m.files_filter_temp()}</span>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
+        <p>{m.files_filter_temp_tooltip()}</p>
+      </TooltipContent>
+    </Tooltip>
   </div>
 </div>
