@@ -375,18 +375,26 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
+<!-- В самом верху, после <ScrollContainer> -->
 <ScrollContainer>
 <div class="min-h-screen flex flex-col">
   <div class="flex-1 bg-background text-foreground px-6 pt-6 sm:pt-8 sm:px-8 pb-3">
-    <!-- Заголовок -->
-    <div class="max-w-7xl mx-auto">
-      <div class="flex items-center gap-4 mb-6">
-        <BackButton
-            onClick={goBack} 
-        />
-        <h1 class="text-2xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
-          {m.files_management_title()}
+    
+    <!-- Кнопка назад всегда в углу -->
+    <BackButton onClick={goBack} />
+    
+    <!-- Контент со страницы -->
+    <div class="max-w-7xl mx-auto pt-14">
+      <div class="text-center mb-8">
+        <h1 class="text-3xl sm:text-4xl font-bold mb-3">
+      <span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 dark:from-cyan-400 dark:via-purple-400 dark:to-pink-400 light:from-cyan-600 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent">
+        {m.files_management_title()}
+      </span>
         </h1>
+        <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
+        <p class="dark:text-muted-foreground/60 light:text-purple-800/60 text-sm mt-2">
+          {m.files_management_subtitle()}
+        </p>
       </div>
 
       <!-- Статистика -->

@@ -223,5 +223,7 @@
   "files_filter_converted_tooltip": "Показать только сконвертированные файлы",
   "files_filter_temp_tooltip": "Показать только временные файлы",
 
-  "remove_file": "Удалить файл"
+  "remove_file": "Удалить файл",
+
+  "files_management_subtitle": "Управление конвертированными и временными файлами"
 }

@@ -223,5 +223,7 @@
   "files_filter_converted_tooltip": "Show only converted files",
   "files_filter_temp_tooltip": "Show only temporary files",
 
-  "remove_file": "Remove file"
+  "remove_file": "Remove file",
+
+  "files_management_subtitle": "Manage your converted and temporary files"
 }

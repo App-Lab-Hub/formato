@@ -83,17 +83,17 @@
           onClick={goBack} 
       />
 
-      <div class="w-full max-w-[1700px]">
+      <div class="w-full max-w-[1700px] pt-6">
         <div class="text-center mb-12">
-        <h1 class="text-3xl sm:text-4xl font-bold mb-3">
-          <span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 dark:from-cyan-400 dark:via-purple-400 dark:to-pink-400 light:from-cyan-600 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent">
-            {m.deps_title()}
-          </span>
-        </h1>
-          <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
-          <p class="dark:text-muted-foreground/60 light:text-purple-800/60 text-sm mt-2">
-            {m.deps_subtitle()}
-          </p>
+          <h1 class="text-3xl sm:text-4xl font-bold mb-3">
+            <span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 dark:from-cyan-400 dark:via-purple-400 dark:to-pink-400 light:from-cyan-600 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent">
+              {m.deps_title()}
+            </span>
+          </h1>
+            <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
+            <p class="dark:text-muted-foreground/60 light:text-purple-800/60 text-sm mt-2">
+              {m.deps_subtitle()}
+            </p>
         </div>
 
         <div class="max-w-4xl mx-auto space-y-6">
