@@ -1,7 +1,7 @@
 <!-- src/routes/about/+page.svelte -->
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { ArrowLeft, Info, Zap, Shield, Users, Code, Sparkles, Package } from 'lucide-svelte';
+  import { Info, Zap, Shield, Users, Code, Sparkles, Package } from 'lucide-svelte';
   // @ts-ignore
   import { FaGithub } from 'svelte-icons/fa';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
@@ -16,13 +16,7 @@
   function goBack() {
     goto('/');
   }
-
-  onMount(() => {
-    document.documentElement.style.backgroundColor = '#0a0a0f';
-    return () => {
-      document.documentElement.style.backgroundColor = '';
-    };
-  });
+  
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') goBack();
   }
@@ -30,21 +24,19 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-
 <ScrollContainer>
-  <div class="flex flex-col bg-background text-foreground min-h-full">
-    <main class="flex flex-col items-center px-8 py-16">
+<div class="min-h-screen flex flex-col">
+  <div class="flex-1 bg-background text-foreground px-6 pt-6 sm:pt-8 sm:px-8 pb-3">
       
+      <BackButton onClick={goBack} />
 
-    <BackButton onClick={goBack} />
-
-
-
-      
-      <div class="w-full max-w-[1700px]">
-        <FormatoLogo/>
+      <div class="w-full max-w-[1700px] mx-auto">
+        <!-- Оборачиваем логотип в центрирующий контейнер -->
         <div class="max-w-4xl mx-auto">
-          <!-- О приложении -->
+          <FormatoLogo />
+        </div>
+        
+        <div class="max-w-4xl mx-auto">
           <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-8 mb-8">
             <div class="flex items-center gap-3 mb-4">
               <Info class="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -58,7 +50,6 @@
             </p>
           </div>
 
-          <!-- Преимущества -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
             <div class="dark:bg-card/30 light:bg-purple-200/50 backdrop-blur-sm rounded-xl border dark:border-border light:border-purple-300/50 p-6">
               <div class="flex items-center gap-3 mb-3">
@@ -93,26 +84,24 @@
             </div>
           </div>
 
-        <!-- Стек технологий -->
-        <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-8 mb-8">
-          <div class="flex items-center gap-3 mb-4">
-            <Code class="h-5 w-5 text-purple-600 dark:text-purple-400" />
-            <h2 class="text-xl font-semibold dark:text-foreground light:text-purple-800">{m.about_tech_stack()}</h2>
+          <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-8 mb-8">
+            <div class="flex items-center gap-3 mb-4">
+              <Code class="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <h2 class="text-xl font-semibold dark:text-foreground light:text-purple-800">{m.about_tech_stack()}</h2>
+            </div>
+            <div class="flex flex-wrap gap-3">
+              <span class="px-4 py-2 dark:bg-primary/10 light:bg-purple-300/50 rounded-full text-sm dark:text-primary light:text-purple-700 border dark:border-primary/20 light:border-purple-300/50">Tauri</span>
+              <span class="px-4 py-2 dark:bg-cyan-500/10 light:bg-cyan-200/50 rounded-full text-sm dark:text-cyan-400 light:text-cyan-700 border dark:border-cyan-400/20 light:border-cyan-300/50">Rust</span>
+              <span class="px-4 py-2 dark:bg-yellow-500/10 light:bg-yellow-200/50 rounded-full text-sm dark:text-yellow-400 light:text-yellow-700 border dark:border-yellow-400/20 light:border-yellow-300/50">SvelteKit</span>
+              <span class="px-4 py-2 dark:bg-blue-500/10 light:bg-blue-200/50 rounded-full text-sm dark:text-blue-400 light:text-blue-700 border dark:border-blue-400/20 light:border-blue-300/50">TypeScript</span>
+              <span class="px-4 py-2 dark:bg-purple-500/10 light:bg-purple-300/50 rounded-full text-sm dark:text-purple-400 light:text-purple-700 border dark:border-purple-400/20 light:border-purple-300/50">Tailwind CSS</span>
+              <span class="px-4 py-2 dark:bg-pink-500/10 light:bg-pink-200/50 rounded-full text-sm dark:text-pink-400 light:text-pink-700 border dark:border-pink-400/20 light:border-pink-300/50">OverlayScrollbars</span>
+              <span class="px-4 py-2 dark:bg-orange-500/10 light:bg-orange-200/50 rounded-full text-sm dark:text-orange-400 light:text-orange-700 border dark:border-orange-400/20 light:border-orange-300/50">Monaco Editor</span>
+              <span class="px-4 py-2 dark:bg-green-500/10 light:bg-green-200/50 rounded-full text-sm dark:text-green-400 light:text-green-700 border dark:border-green-400/20 light:border-green-300/50">Lucide Icons</span>
+              <span class="px-4 py-2 dark:bg-red-500/10 light:bg-red-200/50 rounded-full text-sm dark:text-red-400 light:text-red-700 border dark:border-red-400/20 light:border-red-300/50">Splide</span>
+            </div>
           </div>
-          <div class="flex flex-wrap gap-3">
-            <span class="px-4 py-2 dark:bg-primary/10 light:bg-purple-300/50 rounded-full text-sm dark:text-primary light:text-purple-700 border dark:border-primary/20 light:border-purple-300/50">Tauri</span>
-            <span class="px-4 py-2 dark:bg-cyan-500/10 light:bg-cyan-200/50 rounded-full text-sm dark:text-cyan-400 light:text-cyan-700 border dark:border-cyan-400/20 light:border-cyan-300/50">Rust</span>
-            <span class="px-4 py-2 dark:bg-yellow-500/10 light:bg-yellow-200/50 rounded-full text-sm dark:text-yellow-400 light:text-yellow-700 border dark:border-yellow-400/20 light:border-yellow-300/50">SvelteKit</span>
-            <span class="px-4 py-2 dark:bg-blue-500/10 light:bg-blue-200/50 rounded-full text-sm dark:text-blue-400 light:text-blue-700 border dark:border-blue-400/20 light:border-blue-300/50">TypeScript</span>
-            <span class="px-4 py-2 dark:bg-purple-500/10 light:bg-purple-300/50 rounded-full text-sm dark:text-purple-400 light:text-purple-700 border dark:border-purple-400/20 light:border-purple-300/50">Tailwind CSS</span>
-            <span class="px-4 py-2 dark:bg-pink-500/10 light:bg-pink-200/50 rounded-full text-sm dark:text-pink-400 light:text-pink-700 border dark:border-pink-400/20 light:border-pink-300/50">OverlayScrollbars</span>
-            <span class="px-4 py-2 dark:bg-orange-500/10 light:bg-orange-200/50 rounded-full text-sm dark:text-orange-400 light:text-orange-700 border dark:border-orange-400/20 light:border-orange-300/50">Monaco Editor</span>
-            <span class="px-4 py-2 dark:bg-green-500/10 light:bg-green-200/50 rounded-full text-sm dark:text-green-400 light:text-green-700 border dark:border-green-400/20 light:border-green-300/50">Lucide Icons</span>
-            <span class="px-4 py-2 dark:bg-red-500/10 light:bg-red-200/50 rounded-full text-sm dark:text-red-400 light:text-red-700 border dark:border-red-400/20 light:border-red-300/50">Splide</span>
-          </div>
-        </div>
 
-          <!-- Технические детали / Зависимости -->
           <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-8 mb-8">
             <div class="flex items-center gap-3 mb-4">
               <Package class="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -130,7 +119,6 @@
             </a>
           </div>
 
-          <!-- GitHub -->
           <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-8">
             <div class="flex items-center gap-3 mb-4">
               <div class="h-5 w-5 text-purple-600 dark:text-purple-400">
@@ -158,8 +146,8 @@
             v0.1.0
           </div>
         </div>
-      </div>
+      </div> 
 
-    </main>
+    </div>
   </div>
 </ScrollContainer>

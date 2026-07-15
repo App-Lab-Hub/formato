@@ -4,7 +4,13 @@
 
 <div class="text-center mb-8 sm:mb-10">
 <div class="relative inline-block">
-  <div class="absolute inset-0 blur-2xl dark:bg-gradient-to-r from-cyan-400/20 via-purple-400/20 to-pink-400/20 light:bg-gradient-to-r light:from-purple-400/25 light:via-purple-500/25 light:to-purple-600/25 rounded-full"></div>
+  <!-- Уменьшенная подсветка, точно настроенная под цвета вашей темы без переменных -->
+  <div class="absolute inset-2 blur-xl rounded-full opacity-50 light:opacity-40
+    bg-gradient-to-r from-purple-500 via-fuchsia-400 to-violet-500
+    dark:from-fuchsia-500 dark:via-purple-500 dark:to-violet-600">
+  </div>
+
+
   <img
     src="/favicon.svg"
     alt="Formato logo"

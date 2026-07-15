@@ -22,6 +22,39 @@ pub struct AppState {
     pub system_theme: Mutex<String>, // 'dark' или 'light'
 }
 
+#[tauri::command]
+async fn repaint_window(window: tauri::Window) -> Result<(), String> {
+  
+    // Принудительно изменяем размер окна на 1px и возвращаем обратно
+    // Это вызывает перерисовку в WebKitGTK
+    let current_size = window.inner_size().map_err(|e| e.to_string())?;
+
+    // Изменяем размер на +1px
+    let _ = window.set_size(
+        tauri::LogicalSize::new(
+            current_size.width as f64 + 1.0,
+            current_size.height as f64
+        )
+    );
+
+    // Возвращаем обратно через небольшой промежуток времени
+    std::thread::sleep(std::time::Duration::from_millis(10));
+
+    let _ = window.set_size(
+        tauri::LogicalSize::new(
+            current_size.width as f64,
+            current_size.height as f64
+        )
+    );
+
+    println!("✅ Window repaint triggered from command");
+    Ok(())
+    
+
+}
+
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -62,6 +95,7 @@ pub fn run() {
             // files
             files::get_files,
             files::delete_file,
+            repaint_window
 
         ])
         
