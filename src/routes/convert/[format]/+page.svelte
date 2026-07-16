@@ -533,13 +533,6 @@ onMount(async () => {
         />
           
 
-          <!-- <button
-           class:opacity-50={isClearing}
-          class:cursor-not-allowed={isClearing}
-           onclick={goBack} class="cursor-pointer absolute top-6 left-6 flex items-center gap-2 dark:text-muted-foreground light:text-purple-700/70 dark:hover:text-primary light:hover:text-purple-800 transition-colors">
-            <span class="text-sm">← {m.settings_back()}</span>
-          </button> -->
-
           <SourceFormatHeader format={sourceFormat} />
           <TargetFormatGrid formats={targetFormats} {selectedTarget} onselect={selectTarget} />
           

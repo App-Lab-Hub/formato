@@ -30,7 +30,9 @@
     >
       <div class="relative rounded-2xl bg-gradient-to-br p-5 {target.color}">
         <div class="absolute inset-0 rounded-2xl bg-gradient-to-br opacity-30 blur-2xl {target.color}"></div>
-        <Icon class="relative h-11 w-11 {target.textColor}" />
+        <div class="flex-shrink-0 h-11 w-11">
+          <Icon class="relative w-full h-full {target.textColor}" />
+        </div>
       </div>
       <span class="text-base font-bold dark:text-foreground light:text-purple-800">{target.name}</span>
       <span class="text-xs dark:text-muted-foreground light:text-purple-700/60 line-clamp-3 max-w-[160px]">
