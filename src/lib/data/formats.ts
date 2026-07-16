@@ -4,9 +4,8 @@ import type { Format } from "$lib/types/format";
 import * as Icons from "@lucide/svelte";
 import { browser } from "$app/environment";
 
-// === Импорты из svelte-icons (только то, что есть в твоем package) ===
-
-// Font Awesome (основные файловые иконки)
+// === Импорты из svelte-icons ===
+// Font Awesome
 import {
   FaFilePdf,
   FaFileWord,
@@ -15,66 +14,35 @@ import {
   FaFileVideo,
   FaFileImage,
   FaFileAlt,
-  FaFileCode as FaFileCodeIcon,
-  FaFileArchive,
-  FaFile,
   // @ts-ignore
 } from "svelte-icons/fa";
 
-// Material Design (специфичные иконки для форматов)
+// Material Design
 import {
-  MdAudiotrack, // MP3
-  MdVideocam, // MP4
-  MdImage, // JPG
-  MdDescription, // ODT
-  MdTableChart, // XLSX (альтернатива)
-  MdCode, // XML (альтернатива)
-  MdDataObject, // JSON (альтернатива)
-  MdSettings, // INI (альтернатива)
-  MdTextFields, // RTF
-  MdPictureAsPdf, // PDF (альтернатива)
-  MdMusicNote, // MP3 (альтернатива)
-  MdMovie, // MOV (альтернатива)
+  MdAudiotrack,
+  MdVideocam,
+  MdImage,
+  MdDescription,
+  MdTextFields,
   // @ts-ignore
 } from "svelte-icons/md";
 
-// Octicons (GitHub) - технические иконки
+// Octicons (GitHub)
 import {
-  GoFileCode,
-  GoFileMedia,
-  GoFileMusic,
-  GoFileVideo,
-  GoFilePdf,
   GoFile,
   // @ts-ignore
 } from "svelte-icons/go";
 
 // Typicons
 import {
-  TiDocumentText,
   TiDocument,
-  TiImage,
-  TiVideo,
-  TiMusic,
-  TiCode,
-  TiChartBar,
-  TiClipboard,
-  TiBook,
-  TiFolder,
+  TiDocumentText,
   // @ts-ignore
 } from "svelte-icons/ti";
 
-// Devicons (для технических форматов)
+// Devicons
 import {
-  DiHtml5, // HTML
-  DiCss3, // CSS (если добавишь)
-  DiJavascript, // JS (если добавишь)
-  DiPython, // Python (если добавишь)
-  DiRuby, // Ruby (если добавишь)
-  DiRust, // Rust (если добавишь)
-  DiPhp, // PHP (если добавишь)
-  DiJava, // Java (если добавишь)
-  DiGo, // Go (если добавишь)
+  DiHtml5,
   // @ts-ignore
 } from "svelte-icons/di";
 
@@ -82,7 +50,6 @@ const iconMap: Record<string, any> = {
   // ============================================
   // === ТЕКСТОВЫЕ И КОНФИГУРАЦИОННЫЕ (Lucide) ===
   // ============================================
-
   FileBraces: Icons.FileBraces, // JSON
   FileText: Icons.FileText, // YAML
   FileSpreadsheet: Icons.FileSpreadsheet, // CSV
@@ -95,44 +62,32 @@ const iconMap: Record<string, any> = {
   // ============================================
   // === ДОКУМЕНТЫ (svelte-icons) ===
   // ============================================
-
-  FilePdf: FaFilePdf, // PDF (Font Awesome)
-  FileWord: FaFileWord, // DOCX (Font Awesome)
-  FileExcel: FaFileExcel, // XLSX (Font Awesome)
-  FileAlt: FaFileAlt, // TXT (Font Awesome)
-  FileRtf: MdTextFields, // RTF (Material Design)
-  FileOdt: MdDescription, // ODT (Material Design)
+  FilePdf: FaFilePdf, // PDF
+  FileWord: FaFileWord, // DOCX
+  FileExcel: FaFileExcel, // XLSX
+  FileAlt: FaFileAlt, // TXT
+  FileRtf: MdTextFields, // RTF
+  FileOdt: MdDescription, // ODT
 
   // ============================================
   // === ИЗОБРАЖЕНИЯ (svelte-icons) ===
   // ============================================
-
-  FileJpg: MdImage, // JPG (Material Design)
-  FilePng: FaFileImage, // PNG (Font Awesome)
-  FileWebp: Icons.Image, // WEBP (Lucide)
-  FileAvif: FaFileImage, // AVIF (Font Awesome)
+  FileJpg: MdImage, // JPG
+  FilePng: FaFileImage, // PNG
+  FileWebp: Icons.Image, // WEBP
+  FileAvif: FaFileImage, // AVIF
 
   // ============================================
   // === АУДИО (svelte-icons) ===
   // ============================================
-
-  FileMp3: MdAudiotrack, // MP3 (Material Design)
-  FileWav: FaFileAudio, // WAV (Font Awesome)
+  FileMp3: MdAudiotrack, // MP3
+  FileWav: FaFileAudio, // WAV
 
   // ============================================
   // === ВИДЕО (svelte-icons) ===
   // ============================================
-
-  FileMp4: MdVideocam, // MP4 (Material Design)
-  FileMov: FaFileVideo, // MOV (Font Awesome)
-
-  // ============================================
-  // === ДОПОЛНИТЕЛЬНЫЕ (запасные) ===
-  // ============================================
-  FileArchive: FaFileArchive,
-  FileCodeFa: FaFileCodeIcon,
-  FileMusic: MdMusicNote,
-  FileMovie: MdMovie,
+  FileMp4: MdVideocam, // MP4
+  FileMov: FaFileVideo, // MOV
 
   // === ЗАПАСНАЯ ===
   default: Icons.File,
@@ -183,13 +138,6 @@ export async function loadFormatsData(): Promise<void> {
 
       _loaded = true;
       console.log("✅ Formats loaded from DB:", _formats.length);
-      console.log(
-        "📋 First 3 formats:",
-        _formats
-          .slice(0, 3)
-          .map(f => f.name)
-          .join(", "),
-      );
     } catch (error) {
       console.error("❌ Failed to load formats:", error);
       _formats = [];

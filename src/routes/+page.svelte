@@ -131,7 +131,9 @@
                   <div class="flex flex-col items-center gap-6 text-center">
                     <div class="relative rounded-3xl bg-gradient-to-br p-8 {format.color}">
                       <div class="absolute inset-0 rounded-3xl bg-gradient-to-br opacity-30 blur-2xl {format.color}"></div>
-                      <Icon class="relative h-16 w-16 {format.textColor}" />
+                      <div class="flex-shrink-0 h-16! w-16!">
+                        <Icon class="relative w-full h-full {format.textColor}" />
+                      </div>
                     </div>
                     <div class="w-full min-w-0">
                       <h3 class="text-xl lg:text-2xl font-bold dark:text-foreground light:text-purple-800">{format.name}</h3>
