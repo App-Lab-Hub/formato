@@ -1,7 +1,7 @@
 <!-- src/routes/settings/+page.svelte -->
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { ArrowLeft, Sun, Moon, Monitor, Languages, Palette, Eye, Database, FolderOpen, FileCheck, Shield, Archive } from 'lucide-svelte';
+  import { ArrowLeft, Sun, Moon, Monitor, Languages, Palette, Eye, Database, FolderOpen, FileCheck, Shield, Archive, ShieldCheck } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { onMount } from 'svelte';
   import { getSettings, saveSettings, type AppSettings } from '$lib/data/settings';
@@ -255,7 +255,10 @@
               {m.settings_security_desc()}
             </p>
             <div class="flex items-center gap-2 text-xs">
-              <span class="px-2 py-1 dark:bg-emerald-500/10 light:bg-emerald-500/15 rounded-lg dark:border border-emerald-500/20 light:border border-emerald-500/25 dark:text-emerald-400 light:text-emerald-600 font-medium">● {m.settings_security_badge()}</span>
+              <span class="inline-flex items-center gap-1.5 px-2 py-1 dark:bg-emerald-500/10 light:bg-emerald-500/15 rounded-lg dark:border border-emerald-500/20 light:border border-emerald-500/25 dark:text-emerald-400 light:text-emerald-600 font-medium">
+                <ShieldCheck class="h-3.5 w-3.5" />
+                {m.settings_security_badge()}
+              </span>
               <span class="dark:text-muted-foreground/60 light:text-purple-700/50">{m.settings_security_local()}</span>
             </div>
           </div>
