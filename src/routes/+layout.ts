@@ -12,6 +12,7 @@ import {
 } from "$lib/data/formats";
 import { loadSettings, getSettings, applyTheme } from "$lib/data/settings";
 import { setLocale } from "$lib/paraglide/runtime";
+import type { FormatDB } from "$lib/types/format";
 import type { LayoutLoad } from "./$types";
 
 export const load: LayoutLoad = async ({ url }) => {
@@ -27,6 +28,8 @@ export const load: LayoutLoad = async ({ url }) => {
 
   return {
     formats: getFormats(),
+    // formats: [] as FormatDB[],
+
     settings,
   };
 };
