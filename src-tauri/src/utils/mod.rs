@@ -123,8 +123,7 @@ pub fn create_temp_file(content: String, extension: String, name: String) -> Res
 
 
 
-
-// src/convert/mod.rs
+// src/utils/mod.rs
 
 use serde::{Deserialize, Serialize};
 
@@ -138,6 +137,7 @@ pub enum ContentType {
     Image,
     Audio,
     Video,
+    Document,
 }
 
 impl From<String> for ContentType {
@@ -147,6 +147,7 @@ impl From<String> for ContentType {
             "image" => ContentType::Image,
             "audio" => ContentType::Audio,
             "video" => ContentType::Video,
+            "document" => ContentType::Document,
             _ => ContentType::Text,
         }
     }
@@ -158,6 +159,7 @@ pub struct AvailabilityResponse {
     pub image: String,
     pub audio: String,
     pub video: String,
+    pub document: String, // 👈 ДОБАВЛЯЕМ
 }
 
 // ============================================================
@@ -173,24 +175,35 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
             image: "available_with_ai".to_string(),
             audio: "available_with_ai".to_string(),
             video: "not_available".to_string(),
+            document: "available".to_string(), // Текст → Документ (pandoc)
         },
         ContentType::Image => AvailabilityResponse {
             text: "available_with_ai".to_string(),
             image: "available".to_string(),
             audio: "not_available".to_string(),
             video: "available".to_string(),
+            document: "not_available".to_string(),
         },
         ContentType::Audio => AvailabilityResponse {
             text: "available".to_string(),
             image: "not_available".to_string(),
             audio: "available".to_string(),
             video: "available".to_string(),
+            document: "not_available".to_string(),
         },
         ContentType::Video => AvailabilityResponse {
             text: "available_with_ai".to_string(),
             image: "available".to_string(),
             audio: "available".to_string(),
             video: "available".to_string(),
+            document: "not_available".to_string(),
+        },
+        ContentType::Document => AvailabilityResponse {
+            text: "available".to_string(),      // PDF → TXT (извлечение)
+            image: "not_available".to_string(),
+            audio: "not_available".to_string(),
+            video: "not_available".to_string(),
+            document: "available".to_string(),  // PDF → DOCX (конвертация)
         },
     }
 }
