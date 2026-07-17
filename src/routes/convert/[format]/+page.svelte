@@ -35,6 +35,8 @@
 
   const sourceFormatId: string = page.params.format!;
   let settings = $derived(page.data.settings);
+  const availability = $derived(page.data.availability);
+  console.log(" ",availability);
   function getStorageKey(base: string): string {
     return `convert_${sourceFormatId}_${base}`;
   }
@@ -534,7 +536,12 @@ onMount(async () => {
           
 
           <SourceFormatHeader format={sourceFormat} />
-          <TargetFormatGrid formats={targetFormats} {selectedTarget} onselect={selectTarget} />
+<TargetFormatGrid 
+  formats={targetFormats} 
+  {selectedTarget} 
+  availability={availability}
+  onselect={selectTarget} 
+/>
           
         <div class="w-full max-w-4xl">
           <ModeTabs 
