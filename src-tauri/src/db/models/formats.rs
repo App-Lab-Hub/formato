@@ -18,6 +18,7 @@ pub struct Model {
     pub glow: String,
     pub text_color: String,
     pub border_hover: String,
+    pub format_type: String, // text, image, audio, video
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }

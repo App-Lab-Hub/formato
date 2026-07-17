@@ -63,99 +63,113 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:from-yellow-500/30 light:from-yellow-600/40 dark:to-amber-500/15 light:to-amber-600/25", 
         "dark:shadow-yellow-500/20 light:shadow-yellow-600/30",
         "dark:text-yellow-400 light:text-yellow-700", 
-        "dark:hover:border-yellow-500/60 light:hover:border-yellow-600/50"),
+        "dark:hover:border-yellow-500/60 light:hover:border-yellow-600/50",
+        "text"),
         
         ("yaml", "YAML", json!(["yaml", "yml"]),
         "FileText", 
         "dark:from-blue-500/30 light:from-blue-600/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
         "dark:shadow-blue-500/20 light:shadow-blue-600/30",
         "dark:text-blue-400 light:text-blue-700", 
-        "dark:hover:border-blue-500/60 light:hover:border-blue-600/50"),
+        "dark:hover:border-blue-500/60 light:hover:border-blue-600/50",
+        "text"),
         
         ("csv", "CSV", json!(["csv", "tsv"]),
         "FileSpreadsheet", 
         "dark:from-green-500/30 light:from-green-600/40 dark:to-emerald-500/15 light:to-emerald-600/25", 
         "dark:shadow-green-500/20 light:shadow-green-600/30",
         "dark:text-green-400 light:text-green-700", 
-        "dark:hover:border-green-500/60 light:hover:border-green-600/50"),
+        "dark:hover:border-green-500/60 light:hover:border-green-600/50",
+        "text"),
         
         ("xml", "XML", json!(["xml"]),
         "FileCode", 
         "dark:from-orange-500/30 light:from-orange-600/40 dark:to-red-500/15 light:to-red-600/25", 
         "dark:shadow-orange-500/20 light:shadow-orange-600/30",
         "dark:text-orange-400 light:text-orange-700", 
-        "dark:hover:border-orange-500/60 light:hover:border-orange-600/50"),
+        "dark:hover:border-orange-500/60 light:hover:border-orange-600/50",
+        "text"),
         
         ("toml", "TOML", json!(["toml"]),
         "AlignLeft", 
         "dark:from-orange-400/30 light:from-orange-500/40 dark:to-yellow-500/15 light:to-yellow-600/25", 
         "dark:shadow-orange-400/20 light:shadow-orange-500/30",
         "dark:text-orange-400 light:text-orange-700", 
-        "dark:hover:border-orange-400/60 light:hover:border-orange-500/50"),
+        "dark:hover:border-orange-400/60 light:hover:border-orange-500/50",
+        "text"),
         
         ("ini", "INI", json!(["ini", "cfg", "conf"]),
         "ListOrdered", 
         "dark:from-gray-400/30 light:from-gray-500/40 dark:to-slate-500/15 light:to-slate-600/25", 
         "dark:shadow-gray-400/20 light:shadow-gray-500/30",
         "dark:text-gray-400 light:text-gray-700", 
-        "dark:hover:border-gray-400/60 light:hover:border-gray-500/50"),
+        "dark:hover:border-gray-400/60 light:hover:border-gray-500/50",
+        "text"),
         
         ("md", "Markdown", json!(["md", "markdown", "mdown", "mkd"]),
         "Braces", 
         "dark:from-purple-500/30 light:from-purple-600/40 dark:to-violet-500/15 light:to-violet-600/25", 
         "dark:shadow-purple-500/20 light:shadow-purple-600/30",
         "dark:text-purple-400 light:text-purple-700", 
-        "dark:hover:border-purple-500/60 light:hover:border-purple-600/50"),
+        "dark:hover:border-purple-500/60 light:hover:border-purple-600/50",
+        "text"),
         
         ("html", "HTML", json!(["html", "htm"]),
         "Globe", 
         "dark:from-orange-500/30 light:from-orange-600/40 dark:to-red-500/15 light:to-red-600/25", 
         "dark:shadow-orange-500/20 light:shadow-orange-600/30",
         "dark:text-orange-300 light:text-orange-700", 
-        "dark:hover:border-orange-500/60 light:hover:border-orange-600/50"),
-        
-        // ============ ДОКУМЕНТЫ ============
-        ("pdf", "PDF", json!(["pdf"]),
-        "FilePdf", 
-        "dark:from-red-500/30 light:from-red-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
-        "dark:shadow-red-500/20 light:shadow-red-600/30",
-        "dark:text-red-400 light:text-red-700", 
-        "dark:hover:border-red-500/60 light:hover:border-red-600/50"),
-        
-        ("docx", "DOCX", json!(["docx"]),
-        "FileWord", 
-        "dark:from-blue-600/30 light:from-blue-700/40 dark:to-indigo-500/15 light:to-indigo-600/25", 
-        "dark:shadow-blue-600/20 light:shadow-blue-700/30",
-        "dark:text-blue-400 light:text-blue-700", 
-        "dark:hover:border-blue-500/60 light:hover:border-blue-600/50"),
-        
-        ("odt", "ODT", json!(["odt"]),
-        "FileOdt", 
-        "dark:from-green-600/30 light:from-green-700/40 dark:to-teal-500/15 light:to-teal-600/25", 
-        "dark:shadow-green-600/20 light:shadow-green-700/30",
-        "dark:text-green-400 light:text-green-700", 
-        "dark:hover:border-green-500/60 light:hover:border-green-600/50"),
-        
-        ("xlsx", "XLSX", json!(["xlsx", "xls"]),
-        "FileExcel", 
-        "dark:from-emerald-500/30 light:from-emerald-600/40 dark:to-green-500/15 light:to-green-600/25", 
-        "dark:shadow-emerald-500/20 light:shadow-emerald-600/30",
-        "dark:text-emerald-400 light:text-emerald-700", 
-        "dark:hover:border-emerald-500/60 light:hover:border-emerald-600/50"),
+        "dark:hover:border-orange-500/60 light:hover:border-orange-600/50",
+        "text"),
         
         ("txt", "TXT", json!(["txt", "text"]),
         "FileAlt", 
         "dark:from-gray-500/30 light:from-gray-600/40 dark:to-slate-500/15 light:to-slate-600/25", 
         "dark:shadow-gray-500/20 light:shadow-gray-600/30",
         "dark:text-gray-400 light:text-gray-700", 
-        "dark:hover:border-gray-500/60 light:hover:border-gray-600/50"),
+        "dark:hover:border-gray-500/60 light:hover:border-gray-600/50",
+        "text"),
         
         ("rtf", "RTF", json!(["rtf"]),
         "FileRtf", 
         "dark:from-blue-400/30 light:from-blue-500/40 dark:to-indigo-500/15 light:to-indigo-600/25", 
         "dark:shadow-blue-400/20 light:shadow-blue-500/30",
         "dark:text-blue-400 light:text-blue-700", 
-        "dark:hover:border-blue-400/60 light:hover:border-blue-500/50"),
+        "dark:hover:border-blue-400/60 light:hover:border-blue-500/50",
+        "text"),
+
+        // ============ ДОКУМЕНТЫ ============
+        ("pdf", "PDF", json!(["pdf"]),
+        "FilePdf", 
+        "dark:from-red-500/30 light:from-red-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
+        "dark:shadow-red-500/20 light:shadow-red-600/30",
+        "dark:text-red-400 light:text-red-700", 
+        "dark:hover:border-red-500/60 light:hover:border-red-600/50",
+        "document"),
+        
+        ("docx", "DOCX", json!(["docx"]),
+        "FileWord", 
+        "dark:from-blue-600/30 light:from-blue-700/40 dark:to-indigo-500/15 light:to-indigo-600/25", 
+        "dark:shadow-blue-600/20 light:shadow-blue-700/30",
+        "dark:text-blue-400 light:text-blue-700", 
+        "dark:hover:border-blue-500/60 light:hover:border-blue-600/50",
+        "document"),
+        
+        ("odt", "ODT", json!(["odt"]),
+        "FileOdt", 
+        "dark:from-green-600/30 light:from-green-700/40 dark:to-teal-500/15 light:to-teal-600/25", 
+        "dark:shadow-green-600/20 light:shadow-green-700/30",
+        "dark:text-green-400 light:text-green-700", 
+        "dark:hover:border-green-500/60 light:hover:border-green-600/50",
+        "document"),
+        
+        ("xlsx", "XLSX", json!(["xlsx", "xls"]),
+        "FileExcel", 
+        "dark:from-emerald-500/30 light:from-emerald-600/40 dark:to-green-500/15 light:to-green-600/25", 
+        "dark:shadow-emerald-500/20 light:shadow-emerald-600/30",
+        "dark:text-emerald-400 light:text-emerald-700", 
+        "dark:hover:border-emerald-500/60 light:hover:border-emerald-600/50",
+        "document"),
 
         // ============ ИЗОБРАЖЕНИЯ ============
         ("jpg", "JPG", json!(["jpg", "jpeg", "jfif", "pjpeg"]),
@@ -163,28 +177,32 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:from-orange-500/30 light:from-orange-600/40 dark:to-amber-500/15 light:to-amber-600/25", 
         "dark:shadow-orange-500/20 light:shadow-orange-600/30",
         "dark:text-orange-400 light:text-orange-700", 
-        "dark:hover:border-orange-500/60 light:hover:border-orange-600/50"),
+        "dark:hover:border-orange-500/60 light:hover:border-orange-600/50",
+        "image"),
         
         ("png", "PNG", json!(["png"]),
         "FilePng", 
         "dark:from-blue-400/30 light:from-blue-500/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
         "dark:shadow-blue-400/20 light:shadow-blue-500/30",
         "dark:text-blue-400 light:text-blue-700", 
-        "dark:hover:border-blue-400/60 light:hover:border-blue-500/50"),
+        "dark:hover:border-blue-400/60 light:hover:border-blue-500/50",
+        "image"),
         
         ("webp", "WEBP", json!(["webp"]),
         "FileWebp", 
         "dark:from-cyan-500/30 light:from-cyan-600/40 dark:to-blue-500/15 light:to-blue-600/25", 
         "dark:shadow-cyan-500/20 light:shadow-cyan-600/30",
         "dark:text-cyan-400 light:text-cyan-700", 
-        "dark:hover:border-cyan-500/60 light:hover:border-cyan-600/50"),
+        "dark:hover:border-cyan-500/60 light:hover:border-cyan-600/50",
+        "image"),
         
         ("avif", "AVIF", json!(["avif"]),
         "FileAvif", 
         "dark:from-purple-500/30 light:from-purple-600/40 dark:to-violet-500/15 light:to-violet-600/25", 
         "dark:shadow-purple-500/20 light:shadow-purple-600/30",
         "dark:text-purple-400 light:text-purple-700", 
-        "dark:hover:border-purple-500/60 light:hover:border-purple-600/50"),
+        "dark:hover:border-purple-500/60 light:hover:border-purple-600/50",
+        "image"),
 
         // ============ АУДИО ============
         ("mp3", "MP3", json!(["mp3"]),
@@ -192,14 +210,16 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:from-rose-500/30 light:from-rose-600/40 dark:to-pink-500/15 light:to-pink-600/25", 
         "dark:shadow-rose-500/20 light:shadow-rose-600/30",
         "dark:text-rose-400 light:text-rose-700", 
-        "dark:hover:border-rose-500/60 light:hover:border-rose-600/50"),
+        "dark:hover:border-rose-500/60 light:hover:border-rose-600/50",
+        "audio"),
         
         ("wav", "WAV", json!(["wav"]),
         "FileWav", 
         "dark:from-teal-500/30 light:from-teal-600/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
         "dark:shadow-teal-500/20 light:shadow-teal-600/30",
         "dark:text-teal-400 light:text-teal-700", 
-        "dark:hover:border-teal-500/60 light:hover:border-teal-600/50"),
+        "dark:hover:border-teal-500/60 light:hover:border-teal-600/50",
+        "audio"),
 
         // ============ ВИДЕО ============
         ("mp4", "MP4", json!(["mp4"]),
@@ -207,17 +227,19 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:from-red-600/30 light:from-red-700/40 dark:to-rose-500/15 light:to-rose-600/25", 
         "dark:shadow-red-600/20 light:shadow-red-700/30",
         "dark:text-red-400 light:text-red-700", 
-        "dark:hover:border-red-500/60 light:hover:border-red-600/50"),
+        "dark:hover:border-red-500/60 light:hover:border-red-600/50",
+        "video"),
         
         ("mov", "MOV", json!(["mov"]),
         "FileMov", 
         "dark:from-pink-500/30 light:from-pink-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
         "dark:shadow-pink-500/20 light:shadow-pink-600/30",
         "dark:text-pink-400 light:text-pink-700", 
-        "dark:hover:border-pink-500/60 light:hover:border-pink-600/50"),
+        "dark:hover:border-pink-500/60 light:hover:border-pink-600/50",
+        "video"),
     ];
 
-    for (format_id, name, extensions, icon, color, glow, text_color, border_hover) in formats {
+    for (format_id, name, extensions, icon, color, glow, text_color, border_hover, format_type) in formats {
         let new_format = FormatActiveModel {
             format_id: Set(format_id.to_string()),
             name: Set(name.to_string()),
@@ -227,6 +249,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
             glow: Set(glow.to_string()),
             text_color: Set(text_color.to_string()),
             border_hover: Set(border_hover.to_string()),
+            format_type: Set(format_type.to_string()),
             created_at: Set(now),
             updated_at: Set(now),
         };
@@ -238,7 +261,6 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
     println!("✅ All formats initialized!");
     Ok(())
 }
-
 
 // ============================================================
 // CRUD ДЛЯ ФОРМАТОВ (экспортируемые функции)

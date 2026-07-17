@@ -11,6 +11,7 @@ export interface FormatDB {
   glow: string;
   text_color: string;
   border_hover: string;
+  format_type: string; // 👈 ДОБАВЛЯЕМ
 }
 
 export interface Format {
@@ -22,4 +23,5 @@ export interface Format {
   glow: string;
   textColor: string;
   borderHover: string;
+  formatType: string; // 👈 ДОБАВЛЯЕМ
 }

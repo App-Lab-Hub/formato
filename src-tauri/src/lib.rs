@@ -72,6 +72,7 @@ pub fn run() {
             db::reset_database,
             
             utils::create_temp_file,
+            utils::get_availability,
             // settings
             settings::get_settings,
             settings::save_settings,

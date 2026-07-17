@@ -134,6 +134,7 @@ export async function loadFormatsData(): Promise<void> {
         glow: f.glow,
         textColor: f.text_color,
         borderHover: f.border_hover,
+        formatType: f.format_type, // 👈 ДОБАВЛЯЕМ
       }));
 
       _loaded = true;

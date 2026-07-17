@@ -37,31 +37,7 @@ pub async fn get_db_status(state: tauri::State<'_, AppState>) -> Result<String, 
     }
 }
 
-#[tauri::command]
-pub async fn get_formats(state: tauri::State<'_, AppState>) -> Result<Vec<serde_json::Value>, String> {
-    let db_guard = state.db.lock().await;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    
-    let formats = db::get_all_formats(db)
-        .await
-        .map_err(|e| e.to_string())?;
-    
-    Ok(formats
-        .into_iter()
-        .map(|f| {
-            serde_json::json!({
-                "format_id": f.format_id,
-                "name": f.name,
-                "extensions": f.extensions,
-                "icon": f.icon,
-                "color": f.color,
-                "glow": f.glow,
-                "text_color": f.text_color,
-                "border_hover": f.border_hover,
-            })
-        })
-        .collect())
-}
+// src/commands.rs или где у тебя команды
 
 #[tauri::command]
 pub async fn get_format_by_id(
@@ -85,9 +61,36 @@ pub async fn get_format_by_id(
         "glow": format.glow,
         "text_color": format.text_color,
         "border_hover": format.border_hover,
+        "format_type": format.format_type, // 👈 ДОБАВЛЯЕМ
     }))
 }
 
+#[tauri::command]
+pub async fn get_formats(state: tauri::State<'_, AppState>) -> Result<Vec<serde_json::Value>, String> {
+    let db_guard = state.db.lock().await;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    
+    let formats = db::get_all_formats(db)
+        .await
+        .map_err(|e| e.to_string())?;
+    
+    Ok(formats
+        .into_iter()
+        .map(|f| {
+            serde_json::json!({
+                "format_id": f.format_id,
+                "name": f.name,
+                "extensions": f.extensions,
+                "icon": f.icon,
+                "color": f.color,
+                "glow": f.glow,
+                "text_color": f.text_color,
+                "border_hover": f.border_hover,
+                "format_type": f.format_type, // 👈 ДОБАВЛЯЕМ
+            })
+        })
+        .collect())
+}
 
 #[tauri::command]
 pub async fn get_file_size(path: String) -> Result<u64, String> {
@@ -114,4 +117,89 @@ pub fn create_temp_file(content: String, extension: String, name: String) -> Res
     fs::write(&file_path, content).map_err(|e| e.to_string())?;
     
     Ok(file_path.to_string_lossy().to_string())
+}
+
+
+
+
+
+
+// src/convert/mod.rs
+
+use serde::{Deserialize, Serialize};
+
+// ============================================================
+// ТИПЫ
+// ============================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContentType {
+    Text,
+    Image,
+    Audio,
+    Video,
+}
+
+impl From<String> for ContentType {
+    fn from(s: String) -> Self {
+        match s.to_lowercase().as_str() {
+            "text" => ContentType::Text,
+            "image" => ContentType::Image,
+            "audio" => ContentType::Audio,
+            "video" => ContentType::Video,
+            _ => ContentType::Text,
+        }
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct AvailabilityResponse {
+    pub text: String,
+    pub image: String,
+    pub audio: String,
+    pub video: String,
+}
+
+// ============================================================
+// ЛОГИКА ДОСТУПНОСТИ
+// ============================================================
+
+pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
+    let from: ContentType = from_type.to_string().into();
+    
+    match from {
+        ContentType::Text => AvailabilityResponse {
+            text: "available".to_string(),
+            image: "available_with_ai".to_string(),
+            audio: "available_with_ai".to_string(),
+            video: "not_available".to_string(),
+        },
+        ContentType::Image => AvailabilityResponse {
+            text: "available_with_ai".to_string(),
+            image: "available".to_string(),
+            audio: "not_available".to_string(),
+            video: "available".to_string(),
+        },
+        ContentType::Audio => AvailabilityResponse {
+            text: "available".to_string(),
+            image: "not_available".to_string(),
+            audio: "available".to_string(),
+            video: "available".to_string(),
+        },
+        ContentType::Video => AvailabilityResponse {
+            text: "available_with_ai".to_string(),
+            image: "available".to_string(),
+            audio: "available".to_string(),
+            video: "available".to_string(),
+        },
+    }
+}
+
+// ============================================================
+// TAURI COMMAND
+// ============================================================
+
+#[tauri::command]
+pub fn get_availability(from_type: String) -> AvailabilityResponse {
+    get_availability_from_type(&from_type)
 }
