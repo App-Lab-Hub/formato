@@ -17,29 +17,25 @@
     onselect: (format: Format) => void;
   } = $props();
 
-  // Группируем форматы по formatType
-  const groupedFormats = $derived(() => {
+  // Исправлено для Svelte 5 и TS: убрана стрелочная функция из $derived, чтобы возвращался чистый объект, а не функция
+  const groupedFormats = $derived.by(() => {
     const groups: Record<string, Format[]> = {};
-    
     for (const format of formats) {
       const type = format.formatType || 'text';
-      if (!groups[type]) {
-        groups[type] = [];
-      }
+      if (!groups[type]) groups[type] = [];
       groups[type].push(format);
     }
-    
     return groups;
   });
 
   const groupOrder = ['text', 'image', 'audio', 'video', 'document'];
   
   const groupConfig: Record<string, { label: string; icon: typeof FileText; color: string }> = {
-    text: { label: 'Текстовые', icon: FileText, color: 'text-blue-400' },
-    image: { label: 'Изображения', icon: Image, color: 'text-green-400' },
-    audio: { label: 'Аудио', icon: Music, color: 'text-rose-400' },
-    video: { label: 'Видео', icon: Film, color: 'text-red-400' },
-    document: { label: 'Документы', icon: File, color: 'text-purple-400' },
+    text: { label: 'Текстовые', icon: FileText, color: 'text-blue-500 dark:text-blue-400' },
+    image: { label: 'Изображения', icon: Image, color: 'text-emerald-500 dark:text-emerald-400' },
+    audio: { label: 'Аудио', icon: Music, color: 'text-rose-500 dark:text-rose-400' },
+    video: { label: 'Видео', icon: Film, color: 'text-amber-500 dark:text-amber-400' },
+    document: { label: 'Документы', icon: File, color: 'text-violet-500 dark:text-violet-400' },
   };
 
   function getStatusForFormat(format: Format): string {
@@ -49,43 +45,49 @@
   }
 </script>
 
-<div class="flex items-center gap-4">
-  <div class="h-px w-20 dark:bg-border light:bg-purple-300/50"></div>
-  <span class="text-xs dark:text-muted-foreground/50 light:text-purple-700/60 uppercase tracking-widest">{m.convert_to()}</span>
-  <div class="h-px w-20 dark:bg-border light:bg-purple-300/50"></div>
+<!-- Разделитель "Конвертировать в" -->
+<div class="flex items-center justify-center gap-3 w-full my-1 select-none opacity-40">
+  <div class="h-px w-12 dark:bg-border light:bg-neutral-300"></div>
+  <span class="text-[10px] font-bold uppercase tracking-widest dark:text-muted-foreground light:text-neutral-500">
+    {m.convert_to()}
+  </span>
+  <div class="h-px w-12 dark:bg-border light:bg-neutral-300"></div>
 </div>
 
-{#each groupOrder as groupType}
-  {@const groupItems = groupedFormats()[groupType]}
-  {@const config = groupConfig[groupType]}
-  {#if groupItems && groupItems.length > 0}
-    <div class="w-full max-w-7xl mx-auto">
-      <!-- Заголовок группы -->
-      <div class="flex items-center gap-3 mb-4 px-1">
-        <div class="flex items-center gap-2">
-          <config.icon class="h-4 w-4 {config.color}" />
-          <span class="text-sm font-medium dark:text-muted-foreground light:text-purple-700/70">
+<div class="flex flex-col gap-8 w-full max-w-7xl mx-auto px-4">
+  {#each groupOrder as groupType}
+    <!-- Исправлено: теперь обращаемся как к объекту groupedFormats[groupType] без вызова функции () -->
+    {@const groupItems = groupedFormats[groupType]}
+    {@const config = groupConfig[groupType]}
+    {#if groupItems && groupItems.length > 0}
+      <div class="w-full flex flex-col gap-3">
+        
+        <!-- Заголовок группы -->
+        <div class="flex items-center gap-2 select-none h-5">
+          <config.icon class="h-4 w-4 flex-shrink-0 {config.color}" />
+          <span class="text-xs font-bold dark:text-neutral-400 light:text-neutral-600 whitespace-nowrap">
             {config.label}
           </span>
+          <div class="h-px flex-1 dark:bg-gradient-to-r dark:from-border/60 dark:to-transparent light:bg-gradient-to-r light:from-neutral-200 light:to-transparent"></div>
+          <span class="text-[10px] font-mono font-medium dark:text-neutral-500 light:text-neutral-400">
+            {groupItems.length}
+          </span>
         </div>
-        <div class="h-px flex-1 dark:bg-gradient-to-r dark:from-border/50 dark:to-transparent light:bg-gradient-to-r light:from-purple-300/30 light:to-transparent"></div>
-        <span class="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-mono font-medium dark:bg-muted/30 light:bg-purple-200/50 dark:text-muted-foreground/60 light:text-purple-700/50">
-          {groupItems.length}
-        </span>
+        
+        <!-- Сетка карточек -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 mt-1">
+          {#each groupItems as target}
+            {@const status = getStatusForFormat(target)}
+            <FormatCard
+              format={target}
+              {status}
+              isSelected={selectedTarget?.id === target.id}
+              onselect={onselect}
+            />
+          {/each}
+        </div>
+
       </div>
-      
-      <!-- Сетка форматов в группе -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-5">
-        {#each groupItems as target}
-          {@const status = getStatusForFormat(target)}
-          <FormatCard
-            format={target}
-            {status}
-            isSelected={selectedTarget?.id === target.id}
-            onselect={onselect}
-          />
-        {/each}
-      </div>
-    </div>
-  {/if}
-{/each}
+    {/if}
+  {/each}
+</div>
