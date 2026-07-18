@@ -68,7 +68,7 @@
 {#if !isAvailableWithAI && !isNotAvailable}
 <button
   onclick={handleCardClick}
-  class="group relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 p-5 w-full aspect-[4/5] transition-all duration-500 overflow-hidden text-center select-none backdrop-blur-sm
+  class="cursor-pointer group relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 p-5 w-full aspect-[4/5] transition-all duration-500 overflow-hidden text-center select-none backdrop-blur-sm
          {isSelected 
            ? 'border-primary bg-primary/5 scale-[1.04]' 
            : 'dark:border-border light:border-neutral-200 dark:bg-card light:bg-neutral-50/40 hover:scale-[1.01]'}
@@ -106,7 +106,6 @@
 
 {/if}
 
-<!-- КАРТОЧКА С AI - СТРУКТУРА ОДИН В ОДИН КАК У ISNOTAVAILABLE -->
 {#if isAvailableWithAI}
   <div
     class="group relative flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-2xl border-2 p-4 xs:p-5 w-full aspect-[4/5] overflow-hidden text-center select-none transition-all duration-500
@@ -159,19 +158,24 @@
           handleDownloadAI(e);
         }
       }}
-      class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 px-3.5 xs:px-4 py-1.5 xs:py-2 rounded-xl border text-[9px] xs:text-[10px] font-black tracking-widest uppercase whitespace-nowrap cursor-pointer transform-gpu will-change-transform select-none max-w-[calc(100%-32px)]
+      class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 px-3.5 xs:px-4 py-1.5 xs:py-2 rounded-xl border text-[9px] xs:text-[10px] font-black tracking-widest uppercase whitespace-nowrap cursor-pointer transform-gpu will-change-transform select-none max-w-[calc(100%-32px)] overflow-hidden
              hover:scale-[1.02] active:scale-[0.98] active:duration-75 origin-center
              bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-800
-             group-hover:bg-gradient-to-br group-hover:border-transparent group-hover:shadow-md {format.color} {format.textColor}"
+             transition-all duration-500 group-hover:border-transparent group-hover:shadow-md"
     >
-      <div class="flex items-center justify-center h-3.5 w-3.5 flex-shrink-0">
+      <!-- Скрытый слой сочного градиента цвета из БД, который плавно проявляется при ховере -->
+      <div class="absolute inset-0 bg-gradient-to-br opacity-0 transition-opacity duration-500 group-hover:opacity-100 -z-10 {format.color}"></div>
+
+      <!-- Иконка и текст плавно перенимают классы цвета из БД -->
+      <div class="flex items-center justify-center h-3.5 w-3.5 flex-shrink-0 relative z-10 transition-colors duration-500 group-hover:{format.textColor}">
         <Download class="h-full w-full stroke-[2.5]" />
       </div>
-      <span class="leading-none pt-[0.5px] antialiased subpixel-antialiased max-w-[max-content]">Скачать AI</span>
+      <span class="leading-none pt-[0.5px] antialiased subpixel-antialiased max-w-[max-content] relative z-10 transition-colors duration-500 group-hover:{format.textColor}">
+        Скачать AI
+      </span>
     </div>
   </div>
 {/if}
-
 
 
 
