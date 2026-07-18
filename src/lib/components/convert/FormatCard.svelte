@@ -104,91 +104,83 @@
 </button>
 
 
-
 {/if}
 
-<!-- КАРТОЧКА С AI - ОРАНЖЕВАЯ ТЕМА (DIV вместо BUTTON) -->
+<!-- КАРТОЧКА С AI - СТРУКТУРА ОДИН В ОДИН КАК У ISNOTAVAILABLE -->
 {#if isAvailableWithAI}
-<div
-  class="group relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 p-5 w-full aspect-[4/5] transition-all duration-500 overflow-hidden text-center select-none backdrop-blur-sm
-         dark:border-border/60 light:border-neutral-200/80 dark:bg-card/40 light:bg-neutral-50/40 cursor-default"
->
-  <!-- Мягкий контур при наведении (подстраивается под цвет иконки) -->
-  <div class="absolute -inset-px bg-gradient-to-b from-current to-transparent rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 -z-10 {format.textColor}"></div>
-
-  <!-- Верхний аккуратный бейдж "AI" -->
-  <div class="absolute top-3 right-3 z-20">
-    <div class="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[9px] font-extrabold tracking-wider uppercase border border-current/20 bg-current/5 {format.textColor}">
-      <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
-      <span>AI</span>
-    </div>
-  </div>
-
-  <!-- Центрированная иконка (реагирует на наведение на карточку) -->
-  <div class="relative rounded-2xl bg-gradient-to-br p-5 transition-all duration-500 {format.color}
-              dark:brightness-100 group-hover:scale-110 group-hover:shadow-md">
-    <!-- Размытое фоновое облако (Blur) под иконкой -->
-    <div class="absolute inset-0 rounded-2xl bg-gradient-to-br opacity-20 blur-xl transition-opacity group-hover:opacity-40 {format.color}"></div>
-    
-    <div class="flex-shrink-0 h-11 w-11 relative z-10 flex items-center justify-center">
-      <format.icon class="w-full h-full transition-transform duration-500 group-hover:rotate-12 {format.textColor}" />
-    </div>
-  </div>
-
-  <!-- Блок текстов с сохраненным line-clamp и плавным fade-out маски -->
-  <div class="flex flex-col items-center gap-1.5 z-10 px-2 w-full mt-1 transition-all duration-500
-              [mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_50%,rgba(0,0,0,0.6)_75%,rgba(0,0,0,0)_100%)]">
-    <span class="text-base font-extrabold tracking-wide dark:text-foreground light:text-neutral-800">
-      {format.name}
-    </span>
-    <span class="text-xs font-medium leading-relaxed dark:text-muted-foreground light:text-neutral-500/90 line-clamp-2 max-w-[160px]">
-      {(m as any)[`format_desc_${format.id}`]()}
-    </span>
-  </div>
-
-  <!-- Полупрозрачная подложка в самом низу карточки -->
-  <div class="absolute bottom-0 left-0 right-0 h-1/3 pointer-events-none rounded-b-2xl bg-gradient-to-t dark:from-neutral-950/40 light:from-neutral-100/60 via-transparent to-transparent z-10"></div>
-
-<!-- Кнопка "Скачать AI" — ультра-мягкий клик с минимальным сжатием -->
-<div class="absolute bottom-5.5 left-0 right-0 z-20 w-full px-4 flex justify-center pointer-events-none">
-  <div 
-    role="button"
-    tabindex="0"
-    onclick={(e) => { 
-      e.stopPropagation(); 
-      handleDownloadAI(e); 
-    }}
-    onkeydown={(e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.stopPropagation();
-        // @ts-ignore
-        handleDownloadAI(e);
-      }
-    }}
-    class="flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-[10px] font-black tracking-widest uppercase transition-all duration-200 max-w-max border backdrop-blur-md cursor-pointer pointer-events-auto select-none
-           hover:scale-[1.02] active:scale-[0.98] active:duration-75 origin-center transform-gpu will-change-transform
-           bg-white/50 dark:bg-neutral-900/60 text-neutral-800 dark:text-neutral-200 border-neutral-200/60 dark:border-neutral-800/80 
-           group-hover:bg-gradient-to-br group-hover:border-transparent group-hover:shadow-md {format.color} {format.textColor}"
+  <div
+    class="group relative flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-2xl border-2 p-4 xs:p-5 w-full aspect-[4/5] overflow-hidden text-center select-none transition-all duration-500
+           dark:border-border/60 light:border-neutral-200/80 dark:bg-card/40 light:bg-neutral-50/40 cursor-default"
   >
-    <div class="flex items-center justify-center h-3.5 w-3.5 flex-shrink-0">
-      <Download class="h-full w-full stroke-[2.5]" />
+    <!-- Бейдж статуса в углу (Минималистичный AI с пульсацией) -->
+    <div class="absolute top-2.5 right-2.5 xs:top-3 xs:right-3 z-20">
+      <div class="flex items-center gap-1 xs:gap-1.5 px-2 py-0.5 rounded-full text-[8px] xs:text-[9px] font-extrabold tracking-wider uppercase border border-current/20 bg-current/5 {format.textColor}">
+        <span class="w-1.5 h-1.5 rounded-full bg-current animate-pulse"></span>
+        <span>AI</span>
+      </div>
     </div>
-    <span class="leading-none pt-[0.5px] whitespace-nowrap antialiased subpixel-antialiased">Скачать AI</span>
+
+    <!-- Центрированная приглушенная иконка -->
+    <div class="relative rounded-2xl bg-gradient-to-br from-neutral-200/50 via-neutral-100/40 to-neutral-200/20 dark:from-neutral-900/60 dark:to-neutral-950/40 p-3.5 xs:p-5 grayscale opacity-40 border dark:border-neutral-800/50 light:border-neutral-200/40">
+      <!-- Размытое фоновое облако (Blur) под иконкой (использует цвет формата из БД) -->
+      <div class="absolute inset-0 rounded-2xl bg-gradient-to-br opacity-20 blur-xl {format.color}"></div>
+      
+      <div class="flex-shrink-0 h-9 w-9 xs:h-11 xs:w-11 relative z-10 flex items-center justify-center">
+        <format.icon class="w-full h-full dark:text-neutral-500 light:text-neutral-400" />
+      </div>
+    </div>
+
+    <!-- Блок текстов с мягким пастельным fade-out эффектом маски -->
+    <div class="flex flex-col items-center gap-1 xs:gap-1.5 z-10 px-1 xs:px-2 w-full mt-0.5 xs:mt-1
+                [mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_50%,rgba(0,0,0,0.6)_75%,rgba(0,0,0,0)_100%)]">
+      <span class="text-sm xs:text-base font-extrabold tracking-wide dark:text-neutral-500 light:text-neutral-400">
+        {format.name}
+      </span>
+      <span class="text-[11px] xs:text-xs font-medium leading-relaxed dark:text-neutral-600 light:text-neutral-400/80 line-clamp-3 max-w-[140px] xs:max-w-[160px]">
+        {(m as any)[`format_desc_${format.id}`]()}
+      </span>
+    </div>
+
+    <!-- Матовое глухое перекрытие поверх нижней части (один в один как в оригинале) -->
+    <div class="absolute bottom-0 left-0 right-0 h-1/3 pointer-events-none rounded-b-2xl bg-gradient-to-t dark:from-neutral-950/80 dark:via-neutral-950/30 light:from-neutral-100/80 light:via-neutral-100/20 to-transparent z-10"></div>
+    
+    <!-- Интерактивная кнопка "Скачать AI" по центру в самом низу -->
+    <div 
+      role="button"
+      tabindex="0"
+      onclick={(e) => { 
+        e.stopPropagation(); 
+        handleDownloadAI(e); 
+      }}
+      onkeydown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.stopPropagation();
+          // @ts-ignore
+          handleDownloadAI(e);
+        }
+      }}
+      class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 px-3.5 xs:px-4 py-1.5 xs:py-2 rounded-xl border text-[9px] xs:text-[10px] font-black tracking-widest uppercase whitespace-nowrap cursor-pointer transform-gpu will-change-transform select-none max-w-[calc(100%-32px)]
+             hover:scale-[1.02] active:scale-[0.98] active:duration-75 origin-center
+             bg-white dark:bg-neutral-900 text-neutral-800 dark:text-neutral-200 border-neutral-200 dark:border-neutral-800
+             group-hover:bg-gradient-to-br group-hover:border-transparent group-hover:shadow-md {format.color} {format.textColor}"
+    >
+      <div class="flex items-center justify-center h-3.5 w-3.5 flex-shrink-0">
+        <Download class="h-full w-full stroke-[2.5]" />
+      </div>
+      <span class="leading-none pt-[0.5px] antialiased subpixel-antialiased max-w-[max-content]">Скачать AI</span>
+    </div>
   </div>
-</div>
-
-
-
-
-
-</div>
 {/if}
+
+
+
+
 
 
 <!-- КАРТОЧКА НЕДОСТУПНО - ПРЕМИАЛЬНАЯ РУБИНОВАЯ ТЕМА -->
 {#if isNotAvailable}
   <div
-    class="group relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 p-5 w-full aspect-[4/5] overflow-hidden text-center select-none
+    class="group relative flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-2xl border-2 p-4 xs:p-5 w-full aspect-[4/5] overflow-hidden text-center select-none
            dark:border-red-950/40 light:border-red-100 dark:bg-neutral-950/40 light:bg-neutral-50/20 
            cursor-not-allowed transition-all duration-500"
   >
@@ -196,31 +188,31 @@
     <div class="absolute -inset-px bg-gradient-to-b dark:from-red-500/10 light:from-red-500/5 to-transparent rounded-2xl -z-10"></div>
 
     <!-- Бейдж статуса (Минималистичный замок) -->
-    <div class="absolute top-3 right-3 z-20">
-      <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wider uppercase border border-red-500/20 bg-red-500/5 dark:text-red-400 light:text-red-600">
+    <div class="absolute top-2.5 right-2.5 xs:top-3 xs:right-3 z-20">
+      <div class="flex items-center gap-1 xs:gap-1.5 px-2 py-0.5 rounded-full text-[8px] xs:text-[9px] font-extrabold tracking-wider uppercase border border-red-500/20 bg-red-500/5 dark:text-red-400 light:text-red-600">
         <Lock class="h-2.5 w-2.5" />
         <span>Locked</span>
       </div>
     </div>
 
     <!-- Центрированная приглушенная иконка -->
-    <div class="relative rounded-2xl bg-gradient-to-br from-neutral-200/50 via-neutral-100/40 to-neutral-200/20 dark:from-neutral-900/60 dark:to-neutral-950/40 p-5 grayscale opacity-40 border dark:border-neutral-800/50 light:border-neutral-200/40">
+    <div class="relative rounded-2xl bg-gradient-to-br from-neutral-200/50 via-neutral-100/40 to-neutral-200/20 dark:from-neutral-900/60 dark:to-neutral-950/40 p-3.5 xs:p-5 grayscale opacity-40 border dark:border-neutral-800/50 light:border-neutral-200/40">
       <!-- Едва заметное багровое облако (Blur) глубоко под иконкой -->
       <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-500/10 to-transparent opacity-20 blur-xl"></div>
       
-      <div class="flex-shrink-0 h-11 w-11 relative z-10 flex items-center justify-center">
+      <div class="flex-shrink-0 h-9 w-9 xs:h-11 xs:w-11 relative z-10 flex items-center justify-center">
         <!-- Берем родную иконку формата, но обесцвечиваем её для эффекта блокировки -->
         <format.icon class="w-full h-full dark:text-neutral-500 light:text-neutral-400" />
       </div>
     </div>
 
     <!-- Блок текстов с мягким пастельным fade-out эффектом маски -->
-    <div class="flex flex-col items-center gap-1.5 z-10 px-2 w-full mt-1
-                [mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_50%,rgba(0,0,0,0.4)_75%,rgba(0,0,0,0)_100%)]">
-      <span class="text-base font-extrabold tracking-wide dark:text-neutral-500 light:text-neutral-400">
+    <div class="flex flex-col items-center gap-1 xs:gap-1.5 z-10 px-1 xs:px-2 w-full mt-0.5 xs:mt-1
+                [mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_50%,rgba(0,0,0,0.6)_75%,rgba(0,0,0,0)_100%)]">
+      <span class="text-sm xs:text-base font-extrabold tracking-wide dark:text-neutral-500 light:text-neutral-400">
         {format.name}
       </span>
-      <span class="text-xs font-medium leading-relaxed dark:text-neutral-600 light:text-neutral-400/80 line-clamp-2 max-w-[160px]">
+      <span class="text-[11px] xs:text-xs font-medium leading-relaxed dark:text-neutral-600 light:text-neutral-400/80 line-clamp-3 max-w-[140px] xs:max-w-[160px]">
         {(m as any)[`format_desc_${format.id}`]()}
       </span>
     </div>
@@ -228,9 +220,13 @@
     <!-- Матовое глухое перекрытие поверх нижней части (вместо уродливого черного слоя по центру) -->
     <div class="absolute bottom-0 left-0 right-0 h-1/3 pointer-events-none rounded-b-2xl bg-gradient-to-t dark:from-neutral-950/80 dark:via-neutral-950/30 light:from-neutral-100/80 light:via-neutral-100/20 to-transparent z-10"></div>
     
-    <!-- Деликатная плашка по центру в самом низу -->
-    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1 px-3 py-1 rounded-lg border dark:border-red-950 dark:bg-red-950/30 light:border-red-100 light:bg-red-50/60 text-[9px] font-black tracking-widest uppercase dark:text-red-400/80 light:text-red-600/80">
-      <span>Формат недоступен</span>
+    <!-- Деликатная плашка по центру в самом низу — Стили ОДИН В ОДИН как у кнопки AI выше -->
+    <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 px-3.5 xs:px-4 py-1.5 xs:py-2 rounded-xl border text-[9px] xs:text-[10px] font-black tracking-widest uppercase whitespace-nowrap max-w-[calc(100%-32px)]
+                dark:border-red-950 dark:bg-red-950/30 light:border-red-100 light:bg-red-50/60 dark:text-red-400/80 light:text-red-600/80">
+      <div class="flex items-center justify-center h-3.5 w-3.5 flex-shrink-0">
+        <Lock class="h-full w-full stroke-[2.5]" />
+      </div>
+      <span class="leading-none pt-[0.5px] antialiased subpixel-antialiased max-w-[calc(100%-16px)] overflow-hidden text-ellipsis">Формат недоступен</span>
     </div>
   </div>
 {/if}
