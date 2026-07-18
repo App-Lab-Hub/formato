@@ -1,24 +1,55 @@
+// src/convert/mod.rs
+
 mod csv;
 mod xml;
 mod ini;
 mod md;
-use crate::AppState;
-use serde::{ Serialize};
-use std::{path::PathBuf};
+mod txt;
 
+
+use crate::AppState;
+use serde::{Deserialize, Serialize};
+use std::path::{Path, PathBuf};
 use std::fs::File;
 use std::io::Read;
 use xxhash_rust::xxh3::Xxh3;
-
 use serde_json::{Value as Json};
 use crate::convert::csv::{parse_csv, stringify_csv};
 use crate::convert::ini::{parse_ini, stringify_ini};
 use crate::convert::md::{parse_markdown, stringify_markdown};
 use crate::convert::xml::{parse_xml, stringify_xml};
+use crate::convert::txt::{parse_txt, stringify_txt};
+
 use crate::db;
-use crate::html_convert::{convert_to_html,parse_html};
+use crate::html_convert::{convert_to_html, parse_html};
 use crate::paths::converted_dir;
 use memmap2::Mmap;
+
+// ============================================================
+// ТИПЫ
+// ============================================================
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ContentType {
+    Text,
+    Image,
+    Audio,
+    Video,
+    Document,
+}
+
+impl From<String> for ContentType {
+    fn from(s: String) -> Self {
+        match s.to_lowercase().as_str() {
+            "text" => ContentType::Text,
+            "image" => ContentType::Image,
+            "audio" => ContentType::Audio,
+            "video" => ContentType::Video,
+            "document" => ContentType::Document,
+            _ => ContentType::Text,
+        }
+    }
+}
 
 #[derive(Debug, Serialize)]
 pub struct ConvertResult {
@@ -29,136 +60,82 @@ pub struct ConvertResult {
     pub error: Option<String>,
 }
 
+// ============================================================
+// ОСНОВНАЯ ЛОГИКА КОНВЕРТАЦИИ
+// ============================================================
 
-pub fn convert(path: &str, from: &str, to: &str) -> Result<String, String> {
-    let input = std::fs::read_to_string(path).map_err(|e| format!("Cannot read file: {e}"))?;
+pub fn convert(
+    path: &str,
+    from: &str,
+    to: &str,
+    from_type: &str,
+    to_type: &str,
+) -> Result<String, String> {
+    let from_type: ContentType = from_type.to_string().into();
+    let to_type: ContentType = to_type.to_string().into();
+    
+    match (from_type, to_type) {
+        // Text → Text
+        (ContentType::Text, ContentType::Text) => convert_text_to_text(path, from, to),
+        
+        // Image → Image
+        (ContentType::Image, ContentType::Image) => convert_image_to_image(path, from, to),
+        
+        // Audio → Audio
+        (ContentType::Audio, ContentType::Audio) => convert_audio_to_audio(path, from, to),
+        
+        // Video → Video
+        (ContentType::Video, ContentType::Video) => convert_video_to_video(path, from, to),
+        
+        // Document → Document
+        (ContentType::Document, ContentType::Document) => convert_document_to_document(path, from, to),
+        
+        // Остальное пока не поддерживается
+        _ => Err(format!(
+            "Conversion from {:?} to {:?} is not supported yet",
+            from_type, to_type
+        )),
+    }
+}
+
+// ============================================================
+// КОНКРЕТНЫЕ РЕАЛИЗАЦИИ
+// ============================================================
+
+/// Text → Text
+fn convert_text_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+    let input = std::fs::read_to_string(path)
+        .map_err(|e| format!("Cannot read file: {e}"))?;
     let value = parse(&input, from)?;
     stringify(&value, to)
 }
 
-pub fn save_to_app_dir(content: &str, original_path: &str, to: &str, hash: &str) -> Result<String, String> {
-    let input_path = PathBuf::from(original_path);
-    let stem = input_path.file_stem().and_then(|s| s.to_str()).unwrap_or("converted");
-    
-    let output_dir = converted_dir();
-    let output_path = output_dir.join(format!("{}_{}.{}", stem, hash, to));
-    std::fs::write(&output_path, content).map_err(|e| format!("Cannot write file: {e}"))?;
-    
-    Ok(output_path.to_string_lossy().to_string())
+/// Image → Image
+fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // TODO: Использовать image crate или ImageMagick
+    Err(format!("Image to image conversion from {} to {} not implemented yet", from, to))
 }
 
-
-use std::path::Path;
-
-#[tauri::command]
-pub async fn convert_file(
-    state: tauri::State<'_, AppState>,
-    path: String,
-    from: String,
-    to: String,
-    enable_cache: bool,
-) -> Result<ConvertResult, String> {
-    let input_hash = calculate_conversion_hash(&path, &from, &to)
-        .map_err(|e| format!("Cannot read file: {e}"))?;
-    
-    let db_guard = state.db.lock().await;
-    let db = db_guard.as_ref().ok_or("Database not initialized")?;
-    
-    if enable_cache {
-        if let Some(existing_path) = db::find_conversion(db, &input_hash).await {
-            dbg!("✅ Cache HIT", &input_hash);
-            let extension = Path::new(&existing_path)
-                .extension()
-                .and_then(|e| e.to_str())
-                .map(|e| e.to_string());
-
-            return Ok(ConvertResult {
-                success: true,
-                content: existing_path,
-                hash: Some(input_hash),
-                extension,
-                error: None,
-            });
-        }
-        dbg!("❌ Cache MISS, converting...", &input_hash);
-    } else {
-        dbg!("🔄 Cache DISABLED, direct conversion", &input_hash);
-    }
-    
-    let (path_clone, from_clone, to_clone) = (path.clone(), from.clone(), to.clone());
-    let output = tokio::task::spawn_blocking(move || {
-        convert(&path_clone, &from_clone, &to_clone)
-    }).await.map_err(|e| format!("Task join error: {e}"))??;
-    
-    let saved_path = save_to_app_dir(&output, &path, &to, &input_hash)?;
-    let extension = Path::new(&saved_path)
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(|e| e.to_string());
-
-    if enable_cache {
-        db::save_conversion(db, &input_hash, &saved_path).await?;
-    }
-
-    Ok(ConvertResult {
-        success: true,
-        content: saved_path,
-        hash: Some(input_hash),
-        extension,
-        error: None,
-    })
+/// Audio → Audio
+fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // TODO: Использовать ffmpeg или symphonia
+    Err(format!("Audio to audio conversion from {} to {} not implemented yet", from, to))
 }
 
-// Общая функция для вычисления хэша с опциональными дополнительными данными
-fn calculate_hash(path: &str, extra_data: &[&[u8]]) -> std::io::Result<String> {
-    let file = File::open(path)?;
-    let mut hasher = Xxh3::new();
-
-    // Пробуем mmap
-    match unsafe { Mmap::map(&file) } {
-        Ok(mmap) => {
-            hasher.update(&mmap);
-        }
-        Err(_) => {
-            // Fallback на буфер
-            let mut file = file;
-            let mut buffer = [0; 65536];
-            loop {
-                let bytes_read = file.read(&mut buffer)?;
-                if bytes_read == 0 {
-                    break;
-                }
-                hasher.update(&buffer[..bytes_read]);
-            }
-        }
-    }
-
-    // Добавляем дополнительные данные (from, to)
-    for data in extra_data {
-        hasher.update(data);
-    }
-
-    Ok(format!("{:x}", hasher.digest()))
+/// Video → Video
+fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // TODO: Использовать ffmpeg
+    Err(format!("Video to video conversion from {} to {} not implemented yet", from, to))
 }
 
-// Хэш файла + from + to
-fn calculate_conversion_hash(path: &str, from: &str, to: &str) -> std::io::Result<String> {
-    calculate_hash(path, &[from.as_bytes(), to.as_bytes()])
+/// Document → Document
+fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // TODO: Использовать pandoc
+    Err(format!("Document to document conversion from {} to {} not implemented yet", from, to))
 }
-
-// Хэш файла (только содержимое)
-fn calculate_file_hash(path: &str) -> std::io::Result<String> {
-    calculate_hash(path, &[])
-}
-
-#[tauri::command]
-pub async fn hash_file(path: String) -> Result<String, String> {
-    calculate_file_hash(&path).map_err(|e| format!("Cannot hash file: {e}"))
-}
-
 
 // ============================================================
-// ПАРСЕРЫ
+// ПАРСЕРЫ И СЕРИАЛИЗАТОРЫ
 // ============================================================
 
 fn parse(input: &str, format: &str) -> Result<Json, String> {
@@ -171,18 +148,11 @@ fn parse(input: &str, format: &str) -> Result<Json, String> {
         "md" => parse_markdown(input),
         "csv" => parse_csv(input),
         "html" => parse_html(input),
+        "txt" | "text" => parse_txt(input),
+        // "rtf" => parse_rtf(input),
         _ => Err(format!("Unsupported: {format}")),
     }
 }
-
-
-
-
-
-
-// ============================================================
-// СЕРИАЛИЗАТОРЫ
-// ============================================================
 
 fn stringify(value: &Json, format: &str) -> Result<String, String> {
     match format {
@@ -204,10 +174,126 @@ fn stringify(value: &Json, format: &str) -> Result<String, String> {
         "ini" => stringify_ini(value),
         "html" => Ok(convert_to_html(value)),
         "md" => stringify_markdown(value),
+        "txt" | "text" => stringify_txt(value),
+
         _ => Err(format!("Unsupported: {format}")),
     }
 }
 
+// ============================================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+// ============================================================
+
+pub fn save_to_app_dir(content: &str, original_path: &str, to: &str, hash: &str) -> Result<String, String> {
+    let input_path = PathBuf::from(original_path);
+    let stem = input_path.file_stem().and_then(|s| s.to_str()).unwrap_or("converted");
+    
+    let output_dir = converted_dir();
+    let output_path = output_dir.join(format!("{}_{}.{}", stem, hash, to));
+    std::fs::write(&output_path, content).map_err(|e| format!("Cannot write file: {e}"))?;
+    
+    Ok(output_path.to_string_lossy().to_string())
+}
+
+fn calculate_hash(path: &str, extra_data: &[&[u8]]) -> std::io::Result<String> {
+    let file = File::open(path)?;
+    let mut hasher = Xxh3::new();
+
+    match unsafe { Mmap::map(&file) } {
+        Ok(mmap) => {
+            hasher.update(&mmap);
+        }
+        Err(_) => {
+            let mut file = file;
+            let mut buffer = [0; 65536];
+            loop {
+                let bytes_read = file.read(&mut buffer)?;
+                if bytes_read == 0 {
+                    break;
+                }
+                hasher.update(&buffer[..bytes_read]);
+            }
+        }
+    }
+
+    for data in extra_data {
+        hasher.update(data);
+    }
+
+    Ok(format!("{:x}", hasher.digest()))
+}
+
+fn calculate_conversion_hash(path: &str, from: &str, to: &str) -> std::io::Result<String> {
+    calculate_hash(path, &[from.as_bytes(), to.as_bytes()])
+}
+
+fn calculate_file_hash(path: &str) -> std::io::Result<String> {
+    calculate_hash(path, &[])
+}
+
+#[tauri::command]
+pub async fn hash_file(path: String) -> Result<String, String> {
+    calculate_file_hash(&path).map_err(|e| format!("Cannot hash file: {e}"))
+}
+
+#[tauri::command]
+pub async fn convert_file(
+    state: tauri::State<'_, AppState>,
+    path: String,
+    from: String,
+    to: String,
+    from_type: String,
+    to_type: String,
+    enable_cache: bool,
+) -> Result<ConvertResult, String> {
+    let input_hash = calculate_conversion_hash(&path, &from, &to)
+        .map_err(|e| format!("Cannot read file: {e}"))?;
+    
+    let db_guard = state.db.lock().await;
+    let db = db_guard.as_ref().ok_or("Database not initialized")?;
+    
+    if enable_cache {
+        if let Some(existing_path) = db::find_conversion(db, &input_hash).await {
+            let extension = Path::new(&existing_path)
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(|e| e.to_string());
+
+            return Ok(ConvertResult {
+                success: true,
+                content: existing_path,
+                hash: Some(input_hash),
+                extension,
+                error: None,
+            });
+        }
+    }
+    
+    let (path_clone, from_clone, to_clone, from_type_clone, to_type_clone) = 
+        (path.clone(), from.clone(), to.clone(), from_type.clone(), to_type.clone());
+    
+    let output = tokio::task::spawn_blocking(move || {
+        convert(&path_clone, &from_clone, &to_clone, &from_type_clone, &to_type_clone)
+    }).await.map_err(|e| format!("Task join error: {e}"))??;
+    
+    let saved_path = save_to_app_dir(&output, &path, &to, &input_hash)?;
+    let extension = Path::new(&saved_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_string());
+
+    if enable_cache {
+        db::save_conversion(db, &input_hash, &saved_path).await?;
+    }
+
+    Ok(ConvertResult {
+        success: true,
+        content: saved_path,
+        hash: Some(input_hash),
+        extension,
+        error: None,
+    })
+}
 
 #[tauri::command]
 pub async fn read_file_content(path: String) -> Result<String, String> {

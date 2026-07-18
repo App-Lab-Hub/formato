@@ -356,6 +356,8 @@ onMount(async () => {
           path: file.path, 
           from: sourceFormatId, 
           to: selectedTarget.id,
+          from_type: sourceFormat?.formatType || 'text',
+          to_type: selectedTarget?.formatType || 'text',
           enableCache: settings?.enable_cache ?? true
         }
       );
