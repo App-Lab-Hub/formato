@@ -2461,6 +2461,7 @@ dependencies = [
  "config",
  "csv",
  "dirs",
+ "docx-rs",
  "flatten-json-object",
  "handlebars",
  "indexmap 2.14.0",

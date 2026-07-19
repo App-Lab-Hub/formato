@@ -22,6 +22,8 @@ use crate::convert::md::{parse_markdown, stringify_markdown};
 use crate::convert::xml::{parse_xml, stringify_xml};
 use crate::convert::txt::{parse_txt, stringify_txt};
 use crate::convert::rtf::{parse_rtf, stringify_rtf};
+use docx_rs::*;
+
 
 
 use crate::db;
@@ -32,7 +34,10 @@ use memmap2::Mmap;
 // ============================================================
 // ТИПЫ
 // ============================================================
-
+pub enum ConversionOutput {
+    Inline(String),    // Содержимое (строка)
+    Save(String),      // Путь к файлу
+}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContentType {
     Text,
@@ -74,34 +79,59 @@ pub fn convert(
     to: &str,
     from_type: &str,
     to_type: &str,
-) -> Result<String, String> {
+) -> Result<ConversionOutput, String> {
     let from_type: ContentType = from_type.to_string().into();
     let to_type: ContentType = to_type.to_string().into();
     
     match (from_type, to_type) {
-        // Text → Text
-        (ContentType::Text, ContentType::Text) => convert_text_to_text(path, from, to),
+        // Text → Text — inline
+        (ContentType::Text, ContentType::Text) => {
+            let result = convert_text_to_text(path, from, to)?;
+            Ok(ConversionOutput::Inline(result))
+        }
         
-        // Image → Image
-        (ContentType::Image, ContentType::Image) => convert_image_to_image(path, from, to),
+        // Text → Document — inline (создаём документ из текста)
+        (ContentType::Text, ContentType::Document) => {
+            let result = convert_text_to_document(path, from, to)?;
+            Ok(ConversionOutput::Save(result))
+        }
         
-        // Audio → Audio
-        (ContentType::Audio, ContentType::Audio) => convert_audio_to_audio(path, from, to),
+        // Document → Text — inline (извлекаем текст из документа)
+        (ContentType::Document, ContentType::Text) => {
+            let result = convert_document_to_text(path, from, to)?;
+            Ok(ConversionOutput::Inline(result))
+        }
         
-        // Video → Video
-        (ContentType::Video, ContentType::Video) => convert_video_to_video(path, from, to),
+        // // Document → Document — inline
+        // (ContentType::Document, ContentType::Document) => {
+        //     let result = convert_document_to_document(path, from, to)?;
+        //     Ok(ConversionOutput::Inline(result))
+        // }
         
-        // Document → Document
-        (ContentType::Document, ContentType::Document) => convert_document_to_document(path, from, to),
+        // Image → Image — сохраняем в файл
+        (ContentType::Image, ContentType::Image) => {
+            let result = convert_image_to_image(path, from, to)?;
+            Ok(ConversionOutput::Save(result))
+        }
         
-        // Остальное пока не поддерживается
+        // Audio → Audio — сохраняем в файл
+        (ContentType::Audio, ContentType::Audio) => {
+            let result = convert_audio_to_audio(path, from, to)?;
+            Ok(ConversionOutput::Save(result))
+        }
+        
+        // Video → Video — сохраняем в файл
+        (ContentType::Video, ContentType::Video) => {
+            let result = convert_video_to_video(path, from, to)?;
+            Ok(ConversionOutput::Save(result))
+        }
+        
         _ => Err(format!(
             "Conversion from {:?} to {:?} is not supported yet",
             from_type, to_type
         )),
     }
 }
-
 // ============================================================
 // КОНКРЕТНЫЕ РЕАЛИЗАЦИИ
 // ============================================================
@@ -113,6 +143,88 @@ fn convert_text_to_text(path: &str, from: &str, to: &str) -> Result<String, Stri
     let value = parse(&input, from)?;
     stringify(&value, to)
 }
+
+fn parse_document(path: &str, from: &str) -> Result<Json, String> {
+    match from {
+        "docx" => {
+            // 1. Открываем файл
+            let mut file = File::open(path)
+                .map_err(|e| format!("Cannot open file: {}", e))?;
+            
+            // 2. Читаем файл в байты
+            let mut buf = Vec::new();
+            file.read_to_end(&mut buf)
+                .map_err(|e| format!("Cannot read file: {}", e))?;
+            
+            // 3. Парсим DOCX в структуру
+            let doc = read_docx(&buf)
+                .map_err(|e| format!("DOCX parse error: {}", e))?;
+            
+            // 4. Сериализуем в JSON
+            let json_value = serde_json::to_value(&doc)
+                .map_err(|e| format!("Serialize to JSON error: {}", e))?;
+            Ok(json_value)
+        }
+        "pdf" => {
+            // TODO: PDF парсинг
+            Err("PDF parsing not implemented yet".to_string())
+        }
+        "odt" => {
+            // TODO: ODT парсинг
+            Err("ODT parsing not implemented yet".to_string())
+        }
+        _ => {
+            Err(format!("Unsupported document format: {}", from))
+        }
+    }
+}
+
+fn convert_document_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+    let json_value = parse_document(path, from)?;
+    stringify(&json_value, to)
+}
+
+fn convert_text_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
+    let input = std::fs::read_to_string(path)
+        .map_err(|e| format!("Cannot read file: {e}"))?;
+
+    let value = parse(&input, from)?;
+    
+    match to {
+        "docx" => {
+            
+            let pretty_json_text = serde_json::to_string_pretty(&value)
+                .map_err(|e| format!("JSON serialize error: {}", e))?;
+
+            let mut doc = Docx::new();
+            
+            for line in pretty_json_text.lines() {
+                doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text(line)));
+            }
+
+            // Вычисляем хэш
+            let hash = calculate_conversion_hash(path, from, to)
+                .map_err(|e| format!("Cannot hash file: {}", e))?;
+            
+            // Получаем путь с хэшем
+            let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
+            
+            // Создаём файл и сохраняем
+            let file = File::create(&output_path)
+                .map_err(|e| format!("Cannot create file: {}", e))?;
+            
+            doc.build()
+                .pack(file)
+                .map_err(|e| format!("DOCX pack error: {}", e))?;
+
+            Ok(output_path)
+        }
+        _ => {
+            stringify(&value, to)
+        }
+    }
+}
+
 
 /// Image → Image
 fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, String> {
@@ -186,6 +298,8 @@ fn stringify(value: &Json, format: &str) -> Result<String, String> {
     }
 }
 
+
+
 // ============================================================
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ============================================================
@@ -200,6 +314,16 @@ pub fn save_to_app_dir(content: &str, original_path: &str, to: &str, hash: &str)
     
     Ok(output_path.to_string_lossy().to_string())
 }
+
+pub fn get_app_dir_path_with_hash(original_path: &str, to: &str, hash: &str) -> Result<String, String> {
+    let input_path = PathBuf::from(original_path);
+    let stem = input_path.file_stem().and_then(|s| s.to_str()).unwrap_or("converted");
+    let output_dir = converted_dir();
+    let output_path = output_dir.join(format!("{}_{}.{}", stem, hash, to));
+    
+    Ok(output_path.to_string_lossy().to_string())
+}
+
 
 fn calculate_hash(path: &str, extra_data: &[&[u8]]) -> std::io::Result<String> {
     let file = File::open(path)?;
@@ -249,9 +373,9 @@ pub async fn convert_file(
     from: String,
     to: String,
     #[allow(nonstandard_style)]
-    fromType: String,  // 👈 camelCase
+    fromType: String,
     #[allow(nonstandard_style)]
-    toType: String,    // 👈 camelCase
+    toType: String,
     enable_cache: bool,
 ) -> Result<ConvertResult, String> {
     let input_hash = calculate_conversion_hash(&path, &from, &to)
@@ -284,23 +408,48 @@ pub async fn convert_file(
         convert(&path_clone, &from_clone, &to_clone, &from_type_clone, &to_type_clone)
     }).await.map_err(|e| format!("Task join error: {e}"))??;
     
-    let saved_path = save_to_app_dir(&output, &path, &to, &input_hash)?;
-    let extension = Path::new(&saved_path)
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(|e| e.to_string());
+    // Обрабатываем результат в зависимости от типа
+    match output {
+        ConversionOutput::Inline(content) => {
+            // inline — сохраняем в файл и кешируем
+            let saved_path = save_to_app_dir(&content, &path, &to, &input_hash)?;
+            let extension = Path::new(&saved_path)
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(|e| e.to_string());
 
-    if enable_cache {
-        db::save_conversion(db, &input_hash, &saved_path).await?;
+            if enable_cache {
+                db::save_conversion(db, &input_hash, &saved_path).await?;
+            }
+
+            Ok(ConvertResult {
+                success: true,
+                content: saved_path,
+                hash: Some(input_hash),
+                extension,
+                error: None,
+            })
+        }
+        ConversionOutput::Save(saved_path) => {
+            // уже сохранён, просто возвращаем путь
+            let extension = Path::new(&saved_path)
+                .extension()
+                .and_then(|e| e.to_str())
+                .map(|e| e.to_string());
+
+            if enable_cache {
+                db::save_conversion(db, &input_hash, &saved_path).await?;
+            }
+
+            Ok(ConvertResult {
+                success: true,
+                content: saved_path,
+                hash: Some(input_hash),
+                extension,
+                error: None,
+            })
+        }
     }
-
-    Ok(ConvertResult {
-        success: true,
-        content: saved_path,
-        hash: Some(input_hash),
-        extension,
-        error: None,
-    })
 }
 
 #[tauri::command]
