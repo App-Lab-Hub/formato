@@ -349,15 +349,17 @@ onMount(async () => {
     if (!selectedTarget || convertingFiles.has(file.id)) return;
     
     convertingFiles.add(file.id);
-    
+    console.log("from=>",sourceFormat?.formatType);
+    console.log("to=>",selectedTarget?.formatType);
+
     try {
       const result = await invoke<{ success: boolean; content: string; extension: string | null; error: string | null }>(
         'convert_file', { 
           path: file.path, 
           from: sourceFormatId, 
           to: selectedTarget.id,
-          from_type: sourceFormat?.formatType || 'text',
-          to_type: selectedTarget?.formatType || 'text',
+          fromType: sourceFormat?.formatType || 'text',
+          toType: selectedTarget?.formatType || 'text',
           enableCache: settings?.enable_cache ?? true
         }
       );

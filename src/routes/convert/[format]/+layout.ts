@@ -8,7 +8,7 @@ export const load: LayoutLoad = async ({ params, parent }) => {
   const parentData = await parent();
 
   const formatId = params.format;
-  console.log("FOMAT ID=>", formatId);
+  // console.log("FOMAT ID=>", formatId);
   // Находим формат в загруженных данных
   const format = parentData.formats?.find((f: any) => f.id === formatId);
 
@@ -17,7 +17,7 @@ export const load: LayoutLoad = async ({ params, parent }) => {
   if (format) {
     try {
       availability = await getAvailability(format.formatType);
-      console.log(availability);
+      // console.log(availability);
     } catch (e) {
       console.error("Failed to get availability:", e);
     }

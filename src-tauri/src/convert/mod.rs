@@ -5,6 +5,8 @@ mod xml;
 mod ini;
 mod md;
 mod txt;
+mod rtf;
+
 
 
 use crate::AppState;
@@ -19,6 +21,8 @@ use crate::convert::ini::{parse_ini, stringify_ini};
 use crate::convert::md::{parse_markdown, stringify_markdown};
 use crate::convert::xml::{parse_xml, stringify_xml};
 use crate::convert::txt::{parse_txt, stringify_txt};
+use crate::convert::rtf::{parse_rtf, stringify_rtf};
+
 
 use crate::db;
 use crate::html_convert::{convert_to_html, parse_html};
@@ -149,7 +153,7 @@ fn parse(input: &str, format: &str) -> Result<Json, String> {
         "csv" => parse_csv(input),
         "html" => parse_html(input),
         "txt" | "text" => parse_txt(input),
-        // "rtf" => parse_rtf(input),
+        "rtf" => parse_rtf(input),
         _ => Err(format!("Unsupported: {format}")),
     }
 }
@@ -175,6 +179,8 @@ fn stringify(value: &Json, format: &str) -> Result<String, String> {
         "html" => Ok(convert_to_html(value)),
         "md" => stringify_markdown(value),
         "txt" | "text" => stringify_txt(value),
+        "rtf" => stringify_rtf(value),
+
 
         _ => Err(format!("Unsupported: {format}")),
     }
@@ -242,8 +248,10 @@ pub async fn convert_file(
     path: String,
     from: String,
     to: String,
-    from_type: String,
-    to_type: String,
+    #[allow(nonstandard_style)]
+    fromType: String,  // 👈 camelCase
+    #[allow(nonstandard_style)]
+    toType: String,    // 👈 camelCase
     enable_cache: bool,
 ) -> Result<ConvertResult, String> {
     let input_hash = calculate_conversion_hash(&path, &from, &to)
@@ -270,7 +278,7 @@ pub async fn convert_file(
     }
     
     let (path_clone, from_clone, to_clone, from_type_clone, to_type_clone) = 
-        (path.clone(), from.clone(), to.clone(), from_type.clone(), to_type.clone());
+        (path.clone(), from.clone(), to.clone(), fromType.clone(), toType.clone());
     
     let output = tokio::task::spawn_blocking(move || {
         convert(&path_clone, &from_clone, &to_clone, &from_type_clone, &to_type_clone)
