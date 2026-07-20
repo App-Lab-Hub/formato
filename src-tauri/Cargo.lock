@@ -2081,6 +2081,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "extractor"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ed1de74c44b3ce35a9e4a75d2312f432d21e778ff0ca4c625cc167fa23a16131"
+dependencies = [
+ "regex",
+]
+
+[[package]]
 name = "fancy-regex"
 version = "0.16.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2258,6 +2267,7 @@ dependencies = [
  "dirs",
  "docx-rs",
  "encoding_rs",
+ "extractor",
  "flatten-json-object",
  "handlebars",
  "indexmap 2.14.0",
