@@ -116,10 +116,10 @@ pub fn convert(
         }
         
         // // Document → Document — inline
-        // (ContentType::Document, ContentType::Document) => {
-        //     let result = convert_document_to_document(path, from, to)?;
-        //     Ok(ConversionOutput::Inline(result))
-        // }
+        (ContentType::Document, ContentType::Document) => {
+            let result = convert_document_to_document(path, from, to)?;
+            Ok(ConversionOutput::Save(result))
+        }
         
         // Image → Image — сохраняем в файл
         (ContentType::Image, ContentType::Image) => {
@@ -177,6 +177,31 @@ fn parse_document(path: &str, from: &str) -> Result<Json, String> {
         }
     }
 }
+fn stringify_document(value:&Json, path: &str, from: &str, to: &str) -> Result<String, String> {
+    match to {
+        "docx" => {
+            stringify_docx(value, path,from, to)
+        }
+        "pdf" => {
+            stringify_pdf(value, path,from, to)
+
+        }
+        "xlsx" => {
+            stringify_xlsx(value, path,from, to)
+        }
+            
+        "odt" => {
+            stringify_odt(value, path,from, to)
+ 
+        }
+        
+        _ => {
+            stringify(value, to)
+        }
+    }
+}
+
+
 
 fn convert_document_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
     let json_value = parse_document(path, from)?;
@@ -191,29 +216,18 @@ fn convert_text_to_document(path: &str, from: &str, to: &str) -> Result<String, 
         .map_err(|e| format!("Cannot read file: {e}"))?;
 
     let value = parse(&input, from)?;
-    
-    match to {
-        "docx" => {
-            stringify_docx(&value, path,from, to)
-        }
-        "pdf" => {
-            stringify_pdf(&value, path,from, to)
+    stringify_document(&value, path, from, to)
 
-        }
-        "xlsx" => {
-            stringify_xlsx(&value, path,from, to)
-        }
-            
-        "odt" => {
-            stringify_odt(&value, path,from, to)
- 
-        }
-        
-        _ => {
-            stringify(&value, to)
-        }
-    }
 }
+/// Document → Document
+fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
+    let value = parse_document(path, from)?;
+    stringify_document(&value, path, from, to)
+
+    // Err(format!("Document to document conversion from {} to {} not implemented yet", from, to))
+}
+
+
 
 
 /// Image → Image
@@ -234,11 +248,7 @@ fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String, St
     Err(format!("Video to video conversion from {} to {} not implemented yet", from, to))
 }
 
-/// Document → Document
-fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
-    // TODO: Использовать pandoc
-    Err(format!("Document to document conversion from {} to {} not implemented yet", from, to))
-}
+
 
 // ============================================================
 // ПАРСЕРЫ И СЕРИАЛИЗАТОРЫ
