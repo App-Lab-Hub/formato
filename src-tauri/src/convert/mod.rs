@@ -6,6 +6,10 @@ mod ini;
 mod md;
 mod txt;
 mod rtf;
+mod pdf;
+mod docx;
+mod odt;
+mod xlsx;
 
 
 
@@ -22,6 +26,12 @@ use crate::convert::md::{parse_markdown, stringify_markdown};
 use crate::convert::xml::{parse_xml, stringify_xml};
 use crate::convert::txt::{parse_txt, stringify_txt};
 use crate::convert::rtf::{parse_rtf, stringify_rtf};
+use crate::convert::pdf::{stringify_pdf, parse_pdf};
+// use crate::convert::pdf::{stringify_pdf};
+
+use crate::convert::docx::{stringify_docx, parse_docx};
+use crate::convert::odt::{stringify_odt, parse_odt};
+use crate::convert::xlsx::{stringify_xlsx, parse_xlsx};
 use docx_rs::*;
 
 // use rust_xlsxwriter::*;
@@ -150,31 +160,17 @@ fn convert_text_to_text(path: &str, from: &str, to: &str) -> Result<String, Stri
 fn parse_document(path: &str, from: &str) -> Result<Json, String> {
     match from {
         "docx" => {
-            // 1. Открываем файл
-            let mut file = File::open(path)
-                .map_err(|e| format!("Cannot open file: {}", e))?;
-            
-            // 2. Читаем файл в байты
-            let mut buf = Vec::new();
-            file.read_to_end(&mut buf)
-                .map_err(|e| format!("Cannot read file: {}", e))?;
-            
-            // 3. Парсим DOCX в структуру
-            let doc = read_docx(&buf)
-                .map_err(|e| format!("DOCX parse error: {}", e))?;
-            
-            // 4. Сериализуем в JSON
-            let json_value = serde_json::to_value(&doc)
-                .map_err(|e| format!("Serialize to JSON error: {}", e))?;
-            Ok(json_value)
+            parse_docx(path)
         }
         "pdf" => {
-            // TODO: PDF парсинг
-            Err("PDF parsing not implemented yet".to_string())
+            // Err("GG".to_string())
+            parse_pdf(path)
         }
         "odt" => {
-            // TODO: ODT парсинг
-            Err("ODT parsing not implemented yet".to_string())
+            parse_odt(path)
+        }
+        "xlsx" => {
+            parse_xlsx(path)
         }
         _ => {
             Err(format!("Unsupported document format: {}", from))
@@ -187,7 +183,6 @@ fn convert_document_to_text(path: &str, from: &str, to: &str) -> Result<String, 
     stringify(&json_value, to)
 }
 
-use serde_json::Value;
 
 
 
@@ -199,232 +194,21 @@ fn convert_text_to_document(path: &str, from: &str, to: &str) -> Result<String, 
     
     match to {
         "docx" => {
-            use docx_rs::*;
-            use std::fs::File;
-            
-            let pretty_json_text = serde_json::to_string_pretty(&value)
-                .map_err(|e| format!("JSON serialize error: {}", e))?;
-
-            let mut doc = Docx::new();
-            
-            for line in pretty_json_text.lines() {
-                doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text(line)));
-            }
-
-            let hash = calculate_conversion_hash(path, from, to)
-                .map_err(|e| format!("Cannot hash file: {}", e))?;
-            
-            let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
-            
-            let file = File::create(&output_path)
-                .map_err(|e| format!("Cannot create file: {}", e))?;
-            
-            doc.build()
-                .pack(file)
-                .map_err(|e| format!("DOCX pack error: {}", e))?;
-
-            Ok(output_path)
+            stringify_docx(&value, path,from, to)
         }
         "pdf" => {
+            stringify_pdf(&value, path,from, to)
 
-                        
-            use pdfmake_rust::{Document, DocumentNode, Margins, PageSize, PdfMake, TextNode};
-            let text = serde_json::to_string_pretty(&value)
-                .map_err(|e| format!("JSON serialize error: {}", e))?;
-            
-            let doc = Document::builder()
-                .page_size(PageSize::a4())
-                .page_margins(Margins::all(40.0))
-                .content(DocumentNode::Text(TextNode::new(text)))
-                .build();
-
-            let pdf = PdfMake::new();
-            let bytes = pdf.render(&doc)
-                .map_err(|e| format!("PDF render error: {}", e))?;
-            
-            let hash = calculate_conversion_hash(path, from, to)
-                .map_err(|e| format!("Cannot hash file: {}", e))?;
-            
-            let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
-            
-            let mut file = File::create(&output_path)
-                .map_err(|e| format!("Cannot create file: {}", e))?;
-            
-            file.write_all(&bytes)
-                .map_err(|e| format!("Cannot write file: {}", e))?;
-            
-            Ok(output_path)
         }
         "xlsx" => {
-            use rust_xlsxwriter::*;
-            
-            // Рекурсивно собираем все ключи
-            fn collect_keys(value: &Value, prefix: &str, keys: &mut Vec<String>) {
-                match value {
-                    Value::Object(obj) => {
-                        for (key, val) in obj {
-                            let new_prefix = if prefix.is_empty() {
-                                key.clone()
-                            } else {
-                                format!("{}.{}", prefix, key)
-                            };
-                            collect_keys(val, &new_prefix, keys);
-                        }
-                    }
-                    Value::Array(arr) => {
-                        if let Some(first) = arr.first() {
-                            collect_keys(first, prefix, keys);
-                        }
-                    }
-                    _ => {
-                        if !keys.contains(&prefix.to_string()) {
-                            keys.push(prefix.to_string());
-                        }
-                    }
-                }
-            }
-            
-            // Преобразуем JSON в плоские строки
-            fn flatten_json(value: &Value, prefix: &str) -> Vec<String> {
-                match value {
-                    Value::Object(obj) => {
-                        let mut row = Vec::new();
-                        for (key, val) in obj {
-                            let new_prefix = if prefix.is_empty() {
-                                key.clone()
-                            } else {
-                                format!("{}.{}", prefix, key)
-                            };
-                            
-                            if let Value::Object(_) = val {
-                                let nested = flatten_json(val, &new_prefix);
-                                row.extend(nested);
-                            } else if let Value::Array(arr) = val {
-                                if let Some(first) = arr.first() {
-                                    let nested = flatten_json(first, &new_prefix);
-                                    row.extend(nested);
-                                } else {
-                                    row.push("[]".to_string());
-                                }
-                            } else {
-                                row.push(val.to_string());
-                            }
-                        }
-                        row
-                    }
-                    Value::Array(arr) => {
-                        let mut rows = Vec::new();
-                        for item in arr {
-                            let row = flatten_json(item, prefix);
-                            rows.extend(row);
-                        }
-                        rows
-                    }
-                    _ => {
-                        vec![value.to_string()]
-                    }
-                }
-            }
-            
-            // Определяем структуру для заголовков
-            let mut headers = Vec::new();
-            collect_keys(&value, "", &mut headers);
-            
-            // Преобразуем JSON в строки
-            let rows = flatten_json(&value, "");
-            
-            // Создаём XLSX
-            let mut workbook = Workbook::new();
-            let worksheet = workbook.add_worksheet();
-            
-            // Заголовки
-            for (col_idx, header) in headers.iter().enumerate() {
-                worksheet.write_string(0, col_idx as u16, header.as_str())
-                    .map_err(|e| format!("XLSX write error: {}", e))?;
-            }
-            
-            // Данные (1 строка — значения)
-            for (col_idx, cell) in rows.iter().enumerate() {
-                worksheet.write_string(1, col_idx as u16, cell.as_str())
-                    .map_err(|e| format!("XLSX write error: {}", e))?;
-            }
-            
-            // Для массивов объектов — каждая строка отдельно
-            if let Value::Array(arr) = &value {
-                let mut first = true;
-                let mut row_idx = 2;
-                for item in arr {
-                    if let Value::Object(obj) = item {
-                        let row_data = flatten_json(&Value::Object(obj.clone()), "");
-                        let current_row = if first { 1 } else { row_idx };
-                        for (col_idx, cell) in row_data.iter().enumerate() {
-                            worksheet.write_string(current_row, col_idx as u16, cell.as_str())
-                                .map_err(|e| format!("XLSX write error: {}", e))?;
-                        }
-                        first = false;
-                        row_idx += 1;
-                    }
-                }
-            }
-            
-            // Автоподгонка
-            for col_idx in 0..headers.len() {
-                worksheet.set_column_width(col_idx as u16, 20)
-                    .map_err(|e| format!("XLSX set column width error: {}", e))?;
-            }
-            
-            // Сохраняем в буфер
-            let buffer = workbook.save_to_buffer()
-                .map_err(|e| format!("Failed to save XLSX: {}", e))?;
-            
-            let hash = calculate_conversion_hash(path, from, to)
-                .map_err(|e| format!("Cannot hash file: {}", e))?;
-            
-            let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
-            let mut file = File::create(&output_path)
-                .map_err(|e| format!("Cannot create file: {}", e))?;
-            
-            file.write_all(&buffer)
-                .map_err(|e| format!("Cannot write file: {}", e))?;
-            
-            Ok(output_path)
+            stringify_xlsx(&value, path,from, to)
         }
             
         "odt" => {
-        use odtgen::prelude::*;
-
-        let text = serde_json::to_string_pretty(&value)
-            .map_err(|e| format!("JSON serialize error: {}", e))?;
-        
-        let mut doc = Document::new();
-        doc.body.add(Paragraph::from_text_and_style(&text, "Standard"));
-        
-        // Сохраняем как FODT (OpenDocument Flat XML)
-        let temp_path = "temp.fodt";
-        let mut file = File::create(temp_path)
-            .map_err(|e| format!("Cannot create file: {}", e))?;
-        
-        doc.generate_fodt(&mut file)
-            .map_err(|e| format!("ODT generation error: {}", e))?;
-        
-        let fodt_content = std::fs::read_to_string(temp_path)
-            .map_err(|e| format!("Cannot read FODT: {}", e))?;
-        
-        let hash = calculate_conversion_hash(path, from, to)
-            .map_err(|e| format!("Cannot hash file: {}", e))?;
-        
-        let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
-        let mut output_file = File::create(&output_path)
-            .map_err(|e| format!("Cannot create file: {}", e))?;
-        
-        output_file.write_all(fodt_content.as_bytes())
-            .map_err(|e| format!("Cannot write file: {}", e))?;
-        
-        let _ = std::fs::remove_file(temp_path);
-        
-        Ok(output_path)
-        // Err("".to_string())
+            stringify_odt(&value, path,from, to)
+ 
         }
+        
         _ => {
             stringify(&value, to)
         }
