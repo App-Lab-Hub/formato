@@ -2280,6 +2280,7 @@ dependencies = [
  "memmap2",
  "nalgebra",
  "odtgen",
+ "office_oxide",
  "opener",
  "pdf-extract",
  "pdf_oxide",
