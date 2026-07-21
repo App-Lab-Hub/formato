@@ -10,6 +10,8 @@ mod pdf;
 mod docx;
 mod odt;
 mod xlsx;
+mod local_utils;
+
 
 
 
@@ -32,12 +34,8 @@ use crate::convert::pdf::{stringify_pdf, parse_pdf};
 use crate::convert::docx::{stringify_docx, parse_docx};
 use crate::convert::odt::{stringify_odt, parse_odt};
 use crate::convert::xlsx::{stringify_xlsx, parse_xlsx};
-use docx_rs::*;
 
-// use rust_xlsxwriter::*;
-use std::io::Write;
-// use pdfmake_rust::{Document, DocumentNode, Margins, PageSize, PdfMake, TextNode};
-// use odtgen::prelude::*;
+use local_utils::{extract_text_from_pdf, run_weasyprint, write_temp_file, run_pandoc, generate_pdf};
 
 use crate::db;
 use crate::html_convert::{convert_to_html, parse_html};
@@ -219,14 +217,166 @@ fn convert_text_to_document(path: &str, from: &str, to: &str) -> Result<String, 
     stringify_document(&value, path, from, to)
 
 }
-/// Document → Document
-fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
-    let value = parse_document(path, from)?;
-    stringify_document(&value, path, from, to)
 
-    // Err(format!("Document to document conversion from {} to {} not implemented yet", from, to))
+
+
+
+// ========================================================================================================================
+// ========================================================================================================================
+// ========================================================================================================================
+
+// ============================================================
+// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ДЛЯ ПРЯМЫХ КОНВЕРТАЦИЙ
+// ============================================================
+
+use calamine::{Reader, Xlsx, Data};
+
+
+
+
+
+
+/// Создание документа (docx/odt/xlsx) из простого текста
+use docx_rs::*;
+use rust_xlsxwriter::*;
+
+/// Создание документа из текста (улучшенная версия с Pandoc)
+fn create_document_from_text(text: &str, format: &str, output_path: &str) -> Result<(), String> {
+    match format {
+        "docx" => {
+            // Способ 1: Через Pandoc (сохраняет больше форматирования)
+            let html = format!("<!DOCTYPE html><html><body><pre>{}</pre></body></html>", text);
+            let temp_html = write_temp_file(&html)?;
+            run_pandoc(&[&temp_html, "-t", "docx", "-o", output_path])?;
+            Ok(())
+        }
+        "odt" => {
+            // ODT через Pandoc из HTML
+            let html = format!("<!DOCTYPE html><html><body><pre>{}</pre></body></html>", text);
+            let temp_html = write_temp_file(&html)?;
+            run_pandoc(&[&temp_html, "-t", "odt", "-o", output_path])?;
+            Ok(())
+        }
+        "xlsx" => {
+            // XLSX лучше генерировать через rust_xlsxwriter
+            // Pandoc не умеет создавать XLSX
+            
+            let mut workbook = Workbook::new();
+            let worksheet = workbook.add_worksheet();
+            
+            // Разбиваем текст на строки и слова
+            for (row_idx, line) in text.lines().enumerate() {
+                let words: Vec<&str> = line.split_whitespace().collect();
+                for (col_idx, word) in words.iter().enumerate() {
+                    worksheet.write_string(row_idx as u32, col_idx as u16, *word)
+                        .map_err(|e| format!("XLSX write: {}", e))?;
+                }
+            }
+            workbook.save(output_path).map_err(|e| format!("Save XLSX: {}", e))?;
+            Ok(())
+        }
+        "pdf" => {
+            // PDF из текста через HTML + WeasyPrint
+            let html = format!("<!DOCTYPE html><html><body><pre>{}</pre></body></html>", text);
+            let temp_html = write_temp_file(&html)?;
+            run_weasyprint(&temp_html, output_path)?;
+            Ok(())
+        }
+        _ => Err(format!("Unsupported target format: {}", format)),
+    }
 }
 
+
+
+
+
+/// Document → Document
+fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // Если форматы совпадают – просто возвращаем исходный путь
+    if from == to {
+        return Ok(path.to_string());
+    }
+
+    // Вычисляем хеш для именования выходного файла
+    let hash = calculate_conversion_hash(path, from, to)
+        .map_err(|e| format!("Hash error: {e}"))?;
+
+    // Вспомогательная функция для генерации пути
+    let out_path = |ext: &str| -> Result<String, String> {
+        get_app_dir_path_with_hash(path, ext, &hash)
+    };
+
+    // Прямые конвертации с сохранением форматирования
+    match (from, to) {
+        // ---------- DOCX ↔ ODT ----------
+        ("docx", "odt") => {
+            let out = out_path("odt")?;
+            run_pandoc(&[path, "-t", "odt", "-o", &out])?;
+            Ok(out)
+        }
+        ("odt", "docx") => {
+            let out = out_path("docx")?;
+            run_pandoc(&[path, "-t", "docx", "-o", &out])?;
+            Ok(out)
+        }
+
+        // ---------- DOCX/ODT/XLSX → PDF (через общую функцию) ----------
+        ("docx", "pdf") | ("odt", "pdf") | ("xlsx", "pdf") => {
+            let out = out_path("pdf")?;
+            generate_pdf(path, &out)?;
+            Ok(out)
+        }
+
+        // ---------- XLSX → DOCX / ODT (напрямую через Pandoc) ----------
+        ("xlsx", "docx") => {
+            let out = out_path("docx")?;
+            run_pandoc(&[path, "-t", "docx", "-o", &out])?;
+            Ok(out)
+        }
+        ("xlsx", "odt") => {
+            let out = out_path("odt")?;
+            run_pandoc(&[path, "-t", "odt", "-o", &out])?;
+            Ok(out)
+        }
+
+        // ---------- PDF → DOCX / ODT / XLSX (извлечение текста) ----------
+        ("pdf", "docx") => {
+            let text = extract_text_from_pdf(path)?;
+            let out = out_path("docx")?;
+            create_document_from_text(&text, "docx", &out)?;
+            Ok(out)
+        }
+        ("pdf", "odt") => {
+            let text = extract_text_from_pdf(path)?;
+            let out = out_path("odt")?;
+            create_document_from_text(&text, "odt", &out)?;
+            Ok(out)
+        }
+        ("pdf", "xlsx") => {
+            let text = extract_text_from_pdf(path)?;
+            let out = out_path("xlsx")?;
+            create_document_from_text(&text, "xlsx", &out)?;
+            Ok(out)
+        }
+
+        // ---------- DOCX/ODT → XLSX (через fallback) ----------
+        ("docx", "xlsx") | ("odt", "xlsx") => {
+            let value = parse_document(path, from)?;
+            stringify_document(&value, path, from, to)
+        }
+
+        // ---------- ВСЕ ОСТАЛЬНЫЕ ПАРЫ — FALLBACK ----------
+        _ => {
+            let value = parse_document(path, from)?;
+            stringify_document(&value, path, from, to)
+        }
+    }
+}
+
+
+// ========================================================================================================================
+// ========================================================================================================================
+// ========================================================================================================================
 
 
 
