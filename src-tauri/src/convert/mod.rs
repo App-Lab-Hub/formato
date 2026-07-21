@@ -12,7 +12,10 @@ mod odt;
 mod xlsx;
 mod local_utils;
 
-use tempfile::NamedTempFile;
+// use tempfile::NamedTempFile;
+
+
+use libreoffice_pure::*;
 
 
 
@@ -36,7 +39,7 @@ use crate::convert::docx::{stringify_docx, parse_docx};
 use crate::convert::odt::{stringify_odt, parse_odt};
 use crate::convert::xlsx::{stringify_xlsx, parse_xlsx};
 
-use local_utils::{extract_text_from_pdf, generate_pdf, run_pandoc, create_document_from_text, write_temp_file, xlsx_to_html};
+use local_utils::{extract_text_from_pdf, generate_pdf, run_pandoc, create_document_from_text, write_temp_file, xlsx_to_html, convert_with_libreoffice};
 
 use crate::db;
 use crate::html_convert::{convert_to_html, parse_html};
@@ -244,10 +247,9 @@ fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<Stri
 
     // Прямые конвертации с сохранением форматирования
     match (from, to) {
-        // ----------ODT----------
+        // ---------- DOCX ----------
         ("docx", "pdf") => {
             let out = out_path("pdf")?;
-            // office2pdf конвертирует DOCX → PDF
             let result = office2pdf::convert(path)
                 .map_err(|e| format!("Convert DOCX to PDF: {}", e))?;
             std::fs::write(&out, result.pdf)
@@ -256,82 +258,86 @@ fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<Stri
         }
         ("docx", "odt") => {
             let out = out_path("odt")?;
-            run_pandoc(&[path, "-t", "odt", "-o", &out])?;
+            let bytes = convert_with_libreoffice(path, "docx", "odt")?;
+            std::fs::write(&out, bytes)
+                .map_err(|e| format!("Write ODT: {}", e))?;
             Ok(out)
         }
         ("docx", "xlsx") => {
             let out = out_path("xlsx")?;
             let doc = office_oxide::Document::open(path)
-                .map_err(|e| format!("Open DOCX failed: {}", e))?;
+                .map_err(|e| format!("Open DOCX: {}", e))?;
             doc.save_as(&out)
-                .map_err(|e| format!("Save as XLSX failed: {}", e))?;
+                .map_err(|e| format!("Save as XLSX: {}", e))?;
             Ok(out)
         }
-        // ----------ODT----------
+
+        // ---------- ODT ----------
         ("odt", "pdf") => {
             let out = out_path("pdf")?;
             
-            // Создаем временный DOCX файл с расширением .docx
+            // ODT → DOCX через libreoffice-pure
+            let docx_bytes = convert_with_libreoffice(path, "odt", "docx")?;
+            
+            // Сохраняем во временный DOCX файл
             let temp_docx = Builder::new()
                 .suffix(".docx")
                 .tempfile()
                 .map_err(|e| format!("Create temp DOCX: {}", e))?;
             let temp_docx_path = temp_docx.path().to_str().unwrap().to_string();
-            
-            // ODT → DOCX через Pandoc
-            run_pandoc(&[path, "-t", "docx", "-o", &temp_docx_path])?;
+            std::fs::write(&temp_docx_path, docx_bytes)
+                .map_err(|e| format!("Write temp DOCX: {}", e))?;
             
             // DOCX → PDF через office2pdf
             let result = office2pdf::convert(&temp_docx_path)
                 .map_err(|e| format!("Convert DOCX to PDF: {}", e))?;
-            
             std::fs::write(&out, result.pdf)
                 .map_err(|e| format!("Write PDF: {}", e))?;
-            
-            // temp_docx удаляется автоматически
             Ok(out)
         }
         ("odt", "docx") => {
             let out = out_path("docx")?;
-            run_pandoc(&[path, "-t", "docx", "-o", &out])?;
+            let bytes = convert_with_libreoffice(path, "odt", "docx")?;
+            std::fs::write(&out, bytes)
+                .map_err(|e| format!("Write DOCX: {}", e))?;
             Ok(out)
         }
         ("odt", "xlsx") => {
             let out = out_path("xlsx")?;
             
-            // Создаем временный DOCX файл с расширением .docx
+            // ODT → DOCX через libreoffice-pure
+            let docx_bytes = convert_with_libreoffice(path, "odt", "docx")?;
+            
+            // Сохраняем во временный DOCX файл
             let temp_docx = Builder::new()
                 .suffix(".docx")
                 .tempfile()
                 .map_err(|e| format!("Create temp DOCX: {}", e))?;
             let temp_docx_path = temp_docx.path().to_str().unwrap().to_string();
-            
-            // ODT → DOCX через Pandoc
-            run_pandoc(&[path, "-t", "docx", "-o", &temp_docx_path])?;
+            std::fs::write(&temp_docx_path, docx_bytes)
+                .map_err(|e| format!("Write temp DOCX: {}", e))?;
             
             // DOCX → XLSX через office_oxide
             let doc = office_oxide::Document::open(&temp_docx_path)
                 .map_err(|e| format!("Open temp DOCX: {}", e))?;
             doc.save_as(&out)
                 .map_err(|e| format!("Save as XLSX: {}", e))?;
-            
-            // temp_docx удаляется автоматически
             Ok(out)
         }
+
+        // ---------- XLSX ----------
         ("xlsx", "docx") => {
             let out = out_path("docx")?;
-            // 1. Открываем XLSX документ
             let doc = office_oxide::Document::open(path)
-                .map_err(|e| format!("Open XLSX failed: {}", e))?;
-            // 2. Сохраняем его как DOCX — формат определяется по расширению
+                .map_err(|e| format!("Open XLSX: {}", e))?;
             doc.save_as(&out)
-                .map_err(|e| format!("Save as DOCX failed: {}", e))?;
+                .map_err(|e| format!("Save as DOCX: {}", e))?;
             Ok(out)
         }
         ("xlsx", "odt") => {
             let out = out_path("odt")?;
             
-            // Шаг 1: XLSX → DOCX через office_oxide (с расширением)
+            // Шаг 1: XLSX → DOCX через office_oxide
             let temp_docx = Builder::new()
                 .suffix(".docx")
                 .tempfile()
@@ -343,55 +349,47 @@ fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<Stri
             doc.save_as(&temp_docx_path)
                 .map_err(|e| format!("XLSX to DOCX: {}", e))?;
             
-            // Шаг 2: DOCX → ODT через Pandoc
-            run_pandoc(&[&temp_docx_path, "-t", "odt", "-o", &out])?;
-            
-            // temp_docx удаляется автоматически
+            // Шаг 2: DOCX → ODT через libreoffice-pure
+            let odt_bytes = convert_with_libreoffice(&temp_docx_path, "docx", "odt")?;
+            std::fs::write(&out, odt_bytes)
+                .map_err(|e| format!("Write ODT: {}", e))?;
             Ok(out)
         }
         ("xlsx", "pdf") => {
             let out = out_path("pdf")?;
-            
             let result = office2pdf::convert(path)
                 .map_err(|e| format!("Convert XLSX to PDF: {}", e))?;
-            
             std::fs::write(&out, result.pdf)
                 .map_err(|e| format!("Write PDF: {}", e))?;
-            
             Ok(out)
         }
 
-        // ---------- PDF → DOCX / ODT / XLSX (извлечение текста) ----------
+        // ---------- PDF ----------
         ("pdf", "docx") => {
-            let text = extract_text_from_pdf(path)?;
             let out = out_path("docx")?;
-            create_document_from_text(&text, "docx", &out)?;
+            let bytes = convert_with_libreoffice(path, "pdf", "docx")?;
+            std::fs::write(&out, bytes)
+                .map_err(|e| format!("Write DOCX: {}", e))?;
             Ok(out)
         }
         ("pdf", "odt") => {
-            let text = extract_text_from_pdf(path)?;
             let out = out_path("odt")?;
-            create_document_from_text(&text, "odt", &out)?;
+            let bytes = convert_with_libreoffice(path, "pdf", "odt")?;
+            std::fs::write(&out, bytes)
+                .map_err(|e| format!("Write ODT: {}", e))?;
             Ok(out)
         }
         ("pdf", "xlsx") => {
-            let text = extract_text_from_pdf(path)?;
             let out = out_path("xlsx")?;
-            create_document_from_text(&text, "xlsx", &out)?;
+            let bytes = convert_with_libreoffice(path, "pdf", "xlsx")?;
+            std::fs::write(&out, bytes)
+                .map_err(|e| format!("Write XLSX: {}", e))?;
             Ok(out)
         }
 
-        // ---------- DOCX/ODT → XLSX (через fallback) ----------
-        // ("docx", "xlsx") | ("odt", "xlsx") => {
-        //     let value = parse_document(path, from)?;
-        //     stringify_document(&value, path, from, to)
-        // }
-
         // ---------- ВСЕ ОСТАЛЬНЫЕ ПАРЫ — FALLBACK ----------
         _ => {
-            Err("gg".to_string())
-            // let value = parse_document(path, from)?;
-            // stringify_document(&value, path, from, to)
+            Err("Unsupported conversion".to_string())
         }
     }
 }

@@ -69,4 +69,5 @@ extractor = "0.1.0"
 tempfile = "3.27.0"
 office_oxide = "0.1.7"
 office2pdf = "0.6.2"
+libreoffice-pure = "0.5.3"
 
