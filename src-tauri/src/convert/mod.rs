@@ -12,6 +12,7 @@ mod odt;
 mod xlsx;
 mod local_utils;
 
+use tempfile::NamedTempFile;
 
 
 
@@ -220,7 +221,7 @@ fn convert_text_to_document(path: &str, from: &str, to: &str) -> Result<String, 
 
 
 
-
+use tempfile::Builder;
 // ========================================================================================================================
 // ========================================================================================================================
 // ========================================================================================================================
@@ -243,10 +244,51 @@ fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<Stri
 
     // Прямые конвертации с сохранением форматирования
     match (from, to) {
-        // ---------- DOCX ↔ ODT ----------
+        // ----------ODT----------
+        ("docx", "pdf") => {
+            let out = out_path("pdf")?;
+            // office2pdf конвертирует DOCX → PDF
+            let result = office2pdf::convert(path)
+                .map_err(|e| format!("Convert DOCX to PDF: {}", e))?;
+            std::fs::write(&out, result.pdf)
+                .map_err(|e| format!("Write PDF: {}", e))?;
+            Ok(out)
+        }
         ("docx", "odt") => {
             let out = out_path("odt")?;
             run_pandoc(&[path, "-t", "odt", "-o", &out])?;
+            Ok(out)
+        }
+        ("docx", "xlsx") => {
+            let out = out_path("xlsx")?;
+            let doc = office_oxide::Document::open(path)
+                .map_err(|e| format!("Open DOCX failed: {}", e))?;
+            doc.save_as(&out)
+                .map_err(|e| format!("Save as XLSX failed: {}", e))?;
+            Ok(out)
+        }
+        // ----------ODT----------
+        ("odt", "pdf") => {
+            let out = out_path("pdf")?;
+            
+            // Создаем временный DOCX файл с расширением .docx
+            let temp_docx = Builder::new()
+                .suffix(".docx")
+                .tempfile()
+                .map_err(|e| format!("Create temp DOCX: {}", e))?;
+            let temp_docx_path = temp_docx.path().to_str().unwrap().to_string();
+            
+            // ODT → DOCX через Pandoc
+            run_pandoc(&[path, "-t", "docx", "-o", &temp_docx_path])?;
+            
+            // DOCX → PDF через office2pdf
+            let result = office2pdf::convert(&temp_docx_path)
+                .map_err(|e| format!("Convert DOCX to PDF: {}", e))?;
+            
+            std::fs::write(&out, result.pdf)
+                .map_err(|e| format!("Write PDF: {}", e))?;
+            
+            // temp_docx удаляется автоматически
             Ok(out)
         }
         ("odt", "docx") => {
@@ -254,44 +296,68 @@ fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<Stri
             run_pandoc(&[path, "-t", "docx", "-o", &out])?;
             Ok(out)
         }
-
-        // ---------- DOCX/ODT/XLSX → PDF (через общую функцию) ----------
-        ("docx", "pdf") | ("odt", "pdf") => {
-            let out = out_path("pdf")?;
-            generate_pdf(path, &out)?;
+        ("odt", "xlsx") => {
+            let out = out_path("xlsx")?;
+            
+            // Создаем временный DOCX файл с расширением .docx
+            let temp_docx = Builder::new()
+                .suffix(".docx")
+                .tempfile()
+                .map_err(|e| format!("Create temp DOCX: {}", e))?;
+            let temp_docx_path = temp_docx.path().to_str().unwrap().to_string();
+            
+            // ODT → DOCX через Pandoc
+            run_pandoc(&[path, "-t", "docx", "-o", &temp_docx_path])?;
+            
+            // DOCX → XLSX через office_oxide
+            let doc = office_oxide::Document::open(&temp_docx_path)
+                .map_err(|e| format!("Open temp DOCX: {}", e))?;
+            doc.save_as(&out)
+                .map_err(|e| format!("Save as XLSX: {}", e))?;
+            
+            // temp_docx удаляется автоматически
             Ok(out)
         }
-
         ("xlsx", "docx") => {
             let out = out_path("docx")?;
-            // Пробуем через Pandoc
-            if let Err(e) = run_pandoc(&[path, "-t", "docx", "-o", &out]) {
-                // Если Pandoc не справился - fallback через HTML
-                eprintln!("Pandoc failed for XLSX → DOCX: {}, trying fallback...", e);
-                let html = xlsx_to_html(path)?;
-                let temp_html = write_temp_file(&html)?;
-                run_pandoc(&[&temp_html, "-t", "docx", "-o", &out])?;
-            }
+            // 1. Открываем XLSX документ
+            let doc = office_oxide::Document::open(path)
+                .map_err(|e| format!("Open XLSX failed: {}", e))?;
+            // 2. Сохраняем его как DOCX — формат определяется по расширению
+            doc.save_as(&out)
+                .map_err(|e| format!("Save as DOCX failed: {}", e))?;
             Ok(out)
         }
         ("xlsx", "odt") => {
             let out = out_path("odt")?;
-            if let Err(e) = run_pandoc(&[path, "-t", "odt", "-o", &out]) {
-                eprintln!("Pandoc failed for XLSX → ODT: {}, trying fallback...", e);
-                let html = xlsx_to_html(path)?;
-                let temp_html = write_temp_file(&html)?;
-                run_pandoc(&[&temp_html, "-t", "odt", "-o", &out])?;
-            }
+            
+            // Шаг 1: XLSX → DOCX через office_oxide (с расширением)
+            let temp_docx = Builder::new()
+                .suffix(".docx")
+                .tempfile()
+                .map_err(|e| format!("Create temp DOCX: {}", e))?;
+            let temp_docx_path = temp_docx.path().to_str().unwrap().to_string();
+            
+            let doc = office_oxide::Document::open(path)
+                .map_err(|e| format!("Open XLSX: {}", e))?;
+            doc.save_as(&temp_docx_path)
+                .map_err(|e| format!("XLSX to DOCX: {}", e))?;
+            
+            // Шаг 2: DOCX → ODT через Pandoc
+            run_pandoc(&[&temp_docx_path, "-t", "odt", "-o", &out])?;
+            
+            // temp_docx удаляется автоматически
             Ok(out)
         }
         ("xlsx", "pdf") => {
             let out = out_path("pdf")?;
-            if let Err(e) = generate_pdf(path, &out) {
-                eprintln!("Pandoc failed for XLSX → PDF: {}, trying fallback...", e);
-                let html = xlsx_to_html(path)?;
-                let temp_html = write_temp_file(&html)?;
-                generate_pdf(&temp_html, &out)?;
-            }
+            
+            let result = office2pdf::convert(path)
+                .map_err(|e| format!("Convert XLSX to PDF: {}", e))?;
+            
+            std::fs::write(&out, result.pdf)
+                .map_err(|e| format!("Write PDF: {}", e))?;
+            
             Ok(out)
         }
 
@@ -320,38 +386,12 @@ fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<Stri
         //     let value = parse_document(path, from)?;
         //     stringify_document(&value, path, from, to)
         // }
-        ("docx", "xlsx") => {
-            let out = out_path("xlsx")?;
-            let doc = office_oxide::Document::open(path)
-                .map_err(|e| format!("Open DOCX failed: {}", e))?;
-            doc.save_as(&out)
-                .map_err(|e| format!("Save as XLSX failed: {}", e))?;
-            Ok(out)
-        }
-        ("odt", "xlsx") => {
-            let out = out_path("xlsx")?;
-            
-            // Создаем временный DOCX файл (авто-удаление)
-            let temp_docx = NamedTempFile::new()
-                .map_err(|e| format!("Create temp DOCX: {}", e))?;
-            let temp_docx_path = temp_docx.path().to_str().unwrap().to_string();
-            
-            // ODT → DOCX через Pandoc
-            run_pandoc(&[path, "-t", "docx", "-o", &temp_docx_path])?;
-            
-            // DOCX → XLSX через office_oxide
-            let doc = office_oxide::Document::open(&temp_docx_path)
-                .map_err(|e| format!("Open temp DOCX: {}", e))?;
-            doc.save_as(&out)
-                .map_err(|e| format!("Save as XLSX: {}", e))?;
-            
-            // temp_docx удаляется автоматически здесь
-            Ok(out)
-        }
+
         // ---------- ВСЕ ОСТАЛЬНЫЕ ПАРЫ — FALLBACK ----------
         _ => {
-            let value = parse_document(path, from)?;
-            stringify_document(&value, path, from, to)
+            Err("gg".to_string())
+            // let value = parse_document(path, from)?;
+            // stringify_document(&value, path, from, to)
         }
     }
 }
