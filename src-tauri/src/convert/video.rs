@@ -1,57 +1,48 @@
 // src-tauri/src/convert/video.rs
 
 use ffmpeg_sidecar::command::FfmpegCommand;
-use crate::utils::init_ffmpeg;
+// use crate::ffmpeg::init_ffmpeg;
 use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash};
 
 /// Конвертация видео в видео
 pub fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String, String> {
-    // Если форматы совпадают - просто возвращаем путь
     if from == to {
         return Ok(path.to_string());
     }
 
-    // Убеждаемся, что FFmpeg доступен
     // init_ffmpeg()?;
 
-    // Вычисляем хеш для выходного файла
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
 
     let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
 
-    // Определяем кодеки для выходного формата
     let video_codec = get_video_codec(to);
     let audio_codec = get_audio_codec(to);
 
-    // Строим команду FFmpeg
     let mut cmd = FfmpegCommand::new();
     cmd.input(path);
     cmd.args(&["-c:v", video_codec]);
     cmd.args(&["-c:a", audio_codec]);
     
-    // Настройки качества для H.264
     if to == "mp4" || to == "mov" || to == "mkv" {
-        cmd.args(&["-crf", "23"]);      // Качество (0-51, меньше = лучше)
-        cmd.args(&["-preset", "medium"]); // Баланс скорость/качество
+        cmd.args(&["-crf", "23"]);
+        cmd.args(&["-preset", "medium"]);
     }
     
-    // Дополнительные настройки для MP4
     if to == "mp4" {
         cmd.args(&["-profile:v", "high"]);
         cmd.args(&["-level", "4.0"]);
         cmd.args(&["-pix_fmt", "yuv420p"]);
     }
     
-    // Для MOV
     if to == "mov" {
         cmd.args(&["-pix_fmt", "yuv420p"]);
     }
 
-    cmd.args(&["-y"]); // Перезаписать выходной файл
+    cmd.args(&["-y"]);
     cmd.output(&output_path);
 
-    // Запускаем и ждем завершения
     let mut child = cmd.spawn()
         .map_err(|e| format!("Failed to spawn ffmpeg: {}", e))?;
 
@@ -60,6 +51,47 @@ pub fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String
 
     if !status.success() {
         return Err(format!("FFmpeg conversion failed with status: {}", status));
+    }
+
+    Ok(output_path)
+}
+
+/// Конвертация видео в аудио (извлекает аудио дорожку и конвертирует в целевой формат)
+pub fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // init_ffmpeg()?;
+
+    // Хеш от from (видео) и to (аудио)
+    let hash = calculate_conversion_hash(path, from, to)
+        .map_err(|e| format!("Hash error: {}", e))?;
+
+    let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
+
+    // Определяем аудио кодек для выходного формата
+    let audio_codec = get_audio_codec(to);
+
+    let mut cmd = FfmpegCommand::new();
+    cmd.input(path);
+    cmd.args(&["-vn"]);              // Отключаем видео дорожку (извлекаем только аудио)
+    cmd.args(&["-c:a", audio_codec]); // Конвертируем аудио в нужный кодек
+    cmd.args(&["-b:a", "192k"]);      // Битрейт 192 kbps
+    
+    // Дополнительные настройки для MP3
+    if to == "mp3" {
+        cmd.args(&["-id3v2_version", "3"]);
+        cmd.args(&["-write_id3v1", "1"]);
+    }
+
+    cmd.args(&["-y"]);               // Перезаписать выходной файл
+    cmd.output(&output_path);
+
+    let mut child = cmd.spawn()
+        .map_err(|e| format!("Failed to spawn ffmpeg: {}", e))?;
+
+    let status = child.wait()
+        .map_err(|e| format!("Failed to wait for ffmpeg: {}", e))?;
+
+    if !status.success() {
+        return Err(format!("FFmpeg extraction failed with status: {}", status));
     }
 
     Ok(output_path)
@@ -84,6 +116,13 @@ fn get_video_codec(format: &str) -> &'static str {
 /// Получение кодека для аудио по формату
 fn get_audio_codec(format: &str) -> &'static str {
     match format {
+        "mp3" => "libmp3lame",
+        "wav" => "pcm_s16le",
+        "aac" => "aac",
+        "flac" => "flac",
+        "ogg" => "libvorbis",
+        "m4a" => "aac",
+        "opus" => "libopus",
         "mp4" => "aac",
         "mov" => "aac",
         "avi" => "aac",

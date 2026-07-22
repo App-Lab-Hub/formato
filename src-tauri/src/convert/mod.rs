@@ -130,6 +130,7 @@ pub fn convert(
             Ok(ConversionOutput::Save(result))
         }
         
+        
         // Audio → Audio — сохраняем в файл
         (ContentType::Audio, ContentType::Audio) => {
             let result = convert_audio_to_audio(path, from, to)?;
@@ -141,7 +142,12 @@ pub fn convert(
             let result = convert_video_to_video(path, from, to)?;
             Ok(ConversionOutput::Save(result))
         }
-        
+
+        // Video → Audio — извлекаем аудио дорожку
+        (ContentType::Video, ContentType::Audio) => {
+            let result = convert_video_to_audio(path, from, to)?;
+            Ok(ConversionOutput::Save(result))
+        }
         _ => Err(format!(
             "Conversion from {:?} to {:?} is not supported yet",
             from_type, to_type
@@ -408,7 +414,10 @@ fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String, St
 fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String, String> {
     video::convert_video_to_video(path, from, to)
 }
-
+/// Video → Audio — извлекаем аудио дорожку и конвертируем в целевой формат
+fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+    video::convert_video_to_audio(path, from, to)
+}
 
 
 // ============================================================
