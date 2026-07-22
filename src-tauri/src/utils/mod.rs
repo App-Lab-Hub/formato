@@ -216,3 +216,17 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
 pub fn get_availability(from_type: String) -> AvailabilityResponse {
     get_availability_from_type(&from_type)
 }
+
+
+
+
+
+use ffmpeg_sidecar::download::auto_download;
+
+pub fn init_ffmpeg() -> Result<(), String> {
+    // auto_download сам проверит, есть ли FFmpeg
+    // Если есть - ничего не сделает
+    // Если нет - скачает
+    auto_download()
+        .map_err(|e| format!("Failed to download FFmpeg: {}", e))
+}

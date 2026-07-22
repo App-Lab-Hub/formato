@@ -11,9 +11,11 @@ mod docx;
 mod odt;
 mod xlsx;
 mod local_utils;
+mod audio;
+mod video;
+
 
 // use tempfile::NamedTempFile;
-
 
 
 
@@ -363,7 +365,6 @@ fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<Stri
 
 /// Image → Image
 use image::{ImageFormat, ImageReader};
-use std::io::Cursor;
 
 
 /// Конвертация изображений между поддерживаемыми форматами
@@ -398,16 +399,14 @@ fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, St
     
     Ok(out_path)
 }
-/// Audio → Audio
+
 fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
-    // TODO: Использовать ffmpeg или symphonia
-    Err(format!("Audio to audio conversion from {} to {} not implemented yet", from, to))
+    audio::convert_audio_to_audio(path, from, to)
 }
 
 /// Video → Video
 fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String, String> {
-    // TODO: Использовать ffmpeg
-    Err(format!("Video to video conversion from {} to {} not implemented yet", from, to))
+    video::convert_video_to_video(path, from, to)
 }
 
 
