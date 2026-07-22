@@ -15,7 +15,6 @@ mod local_utils;
 // use tempfile::NamedTempFile;
 
 
-use libreoffice_pure::*;
 
 
 
@@ -39,7 +38,7 @@ use crate::convert::docx::{stringify_docx, parse_docx};
 use crate::convert::odt::{stringify_odt, parse_odt};
 use crate::convert::xlsx::{stringify_xlsx, parse_xlsx};
 
-use local_utils::{extract_text_from_pdf, generate_pdf, run_pandoc, create_document_from_text, write_temp_file, xlsx_to_html, convert_with_libreoffice, convert_with_soffice_explicit};
+use local_utils::{convert_with_soffice_explicit};
 
 use crate::db;
 use crate::html_convert::{convert_to_html, parse_html};
@@ -223,8 +222,6 @@ fn convert_text_to_document(path: &str, from: &str, to: &str) -> Result<String, 
 }
 
 
-
-use tempfile::Builder;
 // ========================================================================================================================
 // ========================================================================================================================
 // ========================================================================================================================
@@ -329,11 +326,6 @@ fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<Stri
             convert_with_soffice_explicit(path, &out)?;
             Ok(out)
         }
-        ("xlsx", "pdf") => {
-            let out = out_path("pdf")?;
-            convert_with_soffice_explicit(path, &out)?;
-            Ok(out)
-        }
 
         // // ---------- PDF ----------
         // ("pdf", "docx") => {
@@ -370,11 +362,42 @@ fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<Stri
 
 
 /// Image → Image
-fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, String> {
-    // TODO: Использовать image crate или ImageMagick
-    Err(format!("Image to image conversion from {} to {} not implemented yet", from, to))
-}
+use image::{ImageFormat, ImageReader};
+use std::io::Cursor;
 
+
+/// Конвертация изображений между поддерживаемыми форматами
+fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // Открываем и декодируем изображение
+    let img = ImageReader::open(path)
+        .map_err(|e| format!("Cannot open image: {}", e))?
+        .decode()
+        .map_err(|e| format!("Cannot decode image: {}", e))?;
+    
+    // Определяем формат
+    let format = match to.to_lowercase().as_str() {
+        "jpg" | "jpeg" => ImageFormat::Jpeg,
+        "png" => ImageFormat::Png,
+        "webp" => ImageFormat::WebP,
+        "avif" => ImageFormat::Avif,
+        "gif" => ImageFormat::Gif,
+        "bmp" => ImageFormat::Bmp,
+        "tiff" | "tif" => ImageFormat::Tiff,
+        "ico" => ImageFormat::Ico,
+        _ => return Err(format!("Unsupported output format: {}", to)),
+    };
+    
+    // Получаем хеш и путь
+    let hash = calculate_conversion_hash(path, from, to)
+        .map_err(|e| format!("Hash error: {}", e))?;
+    let out_path = get_app_dir_path_with_hash(path, &to, &hash)?;
+    
+    // Сохраняем
+    img.save_with_format(&out_path, format)
+        .map_err(|e| format!("Cannot save image: {}", e))?;
+    
+    Ok(out_path)
+}
 /// Audio → Audio
 fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
     // TODO: Использовать ffmpeg или symphonia

@@ -62,12 +62,9 @@ rust_xlsxwriter = "0.96.0"
 rtf-parser = "0.4.3"
 zip = "8.6.0"
 calamine = "0.36.0"
-pdf_oxide = "0.3.74"
 pdf-extract = "0.12.0"
 encoding_rs = "0.8.35"
-extractor = "0.1.0"
 tempfile = "3.27.0"
 office_oxide = "0.1.7"
-office2pdf = "0.6.2"
-libreoffice-pure = "0.5.3"
+image = { version = "0.25.10", features = ["avif", "webp", "jpeg", "png", "gif", "bmp", "tiff", "ico", "avif-native"] }
 

@@ -6,8 +6,8 @@ use crate::convert::get_app_dir_path_with_hash;
 use std::fs::File;
 use std::io::Write;
 use std::path::Path;
-// use pdf_extract::extract_text;
-use crate::convert::extract_text_from_pdf;
+use pdf_extract::extract_text;
+// use crate::convert::extract_text_from_pdf;
 use encoding_rs::WINDOWS_1251;
 
 pub fn stringify_pdf(value: &Json, path: &str, from: &str, to: &str) -> Result<String, String> {
@@ -46,9 +46,12 @@ pub fn stringify_pdf(value: &Json, path: &str, from: &str, to: &str) -> Result<S
 /// Парсит PDF в JSON с автоматическим исправлением кодировки Windows-1251
 pub fn parse_pdf(path: &str) -> Result<Json, String> {
     // 1. Извлекаем текст средствами pdf-extract
-    // let path_buf = Path::new(path);
-    let extracted_text = extract_text_from_pdf(path)
+    let path_buf = Path::new(path);
+    let extracted_text = extract_text(path_buf)
         .map_err(|e| format!("Не удалось прочитать или распарсить PDF: {}", e))?;
+    
+    // let extracted_text = extract_text_from_pdf(path)
+        // .map_err(|e| format!("Не удалось прочитать или распарсить PDF: {}", e))?;
     
 
     let full_text = if extracted_text.contains("\u{FFFD}") || has_latin1_krakozyabry(&extracted_text) {

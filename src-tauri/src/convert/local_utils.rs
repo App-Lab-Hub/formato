@@ -223,21 +223,15 @@ pub fn write_temp_file(content: &str) -> Result<String, String> {
 
 
 
-use libreoffice_pure::*;
-
-
-
-
-
-pub fn convert_with_libreoffice(input_path: &str, from: &str, to: &str) -> Result<Vec<u8>, String> {
-    let input_bytes = std::fs::read(input_path)
-        .map_err(|e| format!("Read {}: {}", from, e))?;
+// pub fn convert_with_libreoffice(input_path: &str, from: &str, to: &str) -> Result<Vec<u8>, String> {
+//     let input_bytes = std::fs::read(input_path)
+//         .map_err(|e| format!("Read {}: {}", from, e))?;
     
-    let output_bytes = convert_bytes(&input_bytes, from, to)
-        .map_err(|e| format!("Convert {} to {}: {}", from, to, e))?;
+//     let output_bytes = convert_bytes(&input_bytes, from, to)
+//         .map_err(|e| format!("Convert {} to {}: {}", from, to, e))?;
     
-    Ok(output_bytes)
-}
+//     Ok(output_bytes)
+// }
 
 
 
