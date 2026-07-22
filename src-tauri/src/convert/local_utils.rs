@@ -238,3 +238,59 @@ pub fn convert_with_libreoffice(input_path: &str, from: &str, to: &str) -> Resul
     
     Ok(output_bytes)
 }
+
+
+
+
+
+
+use std::path::Path;
+use std::fs;
+
+pub fn convert_with_soffice_explicit(input_path: &str, output_path: &str) -> Result<(), String> {
+    let input_path_obj = Path::new(input_path);
+    let output_path_obj = Path::new(output_path);
+
+    // 1. Извлекаем расширение из финального пути (например, "pdf")
+    let ext = output_path_obj
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("pdf");
+
+    // 2. Создаем изолированную временную папку (защита от конфликтов имен)
+    let temp_dir = tempfile::tempdir()
+        .map_err(|e| format!("Failed to create temp dir: {}", e))?;
+    
+    // 3. Конвертируем документ во временную папку
+    let status = Command::new("soffice")
+        .args([
+            "--headless",
+            "--convert-to", ext,
+            "--outdir", &temp_dir.path().to_string_lossy(),
+            input_path,
+        ])
+        .status()
+        .map_err(|e| format!("soffice error: {}", e))?;
+
+    if !status.success() {
+        return Err("soffice conversion failed".to_string());
+    }
+
+    // 4. Находим файл, который создал soffice (исходное имя + новое расширение)
+    let input_stem = input_path_obj
+        .file_stem()
+        .ok_or_else(|| "Invalid input file name".to_string())?;
+    
+    let temp_output = temp_dir.path().join(format!("{}.{}", input_stem.to_string_lossy(), ext));
+
+    // 5. Всегда переименовываем и перемещаем файл в целевой output_path
+    if temp_output.exists() {
+        // fs::rename автоматически перезапишет старый файл по пути output_path, если он существовал
+        fs::rename(&temp_output, output_path_obj)
+            .map_err(|e| format!("Failed to move and rename to {}: {}", output_path, e))?;
+    } else {
+        return Err("soffice did not create output file in temp dir".to_string());
+    }
+
+    Ok(())
+}
