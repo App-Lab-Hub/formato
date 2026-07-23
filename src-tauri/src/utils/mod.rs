@@ -173,7 +173,7 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
         ContentType::Text => AvailabilityResponse {
             text: "available".to_string(),
             image: "not_available".to_string(),
-            audio: "available".to_string(),
+            audio: "available".to_string(), // ai
             video: "not_available".to_string(),
             document: "available".to_string(), // Текст → Документ (pandoc)
         },

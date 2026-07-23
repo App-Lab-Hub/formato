@@ -68,4 +68,6 @@ tempfile = "3.27.0"
 office_oxide = "0.1.7"
 image = { version = "0.25.10", features = ["avif", "webp", "jpeg", "png", "gif", "bmp", "tiff", "ico", "avif-native"] }
 ffmpeg-sidecar = "2.5.2"
+kittentts = { version = "0.4.1", features = ["espeak"] }
+uuid = { version = "1.24.0", features = ["v4"] }
 

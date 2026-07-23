@@ -13,6 +13,7 @@ mod xlsx;
 mod local_utils;
 mod audio;
 mod video;
+mod text_to_audio;
 
 
 // use tempfile::NamedTempFile;
@@ -111,6 +112,7 @@ pub fn convert(
             let result = convert_text_to_document(path, from, to)?;
             Ok(ConversionOutput::Save(result))
         }
+       // Text → Audio — озвучиваем текст
         (ContentType::Text, ContentType::Audio) => {
             let result = convert_text_to_audio(path, from, to)?;
             Ok(ConversionOutput::Save(result))
@@ -221,9 +223,9 @@ fn convert_document_to_text(path: &str, from: &str, to: &str) -> Result<String, 
     stringify(&json_value, to)
 }
 
+// Функция-обертка (уже есть в вашем коде)
 fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
-    let json_value = parse_document(path, from)?;
-    stringify(&json_value, to)
+    text_to_audio::convert_text_to_audio(path, from, to)
 }
 
 
