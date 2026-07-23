@@ -172,8 +172,8 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
     match from {
         ContentType::Text => AvailabilityResponse {
             text: "available".to_string(),
-            image: "available_with_ai".to_string(),
-            audio: "available_with_ai".to_string(),
+            image: "not_available".to_string(),
+            audio: "available".to_string(),
             video: "not_available".to_string(),
             document: "available".to_string(), // Текст → Документ (pandoc)
         },

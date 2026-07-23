@@ -111,7 +111,11 @@ pub fn convert(
             let result = convert_text_to_document(path, from, to)?;
             Ok(ConversionOutput::Save(result))
         }
-        
+        (ContentType::Text, ContentType::Audio) => {
+            let result = convert_text_to_audio(path, from, to)?;
+            Ok(ConversionOutput::Save(result))
+        }
+
         // Document → Text — inline (извлекаем текст из документа)
         (ContentType::Document, ContentType::Text) => {
             let result = convert_document_to_text(path, from, to)?;
@@ -217,6 +221,10 @@ fn convert_document_to_text(path: &str, from: &str, to: &str) -> Result<String, 
     stringify(&json_value, to)
 }
 
+fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+    let json_value = parse_document(path, from)?;
+    stringify(&json_value, to)
+}
 
 
 
