@@ -1,6 +1,6 @@
 // src/convert/xlsx.rs
 
-use calamine::{Reader, Xlsx, DataType};
+
 use rust_xlsxwriter::*;
 use serde_json::{Value as Json};
 use std::fs::File;
@@ -143,35 +143,31 @@ pub fn stringify_xlsx(value: &Json, path: &str, from: &str, to: &str) -> Result<
     Ok(output_path)
 }
 
-/// Парсит XLSX в JSON
-pub fn parse_xlsx(path: &str) -> Result<Json, String> {
 
-    
-    let mut workbook: Xlsx<_> = calamine::open_workbook(path)
-        .map_err(|e| format!("XLSX parse error: {}", e))?;
+use calamine::{open_workbook_auto, Reader, Xlsx, Xls};
+
+pub fn parse_xlsx(path: &str) -> Result<Json, String> {
+    // Автоматически определяет формат (xls, xlsx, ods)
+    let mut workbook = open_workbook_auto(path)
+        .map_err(|e| format!("Spreadsheet parse error: {}", e))?;
     
     let mut result = Vec::new();
     
-    // Проходим по всем листам
     for sheet_name in workbook.sheet_names() {
         let mut sheet_data = Vec::new();
         if let Ok(range) = workbook.worksheet_range(&sheet_name) {
             let mut headers = Vec::new();
             for (row_idx, row) in range.rows().enumerate() {
-                let mut row_data = Vec::new();
-                for cell in row {
-                    row_data.push(cell.to_string());
-                }
+                let mut row_data: Vec<String> = row.iter().map(|c| c.to_string()).collect();
                 if row_idx == 0 {
                     headers = row_data.clone();
                 }
                 sheet_data.push(row_data);
             }
             
-            // Преобразуем в JSON
             let mut sheet_json = Vec::new();
             for (idx, row) in sheet_data.iter().enumerate() {
-                if idx == 0 { continue; } // Пропускаем заголовки
+                if idx == 0 { continue; }
                 let mut obj = serde_json::Map::new();
                 for (col_idx, cell) in row.iter().enumerate() {
                     let header = if col_idx < headers.len() { 
