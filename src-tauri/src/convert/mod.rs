@@ -14,8 +14,8 @@ mod local_utils;
 mod audio;
 mod video;
 mod text_to_audio;
-
-
+mod document_to_audio;
+mod image_to_text; 
 // use tempfile::NamedTempFile;
 
 
@@ -129,6 +129,13 @@ pub fn convert(
             let result = convert_document_to_document(path, from, to)?;
             Ok(ConversionOutput::Save(result))
         }
+
+        (ContentType::Document, ContentType::Audio) => {
+            let result = convert_document_to_audio(path, from, to)?;
+            Ok(ConversionOutput::Save(result))
+        }
+
+
         
         // Image → Image — сохраняем в файл
         (ContentType::Image, ContentType::Image) => {
@@ -136,6 +143,10 @@ pub fn convert(
             Ok(ConversionOutput::Save(result))
         }
         
+        (ContentType::Image, ContentType::Text) => {
+            let result = convert_image_to_text(path, from, to)?;
+            Ok(ConversionOutput::Save(result))
+        }
         
         // Audio → Audio — сохраняем в файл
         (ContentType::Audio, ContentType::Audio) => {
@@ -239,6 +250,10 @@ fn convert_text_to_document(path: &str, from: &str, to: &str) -> Result<String, 
 
 }
 
+// Функция-обертка:
+fn convert_image_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+    image_to_text::convert_image_to_text(path, from, to)
+}
 
 // ========================================================================================================================
 // ========================================================================================================================
@@ -429,6 +444,9 @@ fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String, St
     video::convert_video_to_audio(path, from, to)
 }
 
+fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+    document_to_audio::convert_document_to_audio(path, from, to)
+}
 
 // ============================================================
 // ПАРСЕРЫ И СЕРИАЛИЗАТОРЫ

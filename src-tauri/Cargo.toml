@@ -70,4 +70,6 @@ image = { version = "0.25.10", features = ["avif", "webp", "jpeg", "png", "gif",
 ffmpeg-sidecar = "2.5.2"
 kittentts = { version = "0.4.1", features = ["espeak"] }
 uuid = { version = "1.24.0", features = ["v4"] }
+base64 = "0.23.0"
+kamadak-exif = "0.6.1"
 

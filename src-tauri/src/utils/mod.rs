@@ -178,22 +178,22 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
             document: "available".to_string(), // Текст → Документ (pandoc)
         },
         ContentType::Image => AvailabilityResponse {
-            text: "available_with_ai".to_string(),
+            text: "available".to_string(),
             image: "available".to_string(),
             audio: "not_available".to_string(),
-            video: "available".to_string(),
-            document: "not_available".to_string(),
+            video: "not_available".to_string(),
+            document: "available".to_string(),
         },
         ContentType::Audio => AvailabilityResponse {
             text: "available".to_string(),
             image: "not_available".to_string(),
             audio: "available".to_string(),
-            video: "available".to_string(),
-            document: "not_available".to_string(),
+            video: "not_available".to_string(),
+            document: "available".to_string(),
         },
         ContentType::Video => AvailabilityResponse {
-            text: "available_with_ai".to_string(),
-            image: "available".to_string(),
+            text: "available".to_string(),
+            image: "not_available".to_string(),
             audio: "available".to_string(),
             video: "available".to_string(),
             document: "not_available".to_string(),
@@ -201,7 +201,7 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
         ContentType::Document => AvailabilityResponse {
             text: "available".to_string(),      // PDF → TXT (извлечение)
             image: "not_available".to_string(),
-            audio: "not_available".to_string(),
+            audio: "available".to_string(),
             video: "not_available".to_string(),
             document: "available".to_string(),  // PDF → DOCX (конвертация)
         },
