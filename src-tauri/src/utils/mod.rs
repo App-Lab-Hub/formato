@@ -171,10 +171,10 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
     
     match from {
         ContentType::Text => AvailabilityResponse {
-            text: "available".to_string(), 
-            image: "not_available".to_string(),  //ready
+            text: "available".to_string(), //ready
+            image: "not_available".to_string(),  //ready n
             audio: "available".to_string(), //ready
-            video: "not_available".to_string(),  //ready
+            video: "not_available".to_string(),  //ready n
             document: "available".to_string(),  //ready
         },
         ContentType::Image => AvailabilityResponse {
@@ -200,9 +200,9 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
         },
         ContentType::Document => AvailabilityResponse {
             text: "available".to_string(),   //ready  
-            image: "not_available".to_string(),//ready
-            audio: "available".to_string(), 
-            video: "not_available".to_string(), //ready
+            image: "not_available".to_string(),//ready n
+            audio: "available".to_string(), //ready  
+            video: "not_available".to_string(), //ready n
             document: "available".to_string(),  //ready
         },
     }

@@ -5,7 +5,7 @@ use std::path::Path;
 use tempfile::Builder;
 use kittentts::download;
 use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash};
-use ffmpeg_sidecar::command::FfmpegCommand;
+use crate::convert::audio;
 
 pub fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
     let text = std::fs::read_to_string(path)
@@ -18,7 +18,7 @@ pub fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String,
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
 
-    let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
+    let final_path = get_app_dir_path_with_hash(path, to, &hash)?;
 
     let temp_wav = generate_speech_with_kittentts(&text)?;
     
@@ -34,10 +34,25 @@ pub fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String,
 
     println!("✅ WAV file created: {} ({} bytes)", temp_wav, metadata.len());
 
-    convert_wav_to_audio(&temp_wav, &output_path, to)?;
+    // Конвертируем WAV в целевой аудио формат через audio::convert_audio_to_audio
+    let audio_output = audio::convert_audio_to_audio(&temp_wav, "wav", to)?;
+    
+    // Если файл сохранился не туда - перемещаем
+    if audio_output != final_path {
+        if let Some(parent) = Path::new(&final_path).parent() {
+            if !parent.exists() {
+                fs::create_dir_all(parent)
+                    .map_err(|e| format!("Cannot create output dir: {}", e))?;
+            }
+        }
+        fs::rename(&audio_output, &final_path)
+            .map_err(|e| format!("Cannot move file: {}", e))?;
+    }
+
     let _ = fs::remove_file(&temp_wav);
 
-    Ok(output_path)
+    println!("✅ Text to audio conversion complete: {}", final_path);
+    Ok(final_path)
 }
 
 fn generate_speech_with_kittentts(text: &str) -> Result<String, String> {
@@ -46,7 +61,6 @@ fn generate_speech_with_kittentts(text: &str) -> Result<String, String> {
     }
 
     println!("🔄 Loading TTS model...");
-    // Используем модель nano без квантования (лучше качество)
     let tts = download::load_from_hub("KittenML/kitten-tts-nano-0.8")
         .map_err(|e| format!("Failed to load TTS model: {}", e))?;
     println!("✅ TTS model loaded");
@@ -64,11 +78,10 @@ fn generate_speech_with_kittentts(text: &str) -> Result<String, String> {
 
     println!("🔄 Generating speech...");
     
-    // Попробуйте разные голоса: Luna, Jasper, Bruno, Bella
     tts.generate_to_file(
         text,
         Path::new(&temp_path),
-        "Jasper",  // Попробуйте другой голос
+        "Jasper",
         1.0,
         true,
     ).map_err(|e| format!("TTS generation failed: {}", e))?;
@@ -77,77 +90,4 @@ fn generate_speech_with_kittentts(text: &str) -> Result<String, String> {
     let _ = temp_file.keep();
     
     Ok(temp_path)
-}
-
-fn convert_wav_to_audio(input_wav: &str, output_path: &str, to: &str) -> Result<(), String> {
-    if !Path::new(input_wav).exists() {
-        return Err(format!("Input WAV file does not exist: {}", input_wav));
-    }
-
-    let metadata = fs::metadata(input_wav)
-        .map_err(|e| format!("Cannot get input WAV metadata: {}", e))?;
-    if metadata.len() == 0 {
-        return Err("Input WAV file is empty".to_string());
-    }
-
-    let audio_codec = match to {
-        "mp3" => "libmp3lame",
-        "wav" => "pcm_s16le",
-        "aac" => "aac",
-        "flac" => "flac",
-        "ogg" => "libvorbis",
-        "m4a" => "aac",
-        "opus" => "libopus",
-        _ => "aac",
-    };
-
-    println!("🔄 Converting WAV to {}...", to);
-
-    let mut cmd = FfmpegCommand::new();
-    cmd.input(input_wav);
-    cmd.args(&["-c:a", audio_codec]);
-    
-    // Улучшенные настройки
-    match to {
-        "mp3" => {
-            cmd.args(&["-q:a", "2"]);  // VBR качество
-            cmd.args(&["-id3v2_version", "3"]);
-            cmd.args(&["-write_id3v1", "1"]);
-        }
-        "aac" | "m4a" => {
-            cmd.args(&["-q:a", "2"]);
-        }
-        "ogg" => {
-            cmd.args(&["-q:a", "6"]);
-        }
-        "flac" => {
-            cmd.args(&["-compression_level", "8"]);
-        }
-        _ => {
-            cmd.args(&["-b:a", "192k"]);
-        }
-    }
-
-    // Фильтры для улучшения качества и подавления шума
-    cmd.args(&["-af", "highpass=f=80, lowpass=f=12000"]);
-    
-    cmd.args(&["-y"]);
-    cmd.output(output_path);
-
-    let mut child = cmd.spawn()
-        .map_err(|e| format!("Failed to spawn ffmpeg: {}", e))?;
-
-    let status = child.wait()
-        .map_err(|e| format!("Failed to wait for ffmpeg: {}", e))?;
-
-    if !status.success() {
-        return Err(format!("FFmpeg conversion failed with status: {}", status));
-    }
-
-    if !Path::new(output_path).exists() {
-        return Err("FFmpeg did not create output file".to_string());
-    }
-
-    println!("✅ Conversion complete: {}", output_path);
-    Ok(())
 }

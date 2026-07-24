@@ -168,25 +168,14 @@ pub fn convert(
 // ============================================================
 
 /// Text → Text
+/// Text → Text
 fn convert_text_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
     let input = std::fs::read_to_string(path)
         .map_err(|e| format!("Cannot read file: {e}"))?;
     let value = parse(&input, from)?;
     
-    // Получаем результат (для RTF это путь, для остальных - содержимое)
-    let result = stringify(&value, to, path, from)?;
-    
-    // Если это RTF - уже путь к файлу, возвращаем как есть
-    if to == "rtf" {
-        return Ok(result);
-    }
-    
-    // Для остальных - сохраняем содержимое в файл
-    let hash = calculate_conversion_hash(path, from, to)
-        .map_err(|e| format!("Hash error: {}", e))?;
-    let output_path = save_to_app_dir(&result, path, to, &hash)?;
-    
-    Ok(output_path)
+    // stringify теперь всегда возвращает путь
+    stringify(&value, to, path, from)
 }
 
 fn parse_document(path: &str, from: &str) -> Result<Json, String> {
@@ -474,10 +463,12 @@ fn parse(input: &str, format: &str) -> Result<Json, String> {
     }
 }
 
+/// Сериализует JSON в файл и возвращает путь к нему
 fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<String, String> {
-    match format {
-        "json" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}")),
-        "yaml" | "yml" => serde_yaml::to_string(value).map_err(|e| format!("YAML: {e}")),
+    // Получаем содержимое для всех форматов кроме RTF
+    let content = match format {
+        "json" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}"))?,
+        "yaml" | "yml" => serde_yaml::to_string(value).map_err(|e| format!("YAML: {e}"))?,
         "toml" => {
             let value_for_toml = match value {
                 Json::Array(arr) => {
@@ -487,22 +478,29 @@ fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<Strin
                 }
                 _ => value.clone(),
             };
-            toml::to_string_pretty(&value_for_toml).map_err(|e| format!("TOML: {e}"))
+            toml::to_string_pretty(&value_for_toml).map_err(|e| format!("TOML: {e}"))?
         }
-        "xml" => stringify_xml(value).map_err(|e| format!("XML: {e}")),
-        "csv" => stringify_csv(value),
-        "ini" => stringify_ini(value),
-        "html" => Ok(convert_to_html(value)),
-        "md" => stringify_markdown(value),
-        "txt" | "text" => stringify_txt(value),
+        "xml" => stringify_xml(value).map_err(|e| format!("XML: {e}"))?,
+        "csv" => stringify_csv(value)?,
+        "ini" => stringify_ini(value)?,
+        "html" => convert_to_html(value),
+        "md" => stringify_markdown(value)?,
+        "txt" | "text" => stringify_txt(value)?,
         "rtf" => {
-            // Для RTF используем stringify_rtf с path и to
-            // from не нужен, но передаем для совместимости
-            stringify_rtf(value, path, from, format)
+            // RTF особый случай - возвращает путь
+            return stringify_rtf(value, path, from, format);
         }
-        _ => Err(format!("Unsupported: {format}")),
-    }
+        _ => return Err(format!("Unsupported: {format}")),
+    };
+    
+    // Для всех остальных форматов - сохраняем содержимое в файл
+    let hash = calculate_conversion_hash(path, from, format)
+        .map_err(|e| format!("Hash error: {}", e))?;
+    let output_path = save_to_app_dir(&content, path, format, &hash)?;
+    
+    Ok(output_path)
 }
+
 
 
 // ============================================================

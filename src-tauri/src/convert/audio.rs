@@ -1,7 +1,6 @@
 // src-tauri/src/convert/audio.rs
 
 use ffmpeg_sidecar::command::FfmpegCommand;
-use crate::utils::init_ffmpeg;
 use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash};
 
 /// Конвертация аудио в аудио
@@ -11,8 +10,7 @@ pub fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String
         return Ok(path.to_string());
     }
 
-    // Убеждаемся, что FFmpeg доступен
-    // init_ffmpeg()?;
+
 
     // Вычисляем хеш для выходного файла
     let hash = calculate_conversion_hash(path, from, to)
