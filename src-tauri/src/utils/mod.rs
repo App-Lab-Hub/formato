@@ -171,39 +171,39 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
     
     match from {
         ContentType::Text => AvailabilityResponse {
-            text: "available".to_string(),
-            image: "not_available".to_string(),
-            audio: "available".to_string(), // ai
-            video: "not_available".to_string(),
-            document: "available".to_string(), // Текст → Документ (pandoc)
+            text: "available".to_string(), //ready
+            image: "not_available".to_string(), //ready(y)
+            audio: "available".to_string(), //ready(y)
+            video: "not_available".to_string(), //ready(y)
+            document: "available".to_string(), 
         },
         ContentType::Image => AvailabilityResponse {
-            text: "available".to_string(),
-            image: "available".to_string(),
-            audio: "not_available".to_string(),
-            video: "not_available".to_string(),
+            text: "available".to_string(), //ready
+            image: "available".to_string(),//ready
+            audio: "not_available".to_string(), //ready
+            video: "not_available".to_string(), //ready
             document: "available".to_string(),
         },
         ContentType::Audio => AvailabilityResponse {
-            text: "available".to_string(),
-            image: "not_available".to_string(),
-            audio: "available".to_string(),
-            video: "not_available".to_string(),
+            text: "available".to_string(), //ready
+            image: "not_available".to_string(), //ready
+            audio: "available".to_string(),  //ready
+            video: "not_available".to_string(),  //ready
             document: "available".to_string(),
         },
         ContentType::Video => AvailabilityResponse {
             text: "available".to_string(),
-            image: "not_available".to_string(),
-            audio: "available".to_string(),
-            video: "available".to_string(),
+            image: "not_available".to_string(), //ready
+            audio: "available".to_string(), //ready
+            video: "available".to_string(), //ready
             document: "not_available".to_string(),
         },
         ContentType::Document => AvailabilityResponse {
-            text: "available".to_string(),      // PDF → TXT (извлечение)
-            image: "not_available".to_string(),
-            audio: "available".to_string(),
-            video: "not_available".to_string(),
-            document: "available".to_string(),  // PDF → DOCX (конвертация)
+            text: "available".to_string(),      //ready
+            image: "not_available".to_string(), //ready
+            audio: "available".to_string(), //ready
+            video: "not_available".to_string(), //ready
+            document: "available".to_string(),  //ready
         },
     }
 }

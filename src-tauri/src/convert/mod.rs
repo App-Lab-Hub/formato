@@ -189,7 +189,6 @@ fn parse_document(path: &str, from: &str) -> Result<Json, String> {
             parse_docx(path)
         }
         "pdf" => {
-            // Err("GG".to_string())
             parse_pdf(path)
         }
         "odt" => {
@@ -203,6 +202,7 @@ fn parse_document(path: &str, from: &str) -> Result<Json, String> {
         }
     }
 }
+
 fn stringify_document(value:&Json, path: &str, from: &str, to: &str) -> Result<String, String> {
     match to {
         "docx" => {
