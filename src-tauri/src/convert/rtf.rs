@@ -2,6 +2,9 @@
 
 use rtf_parser::{Lexer, Parser, RtfDocument};
 use serde_json::{Value as Json};
+use std::fs;
+use std::path::Path;
+use std::process::Command;
 
 /// Парсит RTF в JSON с сохранением структуры
 pub fn parse_rtf(input: &str) -> Result<Json, String> {
@@ -56,74 +59,89 @@ pub fn parse_rtf(input: &str) -> Result<Json, String> {
     Ok(Json::Object(map))
 }
 
-/// Преобразует JSON обратно в RTF
-pub fn stringify_rtf(value: &Json) -> Result<String, String> {
-    let text = extract_text_from_json(value);
+
+use crate::convert::{stringify_document, calculate_conversion_hash, get_app_dir_path_with_hash};
+
+/// Конвертирует JSON в RTF через DOCX
+pub fn stringify_rtf(value: &Json, original_path: &str, from: &str, to: &str) -> Result<String, String> {
+    // 1. Создаем DOCX через stringify_document
+    let docx_path = stringify_document(value, original_path, from, "docx")?;
     
-    // Формируем RTF
-    let mut rtf = String::from(r"{\rtf1\ansi\deff0");
-    rtf.push_str(r"{\fonttbl{\f0\fnil\fcharset0 Arial;}}");
-    rtf.push_str(r"\viewkind4\uc1\pard\lang1049\f0\fs20");
-    
-    // Разбиваем на параграфы
-    let lines: Vec<&str> = text.lines().collect();
-    for (i, line) in lines.iter().enumerate() {
-        if line.trim().is_empty() {
-            rtf.push_str(r"\par");
-        } else {
-            let escaped = line
-                .replace('\\', "\\\\")
-                .replace('{', "\\{")
-                .replace('}', "\\}");
-            rtf.push_str(&escaped);
-            if i < lines.len() - 1 {
-                rtf.push_str(r"\par");
-            }
-        }
+    if !Path::new(&docx_path).exists() {
+        return Err(format!("DOCX file not created: {}", docx_path));
     }
     
-    rtf.push_str(r"\par}");
+    // 2. Конвертируем DOCX в RTF
+    let rtf_path = convert_docx_to_rtf(&docx_path, original_path, to)?;
     
-    Ok(rtf)
+    // 3. Удаляем DOCX
+    let _ = fs::remove_file(&docx_path);
+    
+    Ok(rtf_path)
 }
 
-/// Извлекает текст из JSON
-fn extract_text_from_json(value: &Json) -> String {
-    match value {
-        Json::String(s) => s.clone(),
-        Json::Object(obj) => {
-            // Если есть поле "text" — используем его
-            if let Some(Json::String(text)) = obj.get("text") {
-                return text.clone();
-            }
-            // Если есть поле "blocks" — собираем тексты
-            if let Some(Json::Array(blocks)) = obj.get("blocks") {
-                let mut texts = Vec::new();
-                for block in blocks {
-                    if let Json::Object(b) = block {
-                        if let Some(Json::String(t)) = b.get("text") {
-                            texts.push(t.clone());
-                        }
-                    }
-                }
-                return texts.join(" ");
-            }
-            // Иначе — собираем все значения
-            let mut texts = Vec::new();
-            for (_, val) in obj {
-                texts.push(extract_text_from_json(val));
-            }
-            texts.join(" ")
-        }
-        Json::Array(arr) => {
-            let mut texts = Vec::new();
-            for item in arr {
-                texts.push(extract_text_from_json(item));
-            }
-            texts.join("\n")
-        }
-        Json::Number(n) => n.to_string(),
-        Json::Bool(b) => b.to_string(),
-        Json::Null => String::new(),
+/// Конвертирует DOCX в RTF через soffice
+fn convert_docx_to_rtf(docx_path: &str, original_path: &str, to: &str) -> Result<String, String> {
+    // Проверяем наличие soffice
+    let check = Command::new("soffice")
+        .arg("--version")
+        .output();
+    
+    if check.is_err() {
+        return Err("soffice not found. Please install LibreOffice.".to_string());
     }
+
+    // Получаем директорию DOCX
+    let docx_dir = Path::new(docx_path)
+        .parent()
+        .ok_or("Invalid docx path")?
+        .to_str()
+        .ok_or("Invalid docx path")?;
+
+    // Временный RTF с тем же именем
+    let docx_stem = Path::new(docx_path)
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .ok_or("Invalid docx filename")?;
+    
+    let temp_rtf = format!("{}/{}.rtf", docx_dir, docx_stem);
+
+    // Конвертируем через soffice
+    let status = Command::new("soffice")
+        .args(&[
+            "--headless",
+            "--convert-to", "rtf",
+            docx_path,
+            "--outdir", docx_dir,
+        ])
+        .status()
+        .map_err(|e| format!("soffice error: {}", e))?;
+
+    if !status.success() {
+        return Err("soffice conversion failed".to_string());
+    }
+
+    if !Path::new(&temp_rtf).exists() {
+        return Err("soffice did not create RTF file".to_string());
+    }
+
+    // Перемещаем в нужную папку с хешем
+    let hash = calculate_conversion_hash(original_path, "docx", to)
+        .map_err(|e| format!("Hash error: {}", e))?;
+    
+    let final_path = get_app_dir_path_with_hash(original_path, to, &hash)?;
+
+    // Создаем директорию
+    if let Some(parent) = Path::new(&final_path).parent() {
+        if !parent.exists() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("Cannot create output dir: {}", e))?;
+        }
+    }
+
+    // Перемещаем
+    fs::rename(&temp_rtf, &final_path)
+        .map_err(|e| format!("Cannot rename RTF file: {}", e))?;
+
+    Ok(final_path)
 }

@@ -96,81 +96,73 @@ pub fn convert(
     to: &str,
     from_type: &str,
     to_type: &str,
-) -> Result<ConversionOutput, String> {
+) -> Result<String, String> {
     let from_type: ContentType = from_type.to_string().into();
     let to_type: ContentType = to_type.to_string().into();
     
     match (from_type, to_type) {
-        // Text → Text — inline
+        // Text → Text — всегда сохраняем в файл
         (ContentType::Text, ContentType::Text) => {
-            let result = convert_text_to_text(path, from, to)?;
-            Ok(ConversionOutput::Inline(result))
+            convert_text_to_text(path, from, to)
         }
         
-        // Text → Document — inline (создаём документ из текста)
+        // Text → Document
         (ContentType::Text, ContentType::Document) => {
-            let result = convert_text_to_document(path, from, to)?;
-            Ok(ConversionOutput::Save(result))
+            convert_text_to_document(path, from, to)
         }
-       // Text → Audio — озвучиваем текст
+        
+        // Text → Audio
         (ContentType::Text, ContentType::Audio) => {
-            let result = convert_text_to_audio(path, from, to)?;
-            Ok(ConversionOutput::Save(result))
+            convert_text_to_audio(path, from, to)
         }
 
-        // Document → Text — inline (извлекаем текст из документа)
+        // Document → Text
         (ContentType::Document, ContentType::Text) => {
-            let result = convert_document_to_text(path, from, to)?;
-            Ok(ConversionOutput::Inline(result))
+            convert_document_to_text(path, from, to)
         }
         
-        // // Document → Document — inline
+        // Document → Document
         (ContentType::Document, ContentType::Document) => {
-            let result = convert_document_to_document(path, from, to)?;
-            Ok(ConversionOutput::Save(result))
+            convert_document_to_document(path, from, to)
         }
 
+        // Document → Audio
         (ContentType::Document, ContentType::Audio) => {
-            let result = convert_document_to_audio(path, from, to)?;
-            Ok(ConversionOutput::Save(result))
+            convert_document_to_audio(path, from, to)
         }
-
-
         
-        // Image → Image — сохраняем в файл
+        // Image → Image
         (ContentType::Image, ContentType::Image) => {
-            let result = convert_image_to_image(path, from, to)?;
-            Ok(ConversionOutput::Save(result))
+            convert_image_to_image(path, from, to)
         }
         
+        // Image → Text
         (ContentType::Image, ContentType::Text) => {
-            let result = convert_image_to_text(path, from, to)?;
-            Ok(ConversionOutput::Save(result))
+            convert_image_to_text(path, from, to)
         }
         
-        // Audio → Audio — сохраняем в файл
+        // Audio → Audio
         (ContentType::Audio, ContentType::Audio) => {
-            let result = convert_audio_to_audio(path, from, to)?;
-            Ok(ConversionOutput::Save(result))
+            convert_audio_to_audio(path, from, to)
         }
         
-        // Video → Video — сохраняем в файл
+        // Video → Video
         (ContentType::Video, ContentType::Video) => {
-            let result = convert_video_to_video(path, from, to)?;
-            Ok(ConversionOutput::Save(result))
+            convert_video_to_video(path, from, to)
         }
 
-        // Video → Audio — извлекаем аудио дорожку
+        // Video → Audio
         (ContentType::Video, ContentType::Audio) => {
-            let result = convert_video_to_audio(path, from, to)?;
-            Ok(ConversionOutput::Save(result))
+            convert_video_to_audio(path, from, to)
         }
+        
         _ => Err(format!(
             "Conversion from {:?} to {:?} is not supported yet",
             from_type, to_type
         )),
     }
 }
+
 // ============================================================
 // КОНКРЕТНЫЕ РЕАЛИЗАЦИИ
 // ============================================================
@@ -180,7 +172,21 @@ fn convert_text_to_text(path: &str, from: &str, to: &str) -> Result<String, Stri
     let input = std::fs::read_to_string(path)
         .map_err(|e| format!("Cannot read file: {e}"))?;
     let value = parse(&input, from)?;
-    stringify(&value, to)
+    
+    // Получаем результат (для RTF это путь, для остальных - содержимое)
+    let result = stringify(&value, to, path, from)?;
+    
+    // Если это RTF - уже путь к файлу, возвращаем как есть
+    if to == "rtf" {
+        return Ok(result);
+    }
+    
+    // Для остальных - сохраняем содержимое в файл
+    let hash = calculate_conversion_hash(path, from, to)
+        .map_err(|e| format!("Hash error: {}", e))?;
+    let output_path = save_to_app_dir(&result, path, to, &hash)?;
+    
+    Ok(output_path)
 }
 
 fn parse_document(path: &str, from: &str) -> Result<Json, String> {
@@ -222,7 +228,7 @@ fn stringify_document(value:&Json, path: &str, from: &str, to: &str) -> Result<S
         }
         
         _ => {
-            stringify(value, to)
+            stringify(value, to, path, from)
         }
     }
 }
@@ -231,7 +237,7 @@ fn stringify_document(value:&Json, path: &str, from: &str, to: &str) -> Result<S
 
 fn convert_document_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
     let json_value = parse_document(path, from)?;
-    stringify(&json_value, to)
+    stringify(&json_value, to, path, from)
 }
 
 // Функция-обертка (уже есть в вашем коде)
@@ -454,21 +460,21 @@ fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<String,
 
 fn parse(input: &str, format: &str) -> Result<Json, String> {
     match format {
-        "json" => serde_json::from_str(input).map_err(|e| format!("JSON: {e}")),
-        "yaml" | "yml" => serde_yaml::from_str(input).map_err(|e| format!("YAML: {e}")),
-        "toml" => toml::from_str(input).map_err(|e| format!("TOML: {e}")),
-        "xml" => parse_xml(input),
-        "ini" => parse_ini(input),
-        "md" => parse_markdown(input),
-        "csv" => parse_csv(input),
-        "html" => parse_html(input),
-        "txt" | "text" => parse_txt(input),
-        "rtf" => parse_rtf(input),
-        _ => Err(format!("Unsupported: {format}")),
+        "json" => serde_json::from_str(input).map_err(|e| format!("JSON: {e}")),//good
+        "yaml" | "yml" => serde_yaml::from_str(input).map_err(|e| format!("YAML: {e}")), //good
+        "toml" => toml::from_str(input).map_err(|e| format!("TOML: {e}")), //good
+        "xml" => parse_xml(input), //good
+        "ini" => parse_ini(input),//good
+        "md" => parse_markdown(input),//good
+        "csv" => parse_csv(input), //good
+        "html" => parse_html(input),//good
+        "txt" | "text" => parse_txt(input),//good
+        "rtf" => parse_rtf(input),//good
+        _ => Err(format!("Unsupported: {format}")),//good
     }
 }
 
-fn stringify(value: &Json, format: &str) -> Result<String, String> {
+fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<String, String> {
     match format {
         "json" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}")),
         "yaml" | "yml" => serde_yaml::to_string(value).map_err(|e| format!("YAML: {e}")),
@@ -489,13 +495,14 @@ fn stringify(value: &Json, format: &str) -> Result<String, String> {
         "html" => Ok(convert_to_html(value)),
         "md" => stringify_markdown(value),
         "txt" | "text" => stringify_txt(value),
-        "rtf" => stringify_rtf(value),
-
-
+        "rtf" => {
+            // Для RTF используем stringify_rtf с path и to
+            // from не нужен, но передаем для совместимости
+            stringify_rtf(value, path, from, format)
+        }
         _ => Err(format!("Unsupported: {format}")),
     }
 }
-
 
 
 // ============================================================
@@ -564,6 +571,7 @@ pub async fn hash_file(path: String) -> Result<String, String> {
     calculate_file_hash(&path).map_err(|e| format!("Cannot hash file: {e}"))
 }
 
+
 #[tauri::command]
 pub async fn convert_file(
     state: tauri::State<'_, AppState>,
@@ -582,6 +590,7 @@ pub async fn convert_file(
     let db_guard = state.db.lock().await;
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
     
+    // Проверяем кеш
     if enable_cache {
         if let Some(existing_path) = db::find_conversion(db, &input_hash).await {
             let extension = Path::new(&existing_path)
@@ -599,55 +608,31 @@ pub async fn convert_file(
         }
     }
     
+    // Выполняем конвертацию (возвращает путь к файлу)
     let (path_clone, from_clone, to_clone, from_type_clone, to_type_clone) = 
         (path.clone(), from.clone(), to.clone(), fromType.clone(), toType.clone());
     
-    let output = tokio::task::spawn_blocking(move || {
+    let output_path = tokio::task::spawn_blocking(move || {
         convert(&path_clone, &from_clone, &to_clone, &from_type_clone, &to_type_clone)
     }).await.map_err(|e| format!("Task join error: {e}"))??;
-    
-    // Обрабатываем результат в зависимости от типа
-    match output {
-        ConversionOutput::Inline(content) => {
-            // inline — сохраняем в файл и кешируем
-            let saved_path = save_to_app_dir(&content, &path, &to, &input_hash)?;
-            let extension = Path::new(&saved_path)
-                .extension()
-                .and_then(|e| e.to_str())
-                .map(|e| e.to_string());
 
-            if enable_cache {
-                db::save_conversion(db, &input_hash, &saved_path).await?;
-            }
-
-            Ok(ConvertResult {
-                success: true,
-                content: saved_path,
-                hash: Some(input_hash),
-                extension,
-                error: None,
-            })
-        }
-        ConversionOutput::Save(saved_path) => {
-            // уже сохранён, просто возвращаем путь
-            let extension = Path::new(&saved_path)
-                .extension()
-                .and_then(|e| e.to_str())
-                .map(|e| e.to_string());
-
-            if enable_cache {
-                db::save_conversion(db, &input_hash, &saved_path).await?;
-            }
-
-            Ok(ConvertResult {
-                success: true,
-                content: saved_path,
-                hash: Some(input_hash),
-                extension,
-                error: None,
-            })
-        }
+    // Сохраняем в кеш
+    if enable_cache {
+        db::save_conversion(db, &input_hash, &output_path).await?;
     }
+
+    let extension = Path::new(&output_path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_string());
+
+    Ok(ConvertResult {
+        success: true,
+        content: output_path,
+        hash: Some(input_hash),
+        extension,
+        error: None,
+    })
 }
 
 #[tauri::command]
