@@ -43,6 +43,7 @@ pub fn stringify_pdf(value: &Json, path: &str, from: &str, to: &str) -> Result<S
 
 
 
+
 /// Парсит PDF в JSON с автоматическим исправлением кодировки Windows-1251
 pub fn parse_pdf(path: &str) -> Result<Json, String> {
     // 1. Извлекаем текст средствами pdf-extract
@@ -82,23 +83,34 @@ pub fn parse_pdf(path: &str) -> Result<Json, String> {
         .collect();
     let paragraph_count = paragraphs.len();
     
-
+    // 5. Разбиваем на строки
+    let lines: Vec<String> = clean_text
+        .lines()
+        .filter(|l| !l.trim().is_empty())
+        .map(|l| l.trim().to_string())
+        .collect();
+    let line_count = lines.len();
     
     // 6. Считаем метрики
     let chars: Vec<String> = clean_text.chars().map(|c| c.to_string()).collect();
     let char_count = chars.len();
     let word_count = clean_text.split_whitespace().count();
-    let line_count = clean_text.lines().count();
     
-    // 7. Собираем результат в едином формате
-    Ok(json!({
-        "text": clean_text,
-        "paragraphs": paragraphs,
-        "char_count": char_count,
-        "word_count": word_count,
-        "line_count": line_count,
-        "paragraph_count": paragraph_count,
-    }))
+    // 7. Собираем результат в едином формате (как DOCX и ODT)
+    let mut result = serde_json::Map::new();
+    result.insert("text".to_string(), Json::String(clean_text));
+    result.insert("paragraphs".to_string(), Json::Array(paragraphs.into_iter().map(Json::String).collect()));
+    result.insert("char_count".to_string(), Json::Number(serde_json::Number::from(char_count)));
+    result.insert("word_count".to_string(), Json::Number(serde_json::Number::from(word_count)));
+    result.insert("line_count".to_string(), Json::Number(serde_json::Number::from(line_count)));
+    result.insert("paragraph_count".to_string(), Json::Number(serde_json::Number::from(paragraph_count)));
+    
+    // 8. Добавляем строки (lines) если есть
+    if !lines.is_empty() {
+        result.insert("lines".to_string(), Json::Array(lines.into_iter().map(Json::String).collect()));
+    }
+    
+    Ok(Json::Object(result))
 }
 
 /// Вспомогательная функция для детекции "европейских кракозябр" вместо кириллицы

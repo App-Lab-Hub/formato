@@ -61,7 +61,6 @@ pub fn parse_docx(path: &str) -> Result<Json, String> {
     result.insert("text".to_string(), Json::String(full_text));
     result.insert("paragraphs".to_string(), Json::Array(paragraphs.into_iter().map(Json::String).collect()));
     result.insert("char_count".to_string(), Json::Number(serde_json::Number::from(char_count)));
-    result.insert("chars".to_string(), Json::Array(chars.into_iter().map(Json::String).collect()));
     result.insert("word_count".to_string(), Json::Number(serde_json::Number::from(word_count)));
     result.insert("line_count".to_string(), Json::Number(serde_json::Number::from(line_count)));
     result.insert("paragraph_count".to_string(), Json::Number(serde_json::Number::from(paragraph_count)));
