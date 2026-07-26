@@ -1,6 +1,6 @@
                 
 use pdfmake_rust::{Document, DocumentNode, Margins, PageSize, PdfMake, TextNode};
-use serde_json::{Value as Json, json};
+use serde_json::{Value as Json};
 use crate::convert::calculate_conversion_hash;
 use crate::convert::get_app_dir_path_with_hash;
 use std::fs::File;
@@ -9,16 +9,21 @@ use std::path::Path;
 use pdf_extract::extract_text;
 use encoding_rs::WINDOWS_1251;
 
+
 /// Создает PDF из текстовой строки
 pub fn stringify_pdf(text: &str, path: &str, from: &str, to: &str) -> Result<String, String> {
-    // Разбиваем текст на строки и добавляем переносы
-    let lines: Vec<&str> = text.lines().collect();
-    let text_with_newlines = lines.join("\n");
-    
+    // 1. Превращаем каждую строку в отдельный текстовый узел напрямую
+    let content_nodes: Vec<DocumentNode> = text
+        .lines()
+        .map(DocumentNode::text) // Избавились от лишнего замыкания |line| ...
+        .collect();
+
+
+    // 2. Оборачиваем вектор узлов в DocumentNode::stack для вертикального расположения
     let doc = Document::builder()
         .page_size(PageSize::a4())
         .page_margins(Margins::all(40.0))
-        .content(DocumentNode::Text(TextNode::new(text_with_newlines)))
+        .content(DocumentNode::stack(content_nodes)) // Элементы будут идти друг за другом сверху вниз
         .build();
 
     let pdf = PdfMake::new();
@@ -38,7 +43,6 @@ pub fn stringify_pdf(text: &str, path: &str, from: &str, to: &str) -> Result<Str
 
     Ok(output_path)
 }
-
 
 
 

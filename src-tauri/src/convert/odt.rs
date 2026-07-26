@@ -1,5 +1,5 @@
-use odtgen::prelude::*;
-use serde_json::{Value as Json, json};
+
+use serde_json::{Value as Json};
 use crate::convert::calculate_conversion_hash;
 use crate::convert::get_app_dir_path_with_hash;
 use std::fs::File;
@@ -8,43 +8,28 @@ use zip::ZipArchive;
 use std::io::Read;
 use quick_xml::Reader as XmlReader;
 use quick_xml::events::Event;
-use quick_xml::encoding::Decoder;
+
+// Импортируем только то, что реально существует в lo_writer
+use lo_writer::{from_plain_text, save_odt};
 
 /// Создает ODT из текстовой строки
 pub fn stringify_odt(text: &str, path: &str, from: &str, to: &str) -> Result<String, String> {
-    let mut doc = Document::new();
-    
-    // Разбиваем текст на строки и добавляем каждый как отдельный параграф
-    for line in text.lines() {
-        doc.body.add(Paragraph::from_text_and_style(line, "Standard"));
-    }
+    // 1. Создаем документ. Передаем пустую строку в качестве заголовка (title) и сам текст
+    let document = from_plain_text("", text);
 
-    // Сохраняем как FODT (OpenDocument Flat XML)
-    let temp_path = "temp.fodt";
-    let mut file = File::create(temp_path)
-        .map_err(|e| format!("Cannot create file: {}", e))?;
-
-    doc.generate_fodt(&mut file)
-        .map_err(|e| format!("ODT generation error: {}", e))?;
-
-    let fodt_content = std::fs::read_to_string(temp_path)
-        .map_err(|e| format!("Cannot read FODT: {}", e))?;
-
+    // 2. Хешируем данные для формирования уникального имени файла
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Cannot hash file: {}", e))?;
 
+    // 3. Получаем путь сохранения
     let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
-    let mut output_file = File::create(&output_path)
-        .map_err(|e| format!("Cannot create file: {}", e))?;
-
-    output_file.write_all(fodt_content.as_bytes())
-        .map_err(|e| format!("Cannot write file: {}", e))?;
-
-    let _ = std::fs::remove_file(temp_path);
+    
+    // 4. Сохраняем документ. Первым аргументом идет путь, вторым — ссылка на документ
+    save_odt(&output_path, &document)
+        .map_err(|e| format!("ODT generation error: {:?}", e))?;
 
     Ok(output_path)
 }
-
 
 
 

@@ -1,15 +1,22 @@
 
 use docx_rs::*;
 use std::fs::File;
-use serde_json::{Value as Json, json};
+use serde_json::{Value as Json};
 
-use std::io::Read;
 use crate::convert::calculate_conversion_hash;
 use crate::convert::get_app_dir_path_with_hash;
 
-/// Создает DOCX из текстовой строки
+/// Создает DOCX из текстовой строки с кастомными отступами
 pub fn stringify_docx(text: &str, path: &str, from: &str, to: &str) -> Result<String, String> {
-    let mut doc = Docx::new();
+    // 1. Создаем конфигурацию полей (например, по ~1.5 см со всех сторон)
+    let margin = PageMargin::new()
+        .top(850)
+        .bottom(850)
+        .left(850)
+        .right(850);
+
+    // 2. Инициализируем документ и применяем кастомные поля
+    let mut doc = Docx::new().page_margin(margin);
 
     // Разбиваем текст на строки и добавляем параграфы
     for line in text.lines() {
