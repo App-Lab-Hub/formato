@@ -5,7 +5,7 @@ use std::path::PathBuf;
 const APP_NAME: &str = "formato";
 
 // Постоянные данные (БД, конфиги)
-fn app_root() -> PathBuf {
+pub fn app_root() -> PathBuf {
     let data_dir = dirs::data_local_dir().unwrap_or_else(|| PathBuf::from("."));
     let root = data_dir.join(APP_NAME);
     
