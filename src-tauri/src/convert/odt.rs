@@ -10,13 +10,14 @@ use quick_xml::Reader as XmlReader;
 use quick_xml::events::Event;
 use quick_xml::encoding::Decoder;
 
-pub fn stringify_odt(value: &Json, path: &str, from: &str, to: &str) -> Result<String, String> {
-
-    let text = serde_json::to_string_pretty(&value)
-        .map_err(|e| format!("JSON serialize error: {}", e))?;
-
+/// Создает ODT из текстовой строки
+pub fn stringify_odt(text: &str, path: &str, from: &str, to: &str) -> Result<String, String> {
     let mut doc = Document::new();
-    doc.body.add(Paragraph::from_text_and_style(&text, "Standard"));
+    
+    // Разбиваем текст на строки и добавляем каждый как отдельный параграф
+    for line in text.lines() {
+        doc.body.add(Paragraph::from_text_and_style(line, "Standard"));
+    }
 
     // Сохраняем как FODT (OpenDocument Flat XML)
     let temp_path = "temp.fodt";
@@ -42,9 +43,7 @@ pub fn stringify_odt(value: &Json, path: &str, from: &str, to: &str) -> Result<S
     let _ = std::fs::remove_file(temp_path);
 
     Ok(output_path)
-    // Err("".to_string())
 }
-    
 
 
 

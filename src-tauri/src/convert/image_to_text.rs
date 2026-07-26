@@ -1,11 +1,10 @@
 // src-tauri/src/convert/image_to_text.rs
 
 use std::fs;
-use std::path::Path;
 use image::GenericImageView;
-use exif::{Reader, Tag};
+use exif::{Reader};
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
-use serde_json::{json, Value as Json};
+use serde_json::{json};
 use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash};
 
 /// Конвертация изображения в текст (Base64 + метаданные)
@@ -199,11 +198,4 @@ fn json_to_xml(json: &serde_json::Value) -> Result<String, String> {
     }
 
     Ok(json_to_xml_recursive(json, "image", 0))
-}
-
-/// Получение информации о формате изображения
-pub fn get_image_format(path: &str) -> Result<image::ImageFormat, String> {
-    let format = image::ImageFormat::from_path(path)
-        .map_err(|e| format!("Cannot detect image format: {}", e))?;
-    Ok(format)
 }

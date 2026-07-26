@@ -60,28 +60,12 @@ pub fn parse_rtf(input: &str) -> Result<Json, String> {
 }
 
 
-use crate::convert::{stringify_document, calculate_conversion_hash, get_app_dir_path_with_hash};
+use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash};
 
-/// Конвертирует JSON в RTF через DOCX
-pub fn stringify_rtf(value: &Json, original_path: &str, from: &str, to: &str) -> Result<String, String> {
-    // 1. Создаем DOCX через stringify_document
-    let docx_path = stringify_document(value, original_path, from, "docx")?;
-    
-    if !Path::new(&docx_path).exists() {
-        return Err(format!("DOCX file not created: {}", docx_path));
-    }
-    
-    // 2. Конвертируем DOCX в RTF
-    let rtf_path = convert_docx_to_rtf(&docx_path, original_path, to)?;
-    
-    // 3. Удаляем DOCX
-    let _ = fs::remove_file(&docx_path);
-    
-    Ok(rtf_path)
-}
+
 
 /// Конвертирует DOCX в RTF через soffice
-fn convert_docx_to_rtf(docx_path: &str, original_path: &str, to: &str) -> Result<String, String> {
+pub fn convert_docx_to_rtf(docx_path: &str, original_path: &str, to: &str) -> Result<String, String> {
     // Проверяем наличие soffice
     let check = Command::new("soffice")
         .arg("--version")

@@ -9,17 +9,16 @@ use std::path::Path;
 use pdf_extract::extract_text;
 use encoding_rs::WINDOWS_1251;
 
-pub fn stringify_pdf(value: &Json, path: &str, from: &str, to: &str) -> Result<String, String> {
-
-
-
-    let text = serde_json::to_string_pretty(&value)
-        .map_err(|e| format!("JSON serialize error: {}", e))?;
-
+/// Создает PDF из текстовой строки
+pub fn stringify_pdf(text: &str, path: &str, from: &str, to: &str) -> Result<String, String> {
+    // Разбиваем текст на строки и добавляем переносы
+    let lines: Vec<&str> = text.lines().collect();
+    let text_with_newlines = lines.join("\n");
+    
     let doc = Document::builder()
         .page_size(PageSize::a4())
         .page_margins(Margins::all(40.0))
-        .content(DocumentNode::Text(TextNode::new(text)))
+        .content(DocumentNode::Text(TextNode::new(text_with_newlines)))
         .build();
 
     let pdf = PdfMake::new();
@@ -39,7 +38,6 @@ pub fn stringify_pdf(value: &Json, path: &str, from: &str, to: &str) -> Result<S
 
     Ok(output_path)
 }
-
 
 
 

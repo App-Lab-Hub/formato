@@ -16,8 +16,8 @@ mod video;
 mod text_to_audio;
 mod document_to_audio;
 mod image_to_text; 
-pub mod codec; // добавить
-
+pub mod codec; 
+// mod image_to_document; 
 
 
 use crate::AppState;
@@ -32,7 +32,7 @@ use crate::convert::ini::{parse_ini, stringify_ini};
 use crate::convert::md::{parse_markdown, stringify_markdown};
 use crate::convert::xml::{parse_xml, stringify_xml};
 use crate::convert::txt::{parse_txt, stringify_txt};
-use crate::convert::rtf::{parse_rtf, stringify_rtf};
+use crate::convert::rtf::{parse_rtf};
 use crate::convert::pdf::{stringify_pdf, parse_pdf};
 // use crate::convert::pdf::{stringify_pdf};
 
@@ -134,11 +134,14 @@ pub fn convert(
         (ContentType::Image, ContentType::Image) => {
             convert_image_to_image(path, from, to)
         }
-        
+
         // Image → Text
         (ContentType::Image, ContentType::Text) => {
             convert_image_to_text(path, from, to)
         }
+        // (ContentType::Image, ContentType::Document) => {
+        //     convert_image_to_document(path, from, to)
+        // }
         
         // Audio → Audio
         (ContentType::Audio, ContentType::Audio) => {
@@ -171,9 +174,24 @@ pub fn convert(
 fn convert_text_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
     let input = std::fs::read_to_string(path)
         .map_err(|e| format!("Cannot read file: {e}"))?;
+
+    // Если конвертируем в RTF - используем stringify_rtf напрямую
+    if to == "rtf" {
+        // RTF требует DOCX как промежуточный формат
+        // Сначала создаем DOCX из текста
+        let docx_path = stringify_document(&input, path, from, "docx")?;
+        
+        // Затем конвертируем DOCX в RTF
+        let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
+        
+        // Удаляем временный DOCX
+        let _ = std::fs::remove_file(&docx_path);
+        
+        return Ok(rtf_path);
+    }
+
+    // Для остальных форматов - стандартная логика
     let value = parse(&input, from)?;
-    
-    // stringify теперь всегда возвращает путь
     stringify(&value, to, path, from)
 }
 
@@ -197,26 +215,34 @@ fn parse_document(path: &str, from: &str) -> Result<Json, String> {
     }
 }
 
-fn stringify_document(value:&Json, path: &str, from: &str, to: &str) -> Result<String, String> {
+// src-tauri/src/convert/mod.rs
+
+/// Сериализует текст напрямую в документ
+pub fn stringify_document(
+    text: &str,
+    path: &str,
+    from: &str,
+    to: &str,
+) -> Result<String, String> {
     match to {
         "docx" => {
-            stringify_docx(value, path,from, to)
+            stringify_docx(text, path, from, to)
         }
         "pdf" => {
-            stringify_pdf(value, path,from, to)
-
+            stringify_pdf(text, path, from, to)
         }
         "xlsx" => {
-            stringify_xlsx(value, path,from, to)
+            stringify_xlsx(text, path, from, to)
         }
-            
         "odt" => {
-            stringify_odt(value, path,from, to)
- 
+            stringify_odt(text, path, from, to)
         }
-        
         _ => {
-            stringify(value, to, path, from)
+            // Для остальных - сохраняем как текст
+            let hash = calculate_conversion_hash(path, from, to)
+                .map_err(|e| format!("Hash error: {}", e))?;
+            let output_path = save_to_app_dir(text, path, to, &hash)?;
+            Ok(output_path)
         }
     }
 }
@@ -224,6 +250,21 @@ fn stringify_document(value:&Json, path: &str, from: &str, to: &str) -> Result<S
 
 
 fn convert_document_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // Если конвертируем из документа в RTF
+    if to == "rtf" {
+        // 1. Конвертируем документ в DOCX через convert_document_to_document
+        let docx_path = convert_document_to_document(path, from, "docx")?;
+        
+        // 2. Конвертируем DOCX в RTF через rtf::convert_docx_to_rtf
+        let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
+        
+        // 3. Удаляем временный DOCX
+        let _ = std::fs::remove_file(&docx_path);
+        
+        return Ok(rtf_path);
+    }
+    
+    // Для остальных форматов - стандартная логика
     let json_value = parse_document(path, from)?;
     stringify(&json_value, to, path, from)
 }
@@ -235,20 +276,21 @@ fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String, Str
 
 
 
+/// Text → Document
 fn convert_text_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
     let input = std::fs::read_to_string(path)
         .map_err(|e| format!("Cannot read file: {e}"))?;
-
-    let value = parse(&input, from)?;
-    stringify_document(&value, path, from, to)
-
+    
+    stringify_document(&input, path, from, to)
 }
 
 // Функция-обертка:
 fn convert_image_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
     image_to_text::convert_image_to_text(path, from, to)
 }
-
+// fn convert_image_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
+//     image_to_document::convert_image_to_document(path, from, to)
+// }
 // ========================================================================================================================
 // ========================================================================================================================
 // ========================================================================================================================
@@ -485,10 +527,6 @@ fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<Strin
         "html" => convert_to_html(value),
         "md" => stringify_markdown(value)?,
         "txt" | "text" => stringify_txt(value)?,
-        "rtf" => {
-            // RTF особый случай - возвращает путь
-            return stringify_rtf(value, path, from, format);
-        }
         _ => return Err(format!("Unsupported: {format}")),
     };
     

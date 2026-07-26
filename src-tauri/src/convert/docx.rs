@@ -7,13 +7,12 @@ use std::io::Read;
 use crate::convert::calculate_conversion_hash;
 use crate::convert::get_app_dir_path_with_hash;
 
-pub fn stringify_docx(value: &Json, path: &str, from: &str, to: &str) -> Result<String, String> {
-    let pretty_json_text = serde_json::to_string_pretty(&value)
-        .map_err(|e| format!("JSON serialize error: {}", e))?;
-
+/// Создает DOCX из текстовой строки
+pub fn stringify_docx(text: &str, path: &str, from: &str, to: &str) -> Result<String, String> {
     let mut doc = Docx::new();
 
-    for line in pretty_json_text.lines() {
+    // Разбиваем текст на строки и добавляем параграфы
+    for line in text.lines() {
         doc = doc.add_paragraph(Paragraph::new().add_run(Run::new().add_text(line)));
     }
 
