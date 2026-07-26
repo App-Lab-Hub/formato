@@ -1,16 +1,16 @@
 // src-tauri/src/convert/video.rs
 
 use ffmpeg_sidecar::command::FfmpegCommand;
-// use crate::ffmpeg::init_ffmpeg;
 use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash};
+use crate::convert::audio;
+use crate::convert::codec::{get_audio_codec, get_video_codec};
+use tempfile::Builder;
 
 /// Конвертация видео в видео
 pub fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String, String> {
     if from == to {
         return Ok(path.to_string());
     }
-
-    // init_ffmpeg()?;
 
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
@@ -56,80 +56,68 @@ pub fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String
     Ok(output_path)
 }
 
-/// Конвертация видео в аудио (извлекает аудио дорожку и конвертирует в целевой формат)
+/// Конвертация видео в аудио (извлекает аудио дорожку в WAV, затем использует audio модуль)
 pub fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
-    // init_ffmpeg()?;
-
-    // Хеш от from (видео) и to (аудио)
+    let temp_wav = extract_audio_to_wav(path)?;
+    let audio_output = audio::convert_audio_to_audio(&temp_wav, "wav", to)?;
+    
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
+    let final_path = get_app_dir_path_with_hash(path, to, &hash)?;
+    
+    if audio_output != final_path {
+        if let Some(parent) = std::path::Path::new(&final_path).parent() {
+            if !parent.exists() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| format!("Cannot create output dir: {}", e))?;
+            }
+        }
+        std::fs::rename(&audio_output, &final_path)
+            .map_err(|e| format!("Cannot move file: {}", e))?;
+    }
+    
+    let _ = std::fs::remove_file(&temp_wav);
+    
+    Ok(final_path)
+}
 
-    let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
-
-    // Определяем аудио кодек для выходного формата
-    let audio_codec = get_audio_codec(to);
-
+/// Извлечение аудио дорожки из видео в WAV
+fn extract_audio_to_wav(path: &str) -> Result<String, String> {
+    let temp_file = Builder::new()
+        .suffix(".wav")
+        .prefix("video_audio_")
+        .tempfile()
+        .map_err(|e| format!("Cannot create temp file: {}", e))?;
+    
+    let temp_path = temp_file.path()
+        .to_str()
+        .ok_or("Invalid temp path")?
+        .to_string();
+    
     let mut cmd = FfmpegCommand::new();
     cmd.input(path);
-    cmd.args(&["-vn"]);              // Отключаем видео дорожку (извлекаем только аудио)
-    cmd.args(&["-c:a", audio_codec]); // Конвертируем аудио в нужный кодек
-    cmd.args(&["-b:a", "192k"]);      // Битрейт 192 kbps
+    cmd.args(&["-vn"]);
+    cmd.args(&["-acodec", "pcm_s16le"]);
+    cmd.args(&["-ar", "22050"]);
+    cmd.args(&["-ac", "1"]);
+    cmd.args(&["-y"]);
+    cmd.output(&temp_path);
     
-    // Дополнительные настройки для MP3
-    if to == "mp3" {
-        cmd.args(&["-id3v2_version", "3"]);
-        cmd.args(&["-write_id3v1", "1"]);
-    }
-
-    cmd.args(&["-y"]);               // Перезаписать выходной файл
-    cmd.output(&output_path);
-
     let mut child = cmd.spawn()
         .map_err(|e| format!("Failed to spawn ffmpeg: {}", e))?;
-
+    
     let status = child.wait()
         .map_err(|e| format!("Failed to wait for ffmpeg: {}", e))?;
-
+    
     if !status.success() {
-        return Err(format!("FFmpeg extraction failed with status: {}", status));
+        return Err(format!("FFmpeg audio extraction failed with status: {}", status));
     }
-
-    Ok(output_path)
-}
-
-/// Получение кодека для видео по формату
-fn get_video_codec(format: &str) -> &'static str {
-    match format {
-        "mp4" => "libx264",
-        "mov" => "libx264",
-        "avi" => "libxvid",
-        "mkv" => "libx264",
-        "webm" => "libvpx-vp9",
-        "flv" => "flv",
-        "mpeg" | "mpg" => "mpeg2video",
-        "wmv" => "wmv2",
-        "3gp" => "h263",
-        _ => "libx264",
+    
+    if !std::path::Path::new(&temp_path).exists() {
+        return Err("WAV file not created".to_string());
     }
-}
-
-/// Получение кодека для аудио по формату
-fn get_audio_codec(format: &str) -> &'static str {
-    match format {
-        "mp3" => "libmp3lame",
-        "wav" => "pcm_s16le",
-        "aac" => "aac",
-        "flac" => "flac",
-        "ogg" => "libvorbis",
-        "m4a" => "aac",
-        "opus" => "libopus",
-        "mp4" => "aac",
-        "mov" => "aac",
-        "avi" => "aac",
-        "mkv" => "aac",
-        "webm" => "libopus",
-        "flv" => "mp3",
-        "3gp" => "aac",
-        _ => "aac",
-    }
+    
+    let _ = temp_file.keep();
+    
+    Ok(temp_path)
 }

@@ -16,8 +16,7 @@ mod video;
 mod text_to_audio;
 mod document_to_audio;
 mod image_to_text; 
-// use tempfile::NamedTempFile;
-
+pub mod codec; // добавить
 
 
 
