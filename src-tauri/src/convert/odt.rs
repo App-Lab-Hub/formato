@@ -9,27 +9,41 @@ use std::io::Read;
 use quick_xml::Reader as XmlReader;
 use quick_xml::events::Event;
 
-// Импортируем только то, что реально существует в lo_writer
-use lo_writer::{from_plain_text, save_odt};
+use lo_writer::{WriterEditor, save_odt};
 
-/// Создает ODT из текстовой строки
+/// Создает структурированный ODT из текстовой строки с сохранением YAML-отступов
 pub fn stringify_odt(text: &str, path: &str, from: &str, to: &str) -> Result<String, String> {
-    // 1. Создаем документ. Передаем пустую строку в качестве заголовка (title) и сам текст
-    let document = from_plain_text("", text);
+    let mut editor = WriterEditor::new("");
 
-    // 2. Хешируем данные для формирования уникального имени файла
+    for line in text.lines() {
+        // Считаем количество ведущих пробелов в строке
+        let leading_spaces = line.len() - line.trim_start().len();
+        
+        let processed_line = if leading_spaces > 0 {
+            // Заменяем ведущие пробелы на неразрывные пробелы (\u{00A0})
+            let spaces = "\u{00A0}".repeat(leading_spaces);
+            format!("{}{}", spaces, line.trim_start())
+        } else {
+            line.to_string()
+        };
+
+        // Теперь lo_writer запишет строку, и офисный пакет отобразит все отступы
+        editor.push_paragraph(&processed_line);
+    }
+
+    let document = editor.document;
+
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Cannot hash file: {}", e))?;
 
-    // 3. Получаем путь сохранения
     let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
     
-    // 4. Сохраняем документ. Первым аргументом идет путь, вторым — ссылка на документ
     save_odt(&output_path, &document)
         .map_err(|e| format!("ODT generation error: {:?}", e))?;
 
     Ok(output_path)
 }
+
 
 
 
