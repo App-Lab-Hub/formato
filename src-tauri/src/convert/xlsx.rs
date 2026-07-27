@@ -9,23 +9,44 @@ use crate::convert::calculate_conversion_hash;
 use crate::convert::get_app_dir_path_with_hash;
 
 
-/// Создает XLSX из текстовой строки
+
+/// Создает XLSX из текстовой строки с разбивкой длинных строк
 pub fn stringify_xlsx(text: &str, path: &str, from: &str, to: &str) -> Result<String, String> {
     let mut workbook = Workbook::new();
     let worksheet = workbook.add_worksheet();
 
-    // Разбиваем текст на строки и записываем каждую строку в отдельную ячейку
+    // Максимальная длина ячейки в Excel
+    const MAX_CELL_LENGTH: usize = 32767;
+    
+    // Разбиваем текст на строки
     let lines: Vec<&str> = text.lines().collect();
     
-    for (row_idx, line) in lines.iter().enumerate() {
-        // Записываем всю строку в первую колонку
-        worksheet.write_string(row_idx as u32, 0, *line)
-            .map_err(|e| format!("XLSX write error: {}", e))?;
+    let mut current_row = 0;
+    
+    for line in lines {
+        // Если строка помещается в одну ячейку
+        if line.len() <= MAX_CELL_LENGTH {
+            worksheet.write_string(current_row as u32, 0, line)
+                .map_err(|e| format!("XLSX write error: {}", e))?;
+            current_row += 1;
+        } else {
+            // Разбиваем длинную строку на части
+            let chunks: Vec<String> = split_string_into_chunks(line, MAX_CELL_LENGTH);
+            
+            // Записываем чанки в соседние колонки одной строки
+            for (col_idx, chunk) in chunks.iter().enumerate() {
+                worksheet.write_string(current_row as u32, col_idx as u16, chunk)
+                    .map_err(|e| format!("XLSX write error: {}", e))?;
+            }
+            current_row += 1;
+        }
     }
 
-    // Автоподгонка ширины колонки
-    worksheet.set_column_width(0, 50)
-        .map_err(|e| format!("XLSX set column width error: {}", e))?;
+    // Автоподгонка ширины колонок
+    for col_idx in 0..10 {
+        worksheet.set_column_width(col_idx, 50)
+            .map_err(|e| format!("XLSX set column width error: {}", e))?;
+    }
 
     let buffer = workbook.save_to_buffer()
         .map_err(|e| format!("Failed to save XLSX: {}", e))?;
@@ -43,6 +64,17 @@ pub fn stringify_xlsx(text: &str, path: &str, from: &str, to: &str) -> Result<St
     Ok(output_path)
 }
 
+/// Разбивает строку на части по максимальной длине
+fn split_string_into_chunks(text: &str, max_chunk_size: usize) -> Vec<String> {
+    let mut chunks = Vec::new();
+    let chars: Vec<char> = text.chars().collect();
+    
+    for chunk in chars.chunks(max_chunk_size) {
+        chunks.push(chunk.iter().collect());
+    }
+    
+    chunks
+}
 
 
 use calamine::{open_workbook_auto, Reader, Xlsx, Xls};

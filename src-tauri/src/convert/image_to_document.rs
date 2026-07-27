@@ -2,12 +2,12 @@
 
 use std::fs;
 use image::GenericImageView;
-use exif::{Reader};
+use exif::Reader;
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
-use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash};
+use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash, stringify_document};
 use serde_json::{json, Value as Json};
 
-/// Конвертация изображения в документ (Base64 + метаданные в DOCX/ODT/PDF/XLSX)
+/// Конвертация изображения в документ
 pub fn convert_image_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
     // 1. Читаем изображение
     let img = image::open(path)
@@ -19,23 +19,29 @@ pub fn convert_image_to_document(path: &str, from: &str, to: &str) -> Result<Str
     // 3. Получаем Base64 представление
     let base64_data = get_base64_data(path)?;
     
-    // 4. Собираем всё в JSON
-    let result = json!({
-        "format": from,
-        "metadata": metadata,
-        "base64": base64_data,
-    });
+    // 4. Формируем читаемый текст напрямую (как в image_to_text, но без JSON)
+    let mut text = String::new();
+    text.push_str(&format!("Image Format: {}\n", from));
+    text.push_str(&format!("Width: {} px\n", metadata["width"]));
+    text.push_str(&format!("Height: {} px\n", metadata["height"]));
+    text.push_str(&format!("Color Type: {}\n", metadata["color_type"]));
+    text.push_str(&format!("File Size: {} bytes\n", metadata["file_size"]));
 
-    // 5. Сохраняем JSON во временный файл
-    let temp_json_path = save_temp_json(&result)?;
-    
-    // 6. Конвертируем JSON в документ через stringify
-    let json_value = serde_json::from_str(&std::fs::read_to_string(&temp_json_path).unwrap())
-        .map_err(|e| format!("Failed to parse JSON: {}", e))?;
-    
-    let output_path = crate::convert::stringify_document(&json_value, &temp_json_path, "json", to)?;
-    
-    // 7. Перемещаем в нужную директорию с хешем
+    if let Some(exif) = metadata.get("exif") {
+        text.push_str("\nEXIF Data:\n");
+        if let Some(obj) = exif.as_object() {
+            for (key, value) in obj {
+                text.push_str(&format!("  {}: {}\n", key, value));
+            }
+        }
+    }
+
+    text.push_str(&format!("\nBase64:\n  \"{}\"", base64_data));
+
+    // 5. Создаем документ через stringify_document
+    let output_path = stringify_document(&text, path, from, to)?;
+
+    // 6. Перемещаем в нужную директорию с хешем
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
     let final_path = get_app_dir_path_with_hash(path, to, &hash)?;
@@ -51,38 +57,11 @@ pub fn convert_image_to_document(path: &str, from: &str, to: &str) -> Result<Str
             .map_err(|e| format!("Cannot move file: {}", e))?;
     }
     
-    // 8. Удаляем временный JSON
-    let _ = std::fs::remove_file(&temp_json_path);
-    
     Ok(final_path)
 }
 
-/// Сохранение JSON во временный файл
-fn save_temp_json(value: &serde_json::Value) -> Result<String, String> {
-    let temp_file = tempfile::Builder::new()
-        .suffix(".json")
-        .prefix("image_data_")
-        .tempfile()
-        .map_err(|e| format!("Cannot create temp file: {}", e))?;
-    
-    let temp_path = temp_file.path()
-        .to_str()
-        .ok_or("Invalid temp path")?
-        .to_string();
-    
-    let content = serde_json::to_string_pretty(value)
-        .map_err(|e| format!("JSON serialize error: {}", e))?;
-    
-    std::fs::write(&temp_path, content)
-        .map_err(|e| format!("Cannot write temp file: {}", e))?;
-    
-    let _ = temp_file.keep();
-    
-    Ok(temp_path)
-}
-
 /// Получение метаданных изображения
-fn get_image_metadata(path: &str, img: &image::DynamicImage) -> Result<serde_json::Value, String> {
+fn get_image_metadata(path: &str, img: &image::DynamicImage) -> Result<Json, String> {
     let dimensions = img.dimensions();
     let color_type = format!("{:?}", img.color());
     
@@ -101,7 +80,7 @@ fn get_image_metadata(path: &str, img: &image::DynamicImage) -> Result<serde_jso
 }
 
 /// Получение EXIF данных
-fn get_exif_data(path: &str) -> Result<serde_json::Value, String> {
+fn get_exif_data(path: &str) -> Result<Json, String> {
     let file = fs::File::open(path)
         .map_err(|e| format!("Cannot open file for EXIF: {}", e))?;
     
@@ -136,10 +115,10 @@ fn get_exif_data(path: &str) -> Result<serde_json::Value, String> {
             exif::Value::Double(v) => format!("{:?}", v),
             _ => format!("{:?}", field.value),
         };
-        exif_map.insert(tag_name, serde_json::Value::String(value_str));
+        exif_map.insert(tag_name, Json::String(value_str));
     }
 
-    Ok(serde_json::Value::Object(exif_map))
+    Ok(Json::Object(exif_map))
 }
 
 /// Получение Base64 представления изображения

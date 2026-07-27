@@ -17,7 +17,7 @@ mod text_to_audio;
 mod document_to_audio;
 mod image_to_text; 
 pub mod codec; 
-// mod image_to_document; 
+mod image_to_document; 
 
 
 use crate::AppState;
@@ -139,9 +139,9 @@ pub fn convert(
         (ContentType::Image, ContentType::Text) => {
             convert_image_to_text(path, from, to)
         }
-        // (ContentType::Image, ContentType::Document) => {
-        //     convert_image_to_document(path, from, to)
-        // }
+        (ContentType::Image, ContentType::Document) => {
+            convert_image_to_document(path, from, to)
+        }
         
         // Audio → Audio
         (ContentType::Audio, ContentType::Audio) => {
@@ -288,9 +288,9 @@ fn convert_text_to_document(path: &str, from: &str, to: &str) -> Result<String, 
 fn convert_image_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
     image_to_text::convert_image_to_text(path, from, to)
 }
-// fn convert_image_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
-//     image_to_document::convert_image_to_document(path, from, to)
-// }
+fn convert_image_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
+    image_to_document::convert_image_to_document(path, from, to)
+}
 // ========================================================================================================================
 // ========================================================================================================================
 // ========================================================================================================================
