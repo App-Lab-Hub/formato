@@ -90,6 +90,7 @@ pub struct ConvertResult {
 // ============================================================
 
 pub fn convert(
+    app_handle: &tauri::AppHandle,
     path: &str,
     from: &str,
     to: &str,
@@ -102,12 +103,12 @@ pub fn convert(
     match (from_type, to_type) {
         // Text → Text — всегда сохраняем в файл
         (ContentType::Text, ContentType::Text) => {
-            convert_text_to_text(path, from, to)
+            convert_text_to_text(app_handle, path, from, to)
         }
         
         // Text → Document
         (ContentType::Text, ContentType::Document) => {
-            convert_text_to_document(path, from, to)
+            convert_text_to_document(app_handle, path, from, to)
         }
         
         // Text → Audio
@@ -140,7 +141,7 @@ pub fn convert(
             convert_image_to_text(path, from, to)
         }
         (ContentType::Image, ContentType::Document) => {
-            convert_image_to_document(path, from, to)
+            convert_image_to_document(app_handle, path, from, to)
         }
         
         // Audio → Audio
@@ -171,7 +172,7 @@ pub fn convert(
 
 /// Text → Text
 /// Text → Text
-fn convert_text_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+fn convert_text_to_text(app_handle: &tauri::AppHandle, path: &str, from: &str, to: &str) -> Result<String, String> {
     let input = std::fs::read_to_string(path)
         .map_err(|e| format!("Cannot read file: {e}"))?;
 
@@ -179,7 +180,7 @@ fn convert_text_to_text(path: &str, from: &str, to: &str) -> Result<String, Stri
     if to == "rtf" {
         // RTF требует DOCX как промежуточный формат
         // Сначала создаем DOCX из текста
-        let docx_path = stringify_document(&input, path, from, "docx")?;
+        let docx_path = stringify_document(app_handle, &input, path, from, "docx")?;
         
         // Затем конвертируем DOCX в RTF
         let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
@@ -219,26 +220,18 @@ fn parse_document(path: &str, from: &str) -> Result<Json, String> {
 
 /// Сериализует текст напрямую в документ
 pub fn stringify_document(
+    app_handle: &tauri::AppHandle,
     text: &str,
     path: &str,
     from: &str,
     to: &str,
 ) -> Result<String, String> {
     match to {
-        "docx" => {
-            stringify_docx(text, path, from, to)
-        }
-        "pdf" => {
-            stringify_pdf(text, path, from, to)
-        }
-        "xlsx" => {
-            stringify_xlsx(text, path, from, to)
-        }
-        "odt" => {
-            stringify_odt(text, path, from, to)
-        }
+        "docx" => stringify_docx(text, path, from, to),
+        "pdf" => stringify_pdf(app_handle, text, path, from, to),
+        "xlsx" => stringify_xlsx(text, path, from, to),
+        "odt" => stringify_odt(text, path, from, to),
         _ => {
-            // Для остальных - сохраняем как текст
             let hash = calculate_conversion_hash(path, from, to)
                 .map_err(|e| format!("Hash error: {}", e))?;
             let output_path = save_to_app_dir(text, path, to, &hash)?;
@@ -246,7 +239,6 @@ pub fn stringify_document(
         }
     }
 }
-
 
 
 fn convert_document_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
@@ -277,26 +269,31 @@ fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String, Str
 
 
 /// Text → Document
-fn convert_text_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
+fn convert_text_to_document(
+    app_handle: &tauri::AppHandle,
+    path: &str, 
+    from: &str, 
+    to: &str
+) -> Result<String, String> {
     let input = std::fs::read_to_string(path)
         .map_err(|e| format!("Cannot read file: {e}"))?;
     
-    stringify_document(&input, path, from, to)
+    stringify_document(app_handle, &input, path, from, to)
 }
 
 // Функция-обертка:
 fn convert_image_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
     image_to_text::convert_image_to_text(path, from, to)
 }
-fn convert_image_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
-    image_to_document::convert_image_to_document(path, from, to)
+fn convert_image_to_document(app_handle: &tauri::AppHandle, path: &str, from: &str, to: &str) -> Result<String, String> {
+    image_to_document::convert_image_to_document(app_handle, path, from, to)
 }
 // ========================================================================================================================
 // ========================================================================================================================
 // ========================================================================================================================
 
 /// Document → Document
-fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
+pub fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
     // Если форматы совпадают – просто возвращаем исходный путь
     if from == to {
         return Ok(path.to_string());
@@ -609,6 +606,7 @@ pub async fn hash_file(path: String) -> Result<String, String> {
 
 #[tauri::command]
 pub async fn convert_file(
+    app_handle: tauri::AppHandle,  // <-- добавляем AppHandle
     state: tauri::State<'_, AppState>,
     path: String,
     from: String,
@@ -648,7 +646,7 @@ pub async fn convert_file(
         (path.clone(), from.clone(), to.clone(), fromType.clone(), toType.clone());
     
     let output_path = tokio::task::spawn_blocking(move || {
-        convert(&path_clone, &from_clone, &to_clone, &from_type_clone, &to_type_clone)
+        convert(&app_handle, &path_clone, &from_clone, &to_clone, &from_type_clone, &to_type_clone)
     }).await.map_err(|e| format!("Task join error: {e}"))??;
 
     // Сохраняем в кеш

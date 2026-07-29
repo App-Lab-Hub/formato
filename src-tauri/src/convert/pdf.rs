@@ -1,50 +1,37 @@
-                
-use pdfmake_rust::{Document, DocumentNode, Margins, PageSize, PdfMake, TextNode};
+
 use serde_json::{Value as Json};
 use crate::convert::calculate_conversion_hash;
 use crate::convert::get_app_dir_path_with_hash;
-use std::fs::File;
-use std::io::Write;
+
 use std::path::Path;
 use pdf_extract::extract_text;
 use encoding_rs::WINDOWS_1251;
+use tauri::path::BaseDirectory;
+use tauri::Manager;
 
 
-/// Создает PDF из текстовой строки
-pub fn stringify_pdf(text: &str, path: &str, from: &str, to: &str) -> Result<String, String> {
-    // 1. Превращаем каждую строку в отдельный текстовый узел напрямую
-    let content_nodes: Vec<DocumentNode> = text
-        .lines()
-        .map(DocumentNode::text) // Избавились от лишнего замыкания |line| ...
-        .collect();
+use crate::convert::docx::{stringify_docx};
 
-
-    // 2. Оборачиваем вектор узлов в DocumentNode::stack для вертикального расположения
-    let doc = Document::builder()
-        .page_size(PageSize::a4())
-        .page_margins(Margins::all(40.0))
-        .content(DocumentNode::stack(content_nodes)) // Элементы будут идти друг за другом сверху вниз
-        .build();
-
-    let pdf = PdfMake::new();
-    let bytes = pdf.render(&doc)
-        .map_err(|e| format!("PDF render error: {}", e))?;
-
-    let hash = calculate_conversion_hash(path, from, to)
-        .map_err(|e| format!("Cannot hash file: {}", e))?;
-
-    let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
-
-    let mut file = File::create(&output_path)
-        .map_err(|e| format!("Cannot create file: {}", e))?;
-
-    file.write_all(&bytes)
-        .map_err(|e| format!("Cannot write file: {}", e))?;
-
-    Ok(output_path)
+/// Создает PDF из текстовой строки 
+pub fn stringify_pdf(
+    app_handle: &tauri::AppHandle,
+    text: &str, 
+    path: &str, 
+    from: &str, 
+    to: &str
+) -> Result<String, String> {
+    // 1. Сначала создаем DOCX из текста
+    let docx_path = stringify_docx(text, path, from, "docx")?;
+    
+    // 2. Конвертируем DOCX в PDF через convert_document_to_document
+    // Используем существующую функцию из mod.rs
+    let pdf_path = crate::convert::convert_document_to_document(&docx_path, "docx", "pdf")?;
+    
+    // 3. Удаляем временный DOCX
+    let _ = std::fs::remove_file(&docx_path);
+    
+    Ok(pdf_path)
 }
-
-
 
 /// Парсит PDF в JSON с автоматическим исправлением кодировки Windows-1251
 pub fn parse_pdf(path: &str) -> Result<Json, String> {

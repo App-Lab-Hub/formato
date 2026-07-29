@@ -8,7 +8,7 @@ use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash, stri
 use serde_json::{json, Value as Json};
 
 /// Конвертация изображения в документ
-pub fn convert_image_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
+pub fn convert_image_to_document(app_handle: &tauri::AppHandle, path: &str, from: &str, to: &str) -> Result<String, String> {
     // 1. Читаем изображение
     let img = image::open(path)
         .map_err(|e| format!("Cannot open image: {}", e))?;
@@ -36,10 +36,10 @@ pub fn convert_image_to_document(path: &str, from: &str, to: &str) -> Result<Str
         }
     }
 
-    text.push_str(&format!("\nBase64:\n  \"{}\"", base64_data));
+    text.push_str(&format!("\nBase64:\n  \"{:#?}\"", base64_data));
 
     // 5. Создаем документ через stringify_document
-    let output_path = stringify_document(&text, path, from, to)?;
+    let output_path = stringify_document(app_handle, &text, path, from, to)?;
 
     // 6. Перемещаем в нужную директорию с хешем
     let hash = calculate_conversion_hash(path, from, to)
