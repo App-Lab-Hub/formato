@@ -30,21 +30,16 @@ csv = "1.4.0"
 serde_yaml = "0.9.34"
 dirs = "6.0.0"
 opener = "0.8.4"
-syntect = { version = "5.3.0", features = ["default-fancy", "default-syntaxes", "default-themes"] }
-lazy_static = "1.5.0"
 tokio = {version="1.52.3",features= ["time"] }
 tauri-plugin-fs = "2.5.1"
 scraper = "0.27.0"
 pulldown-cmark = "0.13.4"
-json_to_table = "0.13.0"
 json2csv = "0.2.0"
 md_gen = "0.1.0"
 flatten-json-object = "0.6.1"
 xml2json-rs = "1.0.1"
-config = { version = "0.15.23", features = ["json", "yaml"] }
 rust-ini = "0.21.3"
 handlebars = "6.4.1"
-maud = "0.27.0"
 nalgebra = "0.35.0"
 json-unflattening = "0.1.5"
 serde-flattened = "0.1.1"
@@ -66,7 +61,6 @@ tempfile = "3.27.0"
 office_oxide = "0.1.7"
 image = { version = "0.25.5", features = ["avif", "webp", "jpeg", "png", "gif", "bmp", "tiff", "ico", "avif-native"] }
 ffmpeg-sidecar = "2.5.2"
-uuid = { version = "1.24.0", features = ["v4"] }
 base64 = "0.23.0"
 kamadak-exif = "0.6.1"
 piper-rs = "0.2.0"
@@ -74,6 +68,4 @@ reqwest = { version = "0.13.4", features = ["blocking"] }
 anyhow = "1.0.104"
 hound = "3.5.1"
 lo_writer = "0.5.2"
-printpdf = { version = "0.12.4", features = ["html"] }
-genpdf = "0.2.0"
 
