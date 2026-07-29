@@ -2,28 +2,22 @@
 
 use transcribe_rs::whisper_cpp::{WhisperEngine, WhisperInferenceParams};
 use transcribe_rs::audio::read_wav_samples;
-use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash};
+use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash, parse, stringify};
 use std::path::{Path, PathBuf};
 use ffmpeg_sidecar::command::FfmpegCommand;
 
 pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
-
-
     let model_path = get_or_download_model()?;
     
-    // Загружаем движок (теперь без несуществующих параметров)
     let mut engine = WhisperEngine::load(&model_path)
         .map_err(|e| format!("Failed to load Whisper model: {}", e))?;
     
-    // ФИКС FFmpeg: Получаем незаблокированный путь во временной директории
     let temp_path = get_safe_temp_wav_path();
     convert_to_16khz_wav(path, &temp_path)?;
     
-    // Читаем PCM сэмплы
     let samples = read_wav_samples(&temp_path)
         .map_err(|e| format!("Failed to load WAV: {}", e))?;
     
-    // Сразу очищаем временный файл, так как данные уже в памяти Rust
     let _ = std::fs::remove_file(&temp_path);
     
     let params = WhisperInferenceParams {
@@ -39,19 +33,28 @@ pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String,
     let result = engine.transcribe_with(&samples, &params)
         .map_err(|e| format!("Transcription failed: {}", e))?;
     
-    let hash = calculate_conversion_hash(path, from, to)
-        .map_err(|e| format!("Hash error: {}", e))?;
-    let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
-    
-    if let Some(parent) = Path::new(&output_path).parent() {
-        if !parent.exists() {
-            std::fs::create_dir_all(parent)
-                .map_err(|e| format!("Cannot create output directory: {}", e))?;
+    // Если нужен просто текст - сохраняем как есть
+    if to == "txt" || to == "text" {
+        let hash = calculate_conversion_hash(path, from, to)
+            .map_err(|e| format!("Hash error: {}", e))?;
+        let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
+        
+        if let Some(parent) = Path::new(&output_path).parent() {
+            if !parent.exists() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| format!("Cannot create output directory: {}", e))?;
+            }
         }
+        
+        std::fs::write(&output_path, &result.text)
+            .map_err(|e| format!("Cannot write output file: {}", e))?;
+        
+        return Ok(output_path);
     }
     
-    std::fs::write(&output_path, &result.text)
-        .map_err(|e| format!("Cannot write output file: {}", e))?;
+    // Для других форматов - парсим текст в JSON и конвертируем
+    let parsed = parse(&result.text, "txt")?;
+    let output_path = stringify(&parsed, to, path, from)?;
     
     Ok(output_path)
 }
@@ -65,7 +68,7 @@ fn convert_to_16khz_wav(input_path: &str, output_path: &Path) -> Result<(), Stri
     cmd.args(&["-ar", "16000"]);
     cmd.args(&["-ac", "1"]);
     cmd.args(&["-c:a", "pcm_s16le"]);
-    cmd.args(&["-y"]); // Принудительно перезаписывать файл
+    cmd.args(&["-y"]);
     cmd.output(output_str);
     
     let mut child = cmd.spawn().map_err(|e| format!("FFmpeg spawn failed: {}", e))?;
@@ -82,7 +85,7 @@ fn convert_to_16khz_wav(input_path: &str, output_path: &Path) -> Result<(), Stri
     Ok(())
 }
 
-/// Генерирует уникальный путь в системной папке /tmp, предотвращая конфликт дескрипторов
+/// Генерирует уникальный путь в системной папке /tmp
 fn get_safe_temp_wav_path() -> PathBuf {
     use std::time::{SystemTime, UNIX_EPOCH};
     let timestamp = SystemTime::now()
@@ -99,13 +102,13 @@ fn get_or_download_model() -> Result<std::path::PathBuf, String> {
         std::fs::create_dir_all(&model_dir).map_err(|e| format!("Cannot create model dir: {}", e))?;
     }
     
-    let model_name = "ggml-base-q5_1.bin";
+    let model_name = "ggml-tiny-q5_1.bin";
     let model_path = model_dir.join(model_name);
     if model_path.exists() {
         return Ok(model_path);
     }
     
-    let url = format!("https://huggingface.co{}", model_name);
+    let url = format!("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/{}", model_name);
     let client = reqwest::blocking::Client::builder()
         .timeout(std::time::Duration::from_secs(600))
         .build()

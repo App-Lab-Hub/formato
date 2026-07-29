@@ -506,7 +506,7 @@ fn convert_video_to_text(path: &str, from: &str, to: &str) -> Result<String, Str
 // ПАРСЕРЫ И СЕРИАЛИЗАТОРЫ
 // ============================================================
 
-fn parse(input: &str, format: &str) -> Result<Json, String> {
+pub fn parse(input: &str, format: &str) -> Result<Json, String> {
     match format {
         "json" => serde_json::from_str(input).map_err(|e| format!("JSON: {e}")),//good
         "yaml" | "yml" => serde_yaml::from_str(input).map_err(|e| format!("YAML: {e}")), //good
@@ -523,7 +523,7 @@ fn parse(input: &str, format: &str) -> Result<Json, String> {
 }
 
 /// Сериализует JSON в файл и возвращает путь к нему
-fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<String, String> {
+pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<String, String> {
     // Получаем содержимое для всех форматов кроме RTF
     let content = match format {
         "json" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}"))?,
