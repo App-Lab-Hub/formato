@@ -68,4 +68,6 @@ reqwest = { version = "0.13.4", features = ["blocking"] }
 anyhow = "1.0.104"
 hound = "3.5.1"
 lo_writer = "0.5.2"
+oxiwhisper = { version = "0.1.2", features = ["parallel"] }
+transcribe-rs = { version = "0.3.11", features = ["whisper-cpp"] }
 

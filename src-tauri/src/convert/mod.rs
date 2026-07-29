@@ -19,7 +19,8 @@ mod image_to_text;
 pub mod codec; 
 mod image_utils; 
 mod image_to_document; 
-
+mod audio_to_text;
+// mod video_to_text;
 
 use crate::AppState;
 use serde::{Deserialize, Serialize};
@@ -149,7 +150,12 @@ pub fn convert(
         (ContentType::Audio, ContentType::Audio) => {
             convert_audio_to_audio(path, from, to)
         }
-        
+
+        // Audio → Text
+        (ContentType::Audio, ContentType::Text) => {
+            convert_audio_to_text(path, from, to)
+        }
+
         // Video → Video
         (ContentType::Video, ContentType::Video) => {
             convert_video_to_video(path, from, to)
@@ -158,6 +164,10 @@ pub fn convert(
         // Video → Audio
         (ContentType::Video, ContentType::Audio) => {
             convert_video_to_audio(path, from, to)
+        }
+        // Video → Text (извлекаем аудио, потом распознаем)
+        (ContentType::Video, ContentType::Text) => {
+            convert_video_to_text(path, from, to)
         }
         
         _ => Err(format!(
@@ -481,6 +491,16 @@ fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String, St
 fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
     document_to_audio::convert_document_to_audio(path, from, to)
 }
+// Функции-обертки:
+fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+    audio_to_text::convert_audio_to_text(path, from, to)
+}
+
+fn convert_video_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // video_to_text::convert_video_to_text(path, from, to)
+    Err("gg".to_string())
+}
+
 
 // ============================================================
 // ПАРСЕРЫ И СЕРИАЛИЗАТОРЫ
