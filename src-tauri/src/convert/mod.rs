@@ -17,6 +17,7 @@ mod text_to_audio;
 mod document_to_audio;
 mod image_to_text; 
 pub mod codec; 
+mod image_utils; 
 mod image_to_document; 
 
 

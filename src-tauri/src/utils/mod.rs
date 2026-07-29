@@ -182,7 +182,7 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
             image: "available".to_string(),//ready n
             audio: "not_available".to_string(), //ready n
             video: "not_available".to_string(), //ready n
-            document: "available".to_string(),
+            document: "available".to_string(),//ready n
         },
         ContentType::Audio => AvailabilityResponse {
             text: "available".to_string(), 
