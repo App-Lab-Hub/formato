@@ -3,22 +3,36 @@
 use transcribe_rs::whisper_cpp::{WhisperEngine, WhisperInferenceParams};
 use transcribe_rs::audio::read_wav_samples;
 use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash, parse, stringify};
+use crate::convert::audio::convert_audio_to_audio;
 use std::path::{Path, PathBuf};
 use ffmpeg_sidecar::command::FfmpegCommand;
 
 pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // Если входной файл не WAV - конвертируем в WAV через convert_audio_to_audio
+    let audio_path = if from != "wav" {
+        let wav_path = convert_audio_to_audio(path, from, "wav")?;
+        wav_path
+    } else {
+        path.to_string()
+    };
+    
     let model_path = get_or_download_model()?;
     
     let mut engine = WhisperEngine::load(&model_path)
         .map_err(|e| format!("Failed to load Whisper model: {}", e))?;
     
     let temp_path = get_safe_temp_wav_path();
-    convert_to_16khz_wav(path, &temp_path)?;
+    convert_to_16khz_wav(&audio_path, &temp_path)?;
     
     let samples = read_wav_samples(&temp_path)
         .map_err(|e| format!("Failed to load WAV: {}", e))?;
     
     let _ = std::fs::remove_file(&temp_path);
+    
+    // Если создавали WAV через convert_audio_to_audio - удаляем
+    if audio_path != path {
+        let _ = std::fs::remove_file(&audio_path);
+    }
     
     let params = WhisperInferenceParams {
         language: if from.contains("ru") || from.contains("russian") { 
@@ -59,7 +73,7 @@ pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String,
     Ok(output_path)
 }
 
-/// ФИКС FFmpeg: Принимает чистую строку пути и корректно создаёт аудиофайл
+/// Конвертирует в 16kHz моно WAV для Whisper
 fn convert_to_16khz_wav(input_path: &str, output_path: &Path) -> Result<(), String> {
     let output_str = output_path.to_str().ok_or("Invalid temp path")?;
     
