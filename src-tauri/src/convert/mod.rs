@@ -156,6 +156,10 @@ pub fn convert(
             convert_audio_to_text(path, from, to)
         }
 
+        // Audio → Document
+        (ContentType::Audio, ContentType::Document) => {
+            convert_audio_to_document(app_handle, path, from, to)
+        }
         // Video → Video
         (ContentType::Video, ContentType::Video) => {
             convert_video_to_video(path, from, to)
@@ -168,6 +172,11 @@ pub fn convert(
         // Video → Text (извлекаем аудио, потом распознаем)
         (ContentType::Video, ContentType::Text) => {
             convert_video_to_text(path, from, to)
+        }
+        
+        // Video → Document
+        (ContentType::Video, ContentType::Document) => {
+            convert_video_to_document(app_handle, path, from, to)
         }
         
         _ => Err(format!(
@@ -509,6 +518,49 @@ fn convert_video_to_text(path: &str, from: &str, to: &str) -> Result<String, Str
     if let Err(e) = std::fs::remove_file(&audio_path) {
         eprintln!("Warning: Failed to remove temp audio file: {}", e);
     }
+    
+    Ok(result)
+}
+
+fn convert_audio_to_document(
+    app_handle: &tauri::AppHandle,
+    path: &str, 
+    from: &str, 
+    to: &str
+) -> Result<String, String> {
+    // 1. Распознаем аудио в текст (получаем содержимое)
+    let text = audio_to_text::convert_audio_to_text(path, from, "txt")?;
+    
+    // 2. Конвертируем текст в документ
+    let result = stringify_document(app_handle, &text, path, from, to)?;
+    
+    Ok(result)
+}
+
+
+/// Video → Document
+fn convert_video_to_document(
+    app_handle: &tauri::AppHandle,
+    path: &str, 
+    from: &str, 
+    to: &str
+) -> Result<String, String> {
+    // 1. Извлекаем аудио из видео в WAV
+    let audio_path = video::convert_video_to_audio(path, from, "wav")?;
+    
+    // 2. Распознаем аудио в текст
+    let text_path = audio_to_text::convert_audio_to_text(&audio_path, "wav", "txt")?;
+    
+    // 3. Читаем текст
+    let text = std::fs::read_to_string(&text_path)
+        .map_err(|e| format!("Cannot read text file: {}", e))?;
+    
+    // 4. Конвертируем текст в документ
+    let result = stringify_document(app_handle, &text, &text_path, "txt", to)?;
+    
+    // 5. Удаляем временные файлы
+    let _ = std::fs::remove_file(&audio_path);
+    let _ = std::fs::remove_file(&text_path);
     
     Ok(result)
 }
