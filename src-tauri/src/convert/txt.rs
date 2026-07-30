@@ -1,10 +1,14 @@
 // src/convert/txt.rs
-
 use serde_json::{Value as Json};
+use unicode_segmentation::UnicodeSegmentation;
 
 /// Парсит текст в JSON с разбивкой на предложения
 pub fn parse_txt(input: &str) -> Result<Json, String> {
-    let sentences = split_into_sentences(input);
+    let sentences: Vec<String> = input
+        .unicode_sentences()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
     
     let mut map = serde_json::Map::new();
     
@@ -14,77 +18,14 @@ pub fn parse_txt(input: &str) -> Result<Json, String> {
     }
     
     map.insert("total_sentences".to_string(), Json::Number(serde_json::Number::from(sentences.len())));
+    map.insert("total_words".to_string(), Json::Number(serde_json::Number::from(input.split_whitespace().count())));
+    map.insert("total_chars".to_string(), Json::Number(serde_json::Number::from(input.len())));
+    map.insert("content".to_string(), Json::String(input.to_string()));
     
     Ok(Json::Object(map))
 }
 
-/// Разбивает текст на предложения
-fn split_into_sentences(text: &str) -> Vec<String> {
-    let mut result = Vec::new();
-    let mut current = String::new();
-    let mut chars = text.chars().peekable();
-    
-    while let Some(c) = chars.next() {
-        current.push(c);
-        
-        if matches!(c, '.' | '!' | '?') {
-            if !is_abbreviation(&current) {
-                if let Some(&next) = chars.peek() {
-                    if next.is_whitespace() || next == '\n' {
-                        if next == ' ' || next == '\n' {
-                            chars.next();
-                        }
-                        let trimmed = current.trim().to_string();
-                        if !trimmed.is_empty() {
-                            result.push(trimmed);
-                        }
-                        current.clear();
-                        continue;
-                    }
-                } else {
-                    let trimmed = current.trim().to_string();
-                    if !trimmed.is_empty() {
-                        result.push(trimmed);
-                    }
-                    current.clear();
-                }
-            }
-        }
-    }
-    
-    if !current.trim().is_empty() {
-        result.push(current.trim().to_string());
-    }
-    
-    result
-}
 
-/// Проверяет, является ли текст аббревиатурой
-fn is_abbreviation(text: &str) -> bool {
-    let trimmed = text.trim();
-    let abbreviations = [
-        "Dr.", "Mr.", "Mrs.", "Ms.", "Prof.", "Rev.", "Hon.", 
-        "Capt.", "Lt.", "Col.", "Gen.", "Maj.", "Sgt.", "Cpl.", "Pvt.",
-        "etc.", "e.g.", "i.e.", "vs.", "inc.", "corp.", "co.", "ltd.",
-        "Jan.", "Feb.", "Mar.", "Apr.", "Jun.", "Jul.", "Aug.", 
-        "Sep.", "Oct.", "Nov.", "Dec.",
-    ];
-    
-    for abbr in abbreviations {
-        if trimmed == abbr || trimmed.ends_with(abbr) {
-            return true;
-        }
-    }
-    
-    if trimmed.len() >= 2 && trimmed.chars().all(|c| c.is_ascii_alphabetic() || c == '.') {
-        let dots = trimmed.matches('.').count();
-        if dots >= 1 && dots <= 3 {
-            return true;
-        }
-    }
-    
-    false
-}
 
 /// Преобразует ЛЮБОЙ JSON обратно в текст (рекурсивно обходит все поля)
 pub fn stringify_txt(value: &Json) -> Result<String, String> {

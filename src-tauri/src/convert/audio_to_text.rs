@@ -34,16 +34,17 @@ pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String,
         let _ = std::fs::remove_file(&audio_path);
     }
     
-    let params = WhisperInferenceParams {
-        language: if from.contains("ru") || from.contains("russian") { 
-            Some("ru".to_string()) 
-        } else { 
-            Some("en".to_string()) 
-        },
+    let mut params = WhisperInferenceParams {
+        language: None, // None = автоопределение
         translate: false,
         ..Default::default()
     };
-    
+    params.initial_prompt = Some(String::from(
+        "Расставляй знаки препинания: точки, запятые, вопросительные и восклицательные знаки. \
+        Каждое предложение начинай с заглавной буквы. Пиши грамотно. \
+        Use proper punctuation: periods, commas, question marks, exclamation marks. \
+        Capitalize the first letter of each sentence. Write correctly."
+    ));
     let result = engine.transcribe_with(&samples, &params)
         .map_err(|e| format!("Transcription failed: {}", e))?;
     
@@ -116,7 +117,9 @@ fn get_or_download_model() -> Result<std::path::PathBuf, String> {
         std::fs::create_dir_all(&model_dir).map_err(|e| format!("Cannot create model dir: {}", e))?;
     }
     
+    // let model_name = "ggml-tiny-q5_1.bin";
     let model_name = "ggml-tiny-q5_1.bin";
+    
     let model_path = model_dir.join(model_name);
     if model_path.exists() {
         return Ok(model_path);
