@@ -2,6 +2,9 @@
 
 use transcribe_rs::whisper_cpp::{WhisperEngine, WhisperInferenceParams};
 use transcribe_rs::audio::read_wav_samples;
+use transcribe_rs::transcriber::{VadChunked, VadChunkedConfig, Transcriber};
+use transcribe_rs::vad::EnergyVad;
+use transcribe_rs::TranscribeOptions;
 use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash, parse, stringify};
 use crate::convert::audio::convert_audio_to_audio;
 use std::path::{Path, PathBuf};
@@ -34,21 +37,36 @@ pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String,
         let _ = std::fs::remove_file(&audio_path);
     }
     
-    let mut params = WhisperInferenceParams {
-        language: None, // None = автоопределение
+    // Создаем VAD с настройками для 16kHz
+    // frame_size = 512 samples = 32ms при 16kHz
+    let vad = EnergyVad::new(512, 0.01);
+    
+    let config = VadChunkedConfig {
+        min_chunk_secs: 2.0,        // минимальный чанк 2 сек
+        max_chunk_secs: 30.0,       // максимальный чанк 30 сек
+        padding_secs: 0.5,          // 0.5 сек контекста с каждой стороны
+        smart_split_search_secs: Some(3.0), // искать тишину за 3 сек до максимума
+        merge_separator: " ".to_string(),   // разделитель между чанками
+    };
+    
+    // Создаем опции транскрипции
+    let transcribe_options = TranscribeOptions {
+        language: None,
         translate: false,
         ..Default::default()
+  
     };
-    params.initial_prompt = Some(String::from(
-        "Расставляй знаки препинания: точки, запятые, вопросительные и восклицательные знаки. \
-        Каждое предложение начинай с заглавной буквы. Пиши грамотно. \
-        Use proper punctuation: periods, commas, question marks, exclamation marks. \
-        Capitalize the first letter of each sentence. Write correctly."
-    ));
-    let result = engine.transcribe_with(&samples, &params)
+    
+    // Создаем VAD чанкер
+    let mut transcriber = VadChunked::new(Box::new(vad), config, transcribe_options);
+    
+    // Транскрибируем через VAD
+    let result = transcriber.transcribe(&mut engine, &samples)
         .map_err(|e| format!("Transcription failed: {}", e))?;
     
-    // Если нужен просто текст - сохраняем как есть
+    let full_text = result.text;
+    
+    // Обрабатываем результат
     if to == "txt" || to == "text" {
         let hash = calculate_conversion_hash(path, from, to)
             .map_err(|e| format!("Hash error: {}", e))?;
@@ -61,25 +79,27 @@ pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String,
             }
         }
         
-        std::fs::write(&output_path, &result.text)
+        std::fs::write(&output_path, &full_text)
             .map_err(|e| format!("Cannot write output file: {}", e))?;
         
         return Ok(output_path);
     }
     
     // Для других форматов - парсим текст в JSON и конвертируем
-    let parsed = parse(&result.text, "txt")?;
+    let parsed = parse(&full_text, "txt")?;
     let output_path = stringify(&parsed, to, path, from)?;
     
     Ok(output_path)
 }
 
-/// Конвертирует в 16kHz моно WAV для Whisper
+/// Конвертирует в 16kHz моно WAV для Whisper с очисткой и улучшением речи
 fn convert_to_16khz_wav(input_path: &str, output_path: &Path) -> Result<(), String> {
     let output_str = output_path.to_str().ok_or("Invalid temp path")?;
-    
+    // let filter_string = "highpass=f=200,afftdn,dynaudnorm";
+
     let mut cmd = FfmpegCommand::new();
     cmd.input(input_path);
+    // cmd.args(&["-af", filter_string]);
     cmd.args(&["-ar", "16000"]);
     cmd.args(&["-ac", "1"]);
     cmd.args(&["-c:a", "pcm_s16le"]);
@@ -117,9 +137,9 @@ fn get_or_download_model() -> Result<std::path::PathBuf, String> {
         std::fs::create_dir_all(&model_dir).map_err(|e| format!("Cannot create model dir: {}", e))?;
     }
     
-    // let model_name = "ggml-tiny-q5_1.bin";
     let model_name = "ggml-tiny-q5_1.bin";
-    
+    // let model_name = "ggml-base-q5_1.bin";
+
     let model_path = model_dir.join(model_name);
     if model_path.exists() {
         return Ok(model_path);
