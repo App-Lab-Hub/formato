@@ -496,9 +496,21 @@ fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String, Str
     audio_to_text::convert_audio_to_text(path, from, to)
 }
 
+/// Video → Text (извлекаем аудио, потом распознаем)
 fn convert_video_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
-    // video_to_text::convert_video_to_text(path, from, to)
-    Err("gg".to_string())
+    // 1. Извлекаем аудио из видео в WAV
+    let audio_path = video::convert_video_to_audio(path, from, "wav")?;
+    
+    // 2. Распознаем аудио в текст
+    // from = "wav" потому что мы конвертировали в WAV
+    let result = audio_to_text::convert_audio_to_text(&audio_path, "wav", to)?;
+    
+    // 3. Удаляем временный аудио файл
+    if let Err(e) = std::fs::remove_file(&audio_path) {
+        eprintln!("Warning: Failed to remove temp audio file: {}", e);
+    }
+    
+    Ok(result)
 }
 
 
