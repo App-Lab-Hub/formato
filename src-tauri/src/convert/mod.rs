@@ -21,6 +21,7 @@ mod image_utils;
 mod image_to_document; 
 mod audio_to_text;
 // mod video_to_text;
+use sea_orm::DatabaseConnection;
 
 use crate::AppState;
 use serde::{Deserialize, Serialize};
@@ -90,9 +91,20 @@ pub struct ConvertResult {
 // ============================================================
 // ОСНОВНАЯ ЛОГИКА КОНВЕРТАЦИИ
 // ============================================================
-
-pub fn convert(
-    app_handle: &tauri::AppHandle,
+/// Проверяет, есть ли файл в кеше БД
+async fn is_file_cached(
+    db: &DatabaseConnection,
+    path: &str,
+    from: &str,
+    to: &str,
+) -> Result<bool, String> {
+    let hash = calculate_conversion_hash(path, from, to)
+        .map_err(|e| format!("Hash error: {}", e))?;
+    
+    Ok(db::find_conversion(db, &hash).await.is_some())
+}
+pub async fn convert(
+    db: &DatabaseConnection,
     path: &str,
     from: &str,
     to: &str,
@@ -105,78 +117,78 @@ pub fn convert(
     match (from_type, to_type) {
         // Text → Text — всегда сохраняем в файл
         (ContentType::Text, ContentType::Text) => {
-            convert_text_to_text(app_handle, path, from, to)
+            convert_text_to_text(db, path, from, to).await
         }
         
         // Text → Document
         (ContentType::Text, ContentType::Document) => {
-            convert_text_to_document(app_handle, path, from, to)
+            convert_text_to_document(db, path, from, to).await
         }
         
         // Text → Audio
         (ContentType::Text, ContentType::Audio) => {
-            convert_text_to_audio(path, from, to)
+            convert_text_to_audio(path, from, to).await
         }
 
         // Document → Text
         (ContentType::Document, ContentType::Text) => {
-            convert_document_to_text(path, from, to)
+            convert_document_to_text(db,path, from, to).await
         }
         
         // Document → Document
         (ContentType::Document, ContentType::Document) => {
-            convert_document_to_document(path, from, to)
+            convert_document_to_document(db,path, from, to).await
         }
 
         // Document → Audio
         (ContentType::Document, ContentType::Audio) => {
-            convert_document_to_audio(path, from, to)
+            convert_document_to_audio(path, from, to).await
         }
         
         // Image → Image
         (ContentType::Image, ContentType::Image) => {
-            convert_image_to_image(path, from, to)
+            convert_image_to_image(path, from, to).await
         }
 
         // Image → Text
         (ContentType::Image, ContentType::Text) => {
-            convert_image_to_text(path, from, to)
+            convert_image_to_text(path, from, to).await
         }
         (ContentType::Image, ContentType::Document) => {
-            convert_image_to_document(app_handle, path, from, to)
+            convert_image_to_document(db, path, from, to).await
         }
         
         // Audio → Audio
         (ContentType::Audio, ContentType::Audio) => {
-            convert_audio_to_audio(path, from, to)
+            convert_audio_to_audio(path, from, to).await
         }
 
         // Audio → Text
         (ContentType::Audio, ContentType::Text) => {
-            convert_audio_to_text(path, from, to)
+            convert_audio_to_text(db, path, from, to).await
         }
 
         // Audio → Document
         (ContentType::Audio, ContentType::Document) => {
-            convert_audio_to_document(app_handle, path, from, to)
+            convert_audio_to_document(db, path, from, to).await
         }
         // Video → Video
         (ContentType::Video, ContentType::Video) => {
-            convert_video_to_video(path, from, to)
+            convert_video_to_video(path, from, to).await
         }
 
         // Video → Audio
         (ContentType::Video, ContentType::Audio) => {
-            convert_video_to_audio(path, from, to)
+            convert_video_to_audio(path, from, to).await
         }
         // Video → Text (извлекаем аудио, потом распознаем)
         (ContentType::Video, ContentType::Text) => {
-            convert_video_to_text(path, from, to)
+            convert_video_to_text(db,path, from, to).await
         }
         
         // Video → Document
         (ContentType::Video, ContentType::Document) => {
-            convert_video_to_document(app_handle, path, from, to)
+            convert_video_to_document(db, path, from, to).await
         }
         
         _ => Err(format!(
@@ -190,9 +202,7 @@ pub fn convert(
 // КОНКРЕТНЫЕ РЕАЛИЗАЦИИ
 // ============================================================
 
-/// Text → Text
-/// Text → Text
-fn convert_text_to_text(app_handle: &tauri::AppHandle, path: &str, from: &str, to: &str) -> Result<String, String> {
+async fn convert_text_to_text(db: &DatabaseConnection, path: &str, from: &str, to: &str) -> Result<String, String> {
     let input = std::fs::read_to_string(path)
         .map_err(|e| format!("Cannot read file: {e}"))?;
 
@@ -200,13 +210,15 @@ fn convert_text_to_text(app_handle: &tauri::AppHandle, path: &str, from: &str, t
     if to == "rtf" {
         // RTF требует DOCX как промежуточный формат
         // Сначала создаем DOCX из текста
-        let docx_path = stringify_document(app_handle, &input, path, from, "docx")?;
+        let docx_path = stringify_document(db, &input, path, from, "docx").await?;
         
         // Затем конвертируем DOCX в RTF
         let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
         
-        // Удаляем временный DOCX
-        let _ = std::fs::remove_file(&docx_path);
+        // Проверяем кеш перед удалением
+        if !is_file_cached(db, &docx_path, "docx", "rtf").await? {
+            let _ = std::fs::remove_file(&docx_path);
+        }
         
         return Ok(rtf_path);
     }
@@ -239,8 +251,8 @@ fn parse_document(path: &str, from: &str) -> Result<Json, String> {
 // src-tauri/src/convert/mod.rs
 
 /// Сериализует текст напрямую в документ
-pub fn stringify_document(
-    app_handle: &tauri::AppHandle,
+pub async fn stringify_document(
+    db: &DatabaseConnection,
     text: &str,
     path: &str,
     from: &str,
@@ -248,7 +260,7 @@ pub fn stringify_document(
 ) -> Result<String, String> {
     match to {
         "docx" => stringify_docx(text, path, from, to),
-        "pdf" => stringify_pdf(app_handle, text, path, from, to),
+        "pdf" => stringify_pdf(db, text, path, from, to).await,
         "xlsx" => stringify_xlsx(text, path, from, to),
         "odt" => stringify_odt(text, path, from, to),
         _ => {
@@ -260,37 +272,41 @@ pub fn stringify_document(
     }
 }
 
-
-fn convert_document_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
-    // Если конвертируем из документа в RTF
+async fn convert_document_to_text(
+    db: &DatabaseConnection,
+    path: &str, 
+    from: &str, 
+    to: &str
+) -> Result<String, String> {
     if to == "rtf" {
-        // 1. Конвертируем документ в DOCX через convert_document_to_document
-        let docx_path = convert_document_to_document(path, from, "docx")?;
-        
-        // 2. Конвертируем DOCX в RTF через rtf::convert_docx_to_rtf
+        let docx_path = convert_document_to_document(db, path, from, "docx").await?;
         let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
         
-        // 3. Удаляем временный DOCX
-        let _ = std::fs::remove_file(&docx_path);
+        // Проверяем кеш перед удалением
+        if !is_file_cached(db, &docx_path, "docx", "rtf").await? {
+            let _ = std::fs::remove_file(&docx_path);
+        }
         
         return Ok(rtf_path);
     }
     
-    // Для остальных форматов - стандартная логика
     let json_value = parse_document(path, from)?;
     stringify(&json_value, to, path, from)
 }
 
+
+
+
 // Функция-обертка (уже есть в вашем коде)
-fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+async fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
     text_to_audio::convert_text_to_audio(path, from, to)
 }
 
 
 
 /// Text → Document
-fn convert_text_to_document(
-    app_handle: &tauri::AppHandle,
+async fn convert_text_to_document(
+    db: &DatabaseConnection,
     path: &str, 
     from: &str, 
     to: &str
@@ -298,22 +314,27 @@ fn convert_text_to_document(
     let input = std::fs::read_to_string(path)
         .map_err(|e| format!("Cannot read file: {e}"))?;
     
-    stringify_document(app_handle, &input, path, from, to)
+    stringify_document(db, &input, path, from, to).await
 }
 
 // Функция-обертка:
-fn convert_image_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+async fn convert_image_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
     image_to_text::convert_image_to_text(path, from, to)
 }
-fn convert_image_to_document(app_handle: &tauri::AppHandle, path: &str, from: &str, to: &str) -> Result<String, String> {
-    image_to_document::convert_image_to_document(app_handle, path, from, to)
+async fn convert_image_to_document(db: &DatabaseConnection, path: &str, from: &str, to: &str) -> Result<String, String> {
+    image_to_document::convert_image_to_document(db, path, from, to).await
 }
 // ========================================================================================================================
 // ========================================================================================================================
 // ========================================================================================================================
 
 /// Document → Document
-pub fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<String, String> {
+pub async fn convert_document_to_document(
+    db: &DatabaseConnection, 
+    path: &str, 
+    from: &str, 
+    to: &str
+) -> Result<String, String> {
     // Если форматы совпадают – просто возвращаем исходный путь
     if from == to {
         return Ok(path.to_string());
@@ -342,7 +363,6 @@ pub fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<
         }
         ("docx", "xlsx") => {
             let out = out_path("xlsx")?;
-            // DOCX → XLSX через office_oxide
             let doc = office_oxide::Document::open(path)
                 .map_err(|e| format!("Open DOCX: {}", e))?;
             doc.save_as(&out)
@@ -364,18 +384,18 @@ pub fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<
         ("odt", "xlsx") => {
             let out = out_path("xlsx")?;
             
-            // ODT → DOCX через soffice
             let docx_path = out_path("docx")?;
             convert_with_soffice_explicit(path, &docx_path)?;
             
-            // DOCX → XLSX через office_oxide
             let doc = office_oxide::Document::open(&docx_path)
                 .map_err(|e| format!("Open DOCX: {}", e))?;
             doc.save_as(&out)
                 .map_err(|e| format!("Save as XLSX: {}", e))?;
             
-            // Удаляем временный DOCX
-            let _ = std::fs::remove_file(&docx_path);
+            // Проверяем кеш перед удалением
+            if !is_file_cached(db, &docx_path, "docx", "xlsx").await? {
+                let _ = std::fs::remove_file(&docx_path);
+            }
             
             Ok(out)
         }
@@ -392,18 +412,18 @@ pub fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<
         ("xlsx", "odt") => {
             let out = out_path("odt")?;
             
-            // Шаг 1: XLSX → DOCX через office_oxide
             let docx_path = out_path("docx")?;
             let doc = office_oxide::Document::open(path)
                 .map_err(|e| format!("Open XLSX: {}", e))?;
             doc.save_as(&docx_path)
                 .map_err(|e| format!("XLSX to DOCX: {}", e))?;
             
-            // Шаг 2: DOCX → ODT через soffice
             convert_with_soffice_explicit(&docx_path, &out)?;
             
-            // Удаляем временный DOCX
-            let _ = std::fs::remove_file(&docx_path);
+            // Проверяем кеш перед удалением
+            if !is_file_cached(db, &docx_path, "docx", "odt").await? {
+                let _ = std::fs::remove_file(&docx_path);
+            }
             
             Ok(out)
         }
@@ -412,34 +432,13 @@ pub fn convert_document_to_document(path: &str, from: &str, to: &str) -> Result<
             convert_with_soffice_explicit(path, &out)?;
             Ok(out)
         }
-
-        // // ---------- PDF ----------
-        // ("pdf", "docx") => {
-        //     let out = out_path("docx")?;
-        //     convert_with_soffice_explicit(path, &out)?;
-        //     Ok(out)
-        // }
-        // ("pdf", "odt") => {
-        //     let out = out_path("odt")?;
-        //     convert_with_soffice_explicit(path, &out)?;
-        //     Ok(out)
-        // }
-        // ("pdf", "xlsx") => {
-        //     let out = out_path("xlsx")?;
-        //     // PDF → XLSX через office_oxide
-        //     let doc = office_oxide::Document::open(path)
-        //         .map_err(|e| format!("Open PDF: {}", e))?;
-        //     doc.save_as(&out)
-        //         .map_err(|e| format!("Save as XLSX: {}", e))?;
-        //     Ok(out)
-        // }
-
-        // ---------- ВСЕ ОСТАЛЬНЫЕ ПАРЫ — FALLBACK ----------
         _ => {
             Err("Unsupported conversion".to_string())
         }
     }
 }
+
+
 
 // ========================================================================================================================
 // ========================================================================================================================
@@ -452,7 +451,7 @@ use image::{ImageFormat, ImageReader};
 
 
 /// Конвертация изображений между поддерживаемыми форматами
-fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, String> {
+async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, String> {
     // Открываем и декодируем изображение
     let img = ImageReader::open(path)
         .map_err(|e| format!("Cannot open image: {}", e))?
@@ -484,70 +483,78 @@ fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, St
     Ok(out_path)
 }
 
-fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+async fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
     audio::convert_audio_to_audio(path, from, to)
 }
 
 /// Video → Video
-fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String, String> {
+async fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String, String> {
     video::convert_video_to_video(path, from, to)
 }
 /// Video → Audio — извлекаем аудио дорожку и конвертируем в целевой формат
-fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+async fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
     video::convert_video_to_audio(path, from, to)
 }
 
-fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+async fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
     document_to_audio::convert_document_to_audio(path, from, to)
 }
 // Функции-обертки:
-fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
-    audio_to_text::convert_audio_to_text(path, from, to)
+async fn convert_audio_to_text(db: &DatabaseConnection, path: &str, from: &str, to: &str) -> Result<String, String> {
+    audio_to_text::convert_audio_to_text(db,path, from, to).await
 }
 
 /// Video → Text (извлекаем аудио, потом распознаем)
-fn convert_video_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+async fn convert_video_to_text(
+    db: &DatabaseConnection,
+    path: &str, 
+    from: &str, 
+    to: &str
+) -> Result<String, String> {
     // 1. Извлекаем аудио из видео в WAV
     let audio_path = video::convert_video_to_audio(path, from, "wav")?;
     
     // 2. Распознаем аудио в текст
-    // from = "wav" потому что мы конвертировали в WAV
-    let result = audio_to_text::convert_audio_to_text(&audio_path, "wav", to)?;
+    let result = audio_to_text::convert_audio_to_text(db, &audio_path, "wav", to).await?;
     
-    // 3. Удаляем временный аудио файл
-    if let Err(e) = std::fs::remove_file(&audio_path) {
-        eprintln!("Warning: Failed to remove temp audio file: {}", e);
+    // 3. Проверяем кеш перед удалением
+    if !is_file_cached(db, &audio_path, "wav", to).await? {
+        if let Err(e) = std::fs::remove_file(&audio_path) {
+            eprintln!("Warning: Failed to remove temp audio file: {}", e);
+        }
     }
     
     Ok(result)
 }
 
 /// Audio → Document
-fn convert_audio_to_document(
-    app_handle: &tauri::AppHandle,
+async fn convert_audio_to_document(
+    db: &DatabaseConnection,
     path: &str, 
     from: &str, 
     to: &str
 ) -> Result<String, String> {
     // 1. Распознаем аудио в текст
-    let text_path = audio_to_text::convert_audio_to_text(path, from, "txt")?;
+    let text_path = audio_to_text::convert_audio_to_text(db, path, from, "txt").await?;
     
     // 2. Читаем текст
     let text = std::fs::read_to_string(&text_path)
         .map_err(|e| format!("Cannot read text file: {}", e))?;
     
     // 3. Конвертируем текст в документ (используем оригинальный path)
-    let result = stringify_document(app_handle, &text, path, from, to)?;
+    let result = stringify_document(db, &text, path, from, to).await?;
     
-    // 4. Удаляем временный текстовый файл
-    let _ = std::fs::remove_file(&text_path);
+    // 4. Проверяем кеш перед удалением
+    if !is_file_cached(db, &text_path, "txt", to).await? {
+        let _ = std::fs::remove_file(&text_path);
+    }
     
     Ok(result)
 }
 
 /// Video → Document
-fn convert_video_to_document(
-    app_handle: &tauri::AppHandle,
+async fn convert_video_to_document(
+    db: &DatabaseConnection,
     path: &str, 
     from: &str, 
     to: &str
@@ -556,18 +563,23 @@ fn convert_video_to_document(
     let audio_path = video::convert_video_to_audio(path, from, "wav")?;
     
     // 2. Распознаем аудио в текст
-    let text_path = audio_to_text::convert_audio_to_text(&audio_path, "wav", "txt")?;
+    let text_path = audio_to_text::convert_audio_to_text(db, &audio_path, "wav", "txt").await?;
     
     // 3. Читаем текст
     let text = std::fs::read_to_string(&text_path)
         .map_err(|e| format!("Cannot read text file: {}", e))?;
     
     // 4. Конвертируем текст в документ (используем оригинальный path)
-    let result = stringify_document(app_handle, &text, path, from, to)?;
+    let result = stringify_document(db, &text, path, from, to).await?;
     
-    // 5. Удаляем временные файлы
-    let _ = std::fs::remove_file(&audio_path);
-    let _ = std::fs::remove_file(&text_path);
+    // 5. Проверяем кеш перед удалением временных файлов
+    if !is_file_cached(db, &audio_path, "wav", "txt").await? {
+        let _ = std::fs::remove_file(&audio_path);
+    }
+    
+    if !is_file_cached(db, &text_path, "txt", to).await? {
+        let _ = std::fs::remove_file(&text_path);
+    }
     
     Ok(result)
 }
@@ -696,7 +708,6 @@ pub async fn hash_file(path: String) -> Result<String, String> {
 
 #[tauri::command]
 pub async fn convert_file(
-    app_handle: tauri::AppHandle,  // <-- добавляем AppHandle
     state: tauri::State<'_, AppState>,
     path: String,
     from: String,
@@ -734,12 +745,13 @@ pub async fn convert_file(
     // Выполняем конвертацию (возвращает путь к файлу)
     let (path_clone, from_clone, to_clone, from_type_clone, to_type_clone) = 
         (path.clone(), from.clone(), to.clone(), fromType.clone(), toType.clone());
+    let db_clone = db.clone();
     
-    let output_path = tokio::task::spawn_blocking(move || {
-        convert(&app_handle, &path_clone, &from_clone, &to_clone, &from_type_clone, &to_type_clone)
+    let output_path = tokio::spawn(async move {
+        convert(&db_clone, &path_clone, &from_clone, &to_clone, &from_type_clone, &to_type_clone).await
     }).await.map_err(|e| format!("Task join error: {e}"))??;
 
-    // Сохраняем в кеш
+    // Сохраняем в кеш (используем db из внешнего scope)
     if enable_cache {
         db::save_conversion(db, &input_hash, &output_path).await?;
     }

@@ -9,12 +9,13 @@ use encoding_rs::WINDOWS_1251;
 use tauri::path::BaseDirectory;
 use tauri::Manager;
 
+use sea_orm::DatabaseConnection;
 
 use crate::convert::docx::{stringify_docx};
-
+use crate::convert::is_file_cached;
 /// Создает PDF из текстовой строки 
-pub fn stringify_pdf(
-    app_handle: &tauri::AppHandle,
+pub async fn stringify_pdf(
+    db: &DatabaseConnection,
     text: &str, 
     path: &str, 
     from: &str, 
@@ -24,11 +25,12 @@ pub fn stringify_pdf(
     let docx_path = stringify_docx(text, path, from, "docx")?;
     
     // 2. Конвертируем DOCX в PDF через convert_document_to_document
-    // Используем существующую функцию из mod.rs
-    let pdf_path = crate::convert::convert_document_to_document(&docx_path, "docx", "pdf")?;
+    let pdf_path = crate::convert::convert_document_to_document(db, &docx_path, "docx", "pdf").await?;
     
-    // 3. Удаляем временный DOCX
-    let _ = std::fs::remove_file(&docx_path);
+    // 3. Проверяем кеш перед удалением временного DOCX
+    if !is_file_cached(db, &docx_path, "docx", "pdf").await? {
+        let _ = std::fs::remove_file(&docx_path);
+    }
     
     Ok(pdf_path)
 }

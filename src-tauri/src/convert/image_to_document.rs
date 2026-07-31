@@ -1,4 +1,5 @@
 // src-tauri/src/convert/image_to_document.rs
+use sea_orm::DatabaseConnection;
 
 use image::GenericImageView;
 use crate::convert::{
@@ -12,8 +13,8 @@ use crate::convert::{
 };
 
 /// Конвертация изображения в документ
-pub fn convert_image_to_document(
-    app_handle: &tauri::AppHandle, 
+pub async fn convert_image_to_document(
+    db: &DatabaseConnection, 
     path: &str, 
     from: &str, 
     to: &str
@@ -48,7 +49,7 @@ pub fn convert_image_to_document(
     text.push_str(&format!("\nBase64: {:#?}", base64_data));
 
     // 5. Создаем документ через stringify_document
-    let output_path = stringify_document(app_handle, &text, path, from, to)?;
+    let output_path = stringify_document(db, &text, path, from, to).await?;
 
     // 6. Перемещаем в нужную директорию с хешем
     let hash = calculate_conversion_hash(path, from, to)

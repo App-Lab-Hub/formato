@@ -9,8 +9,15 @@ use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash, pars
 use crate::convert::audio::convert_audio_to_audio;
 use std::path::{Path, PathBuf};
 use ffmpeg_sidecar::command::FfmpegCommand;
+use crate::convert::is_file_cached;
+use sea_orm::DatabaseConnection;
 
-pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
+pub async fn convert_audio_to_text(
+    db: &DatabaseConnection,
+    path: &str, 
+    from: &str, 
+    to: &str
+) -> Result<String, String> {
     // Если входной файл не WAV - конвертируем в WAV через convert_audio_to_audio
     let audio_path = if from != "wav" {
         let wav_path = convert_audio_to_audio(path, from, "wav")?;
@@ -32,10 +39,11 @@ pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String,
     
     let _ = std::fs::remove_file(&temp_path);
     
-    // Если создавали WAV через convert_audio_to_audio - удаляем
-    if audio_path != path {
-        let _ = std::fs::remove_file(&audio_path);
-    }
+    // Если создавали WAV через convert_audio_to_audio - проверяем кеш перед удалением
+    if audio_path != path
+        && !is_file_cached(db, &audio_path, "wav", to).await? {
+            let _ = std::fs::remove_file(&audio_path);
+        }
     
     // Создаем VAD с настройками для 16kHz
     // frame_size = 512 samples = 32ms при 16kHz
@@ -54,7 +62,6 @@ pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String,
         language: None,
         translate: false,
         ..Default::default()
-  
     };
     
     // Создаем VAD чанкер
@@ -91,7 +98,6 @@ pub fn convert_audio_to_text(path: &str, from: &str, to: &str) -> Result<String,
     
     Ok(output_path)
 }
-
 /// Конвертирует в 16kHz моно WAV для Whisper с очисткой и улучшением речи
 fn convert_to_16khz_wav(input_path: &str, output_path: &Path) -> Result<(), String> {
     let output_str = output_path.to_str().ok_or("Invalid temp path")?;
