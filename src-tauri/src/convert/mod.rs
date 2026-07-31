@@ -522,21 +522,28 @@ fn convert_video_to_text(path: &str, from: &str, to: &str) -> Result<String, Str
     Ok(result)
 }
 
+/// Audio → Document
 fn convert_audio_to_document(
     app_handle: &tauri::AppHandle,
     path: &str, 
     from: &str, 
     to: &str
 ) -> Result<String, String> {
-    // 1. Распознаем аудио в текст (получаем содержимое)
-    let text = audio_to_text::convert_audio_to_text(path, from, "txt")?;
+    // 1. Распознаем аудио в текст
+    let text_path = audio_to_text::convert_audio_to_text(path, from, "txt")?;
     
-    // 2. Конвертируем текст в документ
+    // 2. Читаем текст
+    let text = std::fs::read_to_string(&text_path)
+        .map_err(|e| format!("Cannot read text file: {}", e))?;
+    
+    // 3. Конвертируем текст в документ (используем оригинальный path)
     let result = stringify_document(app_handle, &text, path, from, to)?;
+    
+    // 4. Удаляем временный текстовый файл
+    let _ = std::fs::remove_file(&text_path);
     
     Ok(result)
 }
-
 
 /// Video → Document
 fn convert_video_to_document(
@@ -555,8 +562,8 @@ fn convert_video_to_document(
     let text = std::fs::read_to_string(&text_path)
         .map_err(|e| format!("Cannot read text file: {}", e))?;
     
-    // 4. Конвертируем текст в документ
-    let result = stringify_document(app_handle, &text, &text_path, "txt", to)?;
+    // 4. Конвертируем текст в документ (используем оригинальный path)
+    let result = stringify_document(app_handle, &text, path, from, to)?;
     
     // 5. Удаляем временные файлы
     let _ = std::fs::remove_file(&audio_path);
@@ -564,8 +571,6 @@ fn convert_video_to_document(
     
     Ok(result)
 }
-
-
 // ============================================================
 // ПАРСЕРЫ И СЕРИАЛИЗАТОРЫ
 // ============================================================
