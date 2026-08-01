@@ -159,7 +159,8 @@ pub struct AvailabilityResponse {
     pub image: String,
     pub audio: String,
     pub video: String,
-    pub document: String, // 👈 ДОБАВЛЯЕМ
+    pub document: String,
+    pub enable_text_mode: bool, // true только для Text
 }
 
 // ============================================================
@@ -171,39 +172,44 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
     
     match from {
         ContentType::Text => AvailabilityResponse {
-            text: "available".to_string(), //ready n
-            image: "not_available".to_string(),  //ready n
-            audio: "available".to_string(), //ready n
-            video: "not_available".to_string(),  //ready n
-            document: "available".to_string(),  //ready n
+            text: "available".to_string(), // ready n
+            image: "not_available".to_string(), // ready n
+            audio: "available".to_string(), // ready n
+            video: "not_available".to_string(), // ready n
+            document: "available".to_string(), // ready n
+            enable_text_mode: true, // только для Text доступен ввод текста
         },
         ContentType::Image => AvailabilityResponse {
-            text: "available".to_string(), //ready n
-            image: "available".to_string(),//ready n
-            audio: "not_available".to_string(), //ready n
-            video: "not_available".to_string(), //ready n
-            document: "available".to_string(),//ready n
+            text: "available".to_string(), // ready n
+            image: "available".to_string(), // ready n
+            audio: "not_available".to_string(), // ready n
+            video: "not_available".to_string(), // ready n
+            document: "available".to_string(), // ready n
+            enable_text_mode: false,
         },
         ContentType::Audio => AvailabilityResponse {
-            text: "available".to_string(), 
-            image: "not_available".to_string(), //ready n
-            audio: "available".to_string(),  //ready n
-            video: "not_available".to_string(),  //ready n
-            document: "available".to_string(),
+            text: "available".to_string(), // ready n
+            image: "not_available".to_string(), // ready n
+            audio: "available".to_string(), // ready n
+            video: "not_available".to_string(), // ready n
+            document: "available".to_string(), // ready n
+            enable_text_mode: false,
         },
         ContentType::Video => AvailabilityResponse {
-            text: "available".to_string(),
-            image: "not_available".to_string(), //ready n
-            audio: "available".to_string(), //ready n
-            video: "available".to_string(), //ready n
-            document: "available".to_string(),
+            text: "available".to_string(), // ready n
+            image: "not_available".to_string(), // ready n
+            audio: "available".to_string(), // ready n
+            video: "available".to_string(), // ready n
+            document: "available".to_string(), // ready n
+            enable_text_mode: false,
         },
         ContentType::Document => AvailabilityResponse {
-            text: "available".to_string(),   //ready n
-            image: "not_available".to_string(),//ready n
-            audio: "available".to_string(), //ready n
-            video: "not_available".to_string(), //ready n
-            document: "available".to_string(),  //ready n
+            text: "available".to_string(), // ready n
+            image: "not_available".to_string(), // ready n
+            audio: "available".to_string(), // ready n
+            video: "not_available".to_string(), // ready n
+            document: "available".to_string(), // ready n
+            enable_text_mode: false,
         },
     }
 }

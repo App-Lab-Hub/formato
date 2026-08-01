@@ -312,17 +312,35 @@ pub async fn save_conversion(
     file_hash: &str,
     converted_path: &str,
 ) -> Result<(), String> {
+    use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
+    
+    // Проверяем, существует ли уже запись с таким хэшем
+    let existing = conversions::Entity::find()
+        .filter(conversions::Column::FileHash.eq(file_hash))
+        .one(db)
+        .await
+        .map_err(|e| format!("DB query error: {}", e))?;
+    
+    if existing.is_some() {
+        // Запись уже существует - ничего не делаем
+        println!("Conversion already exists for hash: {}", file_hash);
+        return Ok(());
+    }
+    
+    // Записи нет - создаем новую
     let model = conversions::ActiveModel {
         file_hash: Set(file_hash.to_string()),
         converted_path: Set(converted_path.to_string()),
         created_at: Set(Utc::now()),
     };
     
-    model.insert(db).await.map_err(|e| format!("DB insert error: {e}"))?;
+    model.insert(db)
+        .await
+        .map_err(|e| format!("DB insert error: {}", e))?;
+    
+    println!("Saved conversion: {} -> {}", file_hash, converted_path);
     Ok(())
 }
-
-
 
 
 

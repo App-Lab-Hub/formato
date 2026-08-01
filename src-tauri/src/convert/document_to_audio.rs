@@ -33,7 +33,7 @@ pub fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<Str
 
     // 3. Вычисляем хеш для выходного файла
     let hash = calculate_conversion_hash(path, from, to)
-        .map_err(|e| format!("Hash error: {}", e))?;
+        .map_err(|e| format!("Hash error convert_document_to_audio: {}", e))?;
 
     let final_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
 

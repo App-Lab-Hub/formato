@@ -10,7 +10,7 @@ pub fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String
     }
 
     let hash = calculate_conversion_hash(path, from, to)
-        .map_err(|e| format!("Hash error: {}", e))?;
+        .map_err(|e| format!("Hash error convert_audio_to_audio: {}", e))?;
     let output_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
     let audio_codec = get_audio_codec(to);
 

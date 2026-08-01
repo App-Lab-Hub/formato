@@ -99,7 +99,7 @@ async fn is_file_cached(
     to: &str,
 ) -> Result<bool, String> {
     let hash = calculate_conversion_hash(path, from, to)
-        .map_err(|e| format!("Hash error: {}", e))?;
+        .map_err(|e| format!("Hash error is_file_cached: {}", e))?;
     println!("HASH=>{}",hash);
     let a = db::find_conversion(db, &hash).await;
     println!("FIND=>{:?}",a);
@@ -220,9 +220,9 @@ async fn convert_text_to_text(db: &DatabaseConnection, path: &str, from: &str, t
         let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
         
         // Проверяем кеш перед удалением
-        if !is_file_cached(db,  path, from, "docx").await? {
-            let _ = std::fs::remove_file(&docx_path);
-        }
+        // if !is_file_cached(db,  path, from, "docx").await? {
+        //     let _ = std::fs::remove_file(&docx_path);
+        // }
         
         return Ok(rtf_path);
     }
@@ -269,7 +269,7 @@ pub async fn stringify_document(
         "odt" => stringify_odt(text, path, from, to),
         _ => {
             let hash = calculate_conversion_hash(path, from, to)
-                .map_err(|e| format!("Hash error: {}", e))?;
+                .map_err(|e| format!("Hash error stringify_document: {}", e))?;
             let output_path = save_to_app_dir(text, path, to, &hash)?;
             Ok(output_path)
         }
@@ -287,9 +287,9 @@ async fn convert_document_to_text(
         let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
         
         // Проверяем кеш перед удалением
-        if !is_file_cached(db,  path, from, "docx").await? {
-            let _ = std::fs::remove_file(&docx_path);
-        }
+        // if !is_file_cached(db,  path, from, "docx").await? {
+        //     let _ = std::fs::remove_file(&docx_path);
+        // }
         
         return Ok(rtf_path);
     }
@@ -346,7 +346,7 @@ pub async fn convert_document_to_document(
 
     // Вычисляем хеш для именования выходного файла
     let hash = calculate_conversion_hash(path, from, to)
-        .map_err(|e| format!("Hash error: {e}"))?;
+        .map_err(|e| format!("Hash error convert_document_to_document: {e}"))?;
 
     // Вспомогательная функция для генерации пути
     let out_path = |ext: &str| -> Result<String, String> {
@@ -397,9 +397,9 @@ pub async fn convert_document_to_document(
                 .map_err(|e| format!("Save as XLSX: {}", e))?;
             
             // Проверяем кеш перед удалением
-            if !is_file_cached(db, path, "odt", "docx").await? {
-                let _ = std::fs::remove_file(&docx_path);
-            }
+            // if !is_file_cached(db, path, "odt", "docx").await? {
+            //     let _ = std::fs::remove_file(&docx_path);
+            // }
             
             Ok(out)
         }
@@ -425,9 +425,9 @@ pub async fn convert_document_to_document(
             convert_with_soffice_explicit(&docx_path, &out)?;
             
             // Проверяем кеш перед удалением
-            if !is_file_cached(db, path, "xlsx", "docx").await? {
-                let _ = std::fs::remove_file(&docx_path);
-            }
+            // if !is_file_cached(db, path, "xlsx", "docx").await? {
+            //     let _ = std::fs::remove_file(&docx_path);
+            // }
             
             Ok(out)
         }
@@ -477,7 +477,7 @@ async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<Stri
     
     // Получаем хеш и путь
     let hash = calculate_conversion_hash(path, from, to)
-        .map_err(|e| format!("Hash error: {}", e))?;
+        .map_err(|e| format!("Hash error convert_image_to_image: {}", e))?;
     let out_path = get_app_dir_path_with_hash(path, &to, &hash, true)?;
     
     // Сохраняем
@@ -522,11 +522,11 @@ async fn convert_video_to_text(
     let result = audio_to_text::convert_audio_to_text(db, &audio_path, "wav", to).await?;
     
     // 3. Проверяем кеш перед удалением
-    if !is_file_cached(db, path, from, "wav").await? {
-        if let Err(e) = std::fs::remove_file(&audio_path) {
-            eprintln!("Warning: Failed to remove temp audio file: {}", e);
-        }
-    }
+    // if !is_file_cached(db, path, from, "wav").await? {
+    //     if let Err(e) = std::fs::remove_file(&audio_path) {
+    //         eprintln!("Warning: Failed to remove temp audio file: {}", e);
+    //     }
+    // }
     
     Ok(result)
 }
@@ -549,9 +549,9 @@ async fn convert_audio_to_document(
     let result = stringify_document(db, &text, path, from, to).await?;
     
     // 4. Проверяем кеш перед удалением
-    if !is_file_cached(db, path, from, "txt").await? {
-        let _ = std::fs::remove_file(&text_path);
-    }
+    // if !is_file_cached(db, path, from, "txt").await? {
+    //     let _ = std::fs::remove_file(&text_path);
+    // }
     
     Ok(result)
 }
@@ -577,13 +577,13 @@ async fn convert_video_to_document(
     let result = stringify_document(db, &text, path, from, to).await?;
     
     // 5. Проверяем кеш перед удалением временных файлов
-    if !is_file_cached(db, path, from, "wav").await? {
-        let _ = std::fs::remove_file(&audio_path);
-    }
+    // if !is_file_cached(db, path, from, "wav").await? {
+    //     let _ = std::fs::remove_file(&audio_path);
+    // }
     
-    if !is_file_cached(db, &audio_path, "wav", "txt").await? {
-        let _ = std::fs::remove_file(&text_path);
-    }
+    // if !is_file_cached(db, &audio_path, "wav", "txt").await? {
+    //     let _ = std::fs::remove_file(&text_path);
+    // }
     
     Ok(result)
 }
@@ -635,7 +635,7 @@ pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<S
     
     // Для всех остальных форматов - сохраняем содержимое в файл
     let hash = calculate_conversion_hash(path, from, format)
-        .map_err(|e| format!("Hash error: {}", e))?;
+        .map_err(|e| format!("Hash error stringify: {}", e))?;
     let output_path = save_to_app_dir(&content, path, format, &hash)?;
     
     Ok(output_path)
@@ -678,10 +678,10 @@ pub fn get_app_dir_path_with_hash(
     let output_path_str = output_path.to_string_lossy().to_string();
     
     // Если нужно перезаписать и файл существует - удаляем
-    if overwrite && Path::new(&output_path_str).exists() {
-        std::fs::remove_file(&output_path_str)
-            .map_err(|e| format!("Cannot remove existing file: {}", e))?;
-    }
+    // if overwrite && Path::new(&output_path_str).exists() {
+    //     std::fs::remove_file(&output_path_str)
+    //         .map_err(|e| format!("Cannot remove existing file: {}", e))?;
+    // }
     
     Ok(output_path_str)
 }

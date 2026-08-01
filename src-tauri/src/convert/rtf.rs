@@ -111,7 +111,7 @@ pub fn convert_docx_to_rtf(docx_path: &str, original_path: &str, to: &str) -> Re
 
     // Перемещаем в нужную папку с хешем
     let hash = calculate_conversion_hash(original_path, "docx", to)
-        .map_err(|e| format!("Hash error: {}", e))?;
+        .map_err(|e| format!("Hash error convert_docx_to_rtf: {}", e))?;
     
     let final_path = get_app_dir_path_with_hash(original_path, to, &hash, true)?;
 

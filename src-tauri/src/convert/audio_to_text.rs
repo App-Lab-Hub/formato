@@ -19,12 +19,9 @@ pub async fn convert_audio_to_text(
     to: &str
 ) -> Result<String, String> {
     // Если входной файл не WAV - конвертируем в WAV через convert_audio_to_audio
-    let audio_path = if from != "wav" {
-        let wav_path = convert_audio_to_audio(path, from, "wav")?;
-        wav_path
-    } else {
-        path.to_string()
-    };
+    let audio_path = convert_audio_to_audio(path, from, "wav")?;
+
+
     
     let model_path = get_or_download_model()?;
     
@@ -43,10 +40,10 @@ pub async fn convert_audio_to_text(
 
 
     // Если создавали WAV через convert_audio_to_audio - проверяем кеш перед удалением
-    if !is_file_cached(db, path, from, "wav").await? {
-        println!("REMOVE ===={}===========",audio_path);
-            let _ = std::fs::remove_file(&audio_path);
-        }
+    // if !is_file_cached(db, path, from, "wav").await? {
+    //     println!("REMOVE ===={}===========",audio_path);
+    //         let _ = std::fs::remove_file(&audio_path);
+    //     }
     
     // Создаем VAD с настройками для 16kHz
     // frame_size = 512 samples = 32ms при 16kHz
@@ -79,7 +76,7 @@ pub async fn convert_audio_to_text(
     // Обрабатываем результат
     if to == "txt" || to == "text" {
         let hash = calculate_conversion_hash(path, from, to)
-            .map_err(|e| format!("Hash error: {}", e))?;
+            .map_err(|e| format!("Hash error convert_audio_to_text: {}", e))?;
         let output_path = get_app_dir_path_with_hash(path, to, &hash,true)?;
         
         if let Some(parent) = Path::new(&output_path).parent() {
