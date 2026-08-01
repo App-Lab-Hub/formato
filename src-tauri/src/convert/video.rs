@@ -15,7 +15,7 @@ pub fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
 
-    let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
+    let output_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
 
     let video_codec = get_video_codec(to);
     let audio_codec = get_audio_codec(to);
@@ -63,7 +63,7 @@ pub fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String
     
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
-    let final_path = get_app_dir_path_with_hash(path, to, &hash)?;
+    let final_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
     
     if audio_output != final_path {
         if let Some(parent) = std::path::Path::new(&final_path).parent() {

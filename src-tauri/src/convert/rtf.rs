@@ -113,7 +113,7 @@ pub fn convert_docx_to_rtf(docx_path: &str, original_path: &str, to: &str) -> Re
     let hash = calculate_conversion_hash(original_path, "docx", to)
         .map_err(|e| format!("Hash error: {}", e))?;
     
-    let final_path = get_app_dir_path_with_hash(original_path, to, &hash)?;
+    let final_path = get_app_dir_path_with_hash(original_path, to, &hash, true)?;
 
     // Создаем директорию
     if let Some(parent) = Path::new(&final_path).parent() {

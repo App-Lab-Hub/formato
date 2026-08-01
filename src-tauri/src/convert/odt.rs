@@ -36,7 +36,7 @@ pub fn stringify_odt(text: &str, path: &str, from: &str, to: &str) -> Result<Str
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Cannot hash file: {}", e))?;
 
-    let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
+    let output_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
     
     save_odt(&output_path, &document)
         .map_err(|e| format!("ODT generation error: {:?}", e))?;

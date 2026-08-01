@@ -26,7 +26,7 @@ pub fn stringify_docx(text: &str, path: &str, from: &str, to: &str) -> Result<St
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Cannot hash file: {}", e))?;
 
-    let output_path = get_app_dir_path_with_hash(path, to, &hash)?;
+    let output_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
 
     let file = File::create(&output_path)
         .map_err(|e| format!("Cannot create file: {}", e))?;

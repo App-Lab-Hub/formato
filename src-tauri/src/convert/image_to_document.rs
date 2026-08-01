@@ -54,7 +54,7 @@ pub async fn convert_image_to_document(
     // 6. Перемещаем в нужную директорию с хешем
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
-    let final_path = get_app_dir_path_with_hash(path, to, &hash)?;
+    let final_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
     
     if output_path != final_path {
         if let Some(parent) = std::path::Path::new(&final_path).parent() {

@@ -17,7 +17,7 @@ pub fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String,
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
 
-    let final_path = get_app_dir_path_with_hash(path, to, &hash)?;
+    let final_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
 
     let temp_wav = generate_audio::generate_speech_with_piper(&text)?;
     

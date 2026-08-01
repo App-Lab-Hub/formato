@@ -350,7 +350,7 @@ pub async fn convert_document_to_document(
 
     // Вспомогательная функция для генерации пути
     let out_path = |ext: &str| -> Result<String, String> {
-        get_app_dir_path_with_hash(path, ext, &hash)
+        get_app_dir_path_with_hash(path, ext, &hash, true)
     };
 
     match (from, to) {
@@ -478,7 +478,7 @@ async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<Stri
     // Получаем хеш и путь
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
-    let out_path = get_app_dir_path_with_hash(path, &to, &hash)?;
+    let out_path = get_app_dir_path_with_hash(path, &to, &hash, true)?;
     
     // Сохраняем
     img.save_with_format(&out_path, format)
@@ -647,24 +647,69 @@ pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<S
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ============================================================
 
-pub fn save_to_app_dir(content: &str, original_path: &str, to: &str, hash: &str) -> Result<String, String> {
+/// Сохраняет контент в файл с заменой хэша в имени
+/// Возвращает путь к файлу с заменой хэша в имени
+/// 
+/// # Arguments
+/// * `original_path` - исходный путь (может содержать @hash@)
+/// * `to` - целевое расширение
+/// * `hash` - новый хэш
+/// * `overwrite` - если true, удаляет существующий файл; если false, просто возвращает путь
+pub fn get_app_dir_path_with_hash(
+    original_path: &str, 
+    to: &str, 
+    hash: &str,
+    overwrite: bool
+) -> Result<String, String> {
     let input_path = PathBuf::from(original_path);
-    let stem = input_path.file_stem().and_then(|s| s.to_str()).unwrap_or("converted");
+    let stem = input_path.file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("converted");
+    
+    // Если в имени есть @hash@ - берем часть до него (оригинальное имя)
+    let base_name = if let Some(pos) = stem.find("@hash@") {
+        &stem[..pos]
+    } else {
+        stem
+    };
     
     let output_dir = converted_dir();
-    let output_path = output_dir.join(format!("{}_{}.{}", stem, hash, to));
-    std::fs::write(&output_path, content).map_err(|e| format!("Cannot write file: {e}"))?;
+    let output_path = output_dir.join(format!("{}@hash@{}.{}", base_name, hash, to));
+    let output_path_str = output_path.to_string_lossy().to_string();
     
-    Ok(output_path.to_string_lossy().to_string())
+    // Если нужно перезаписать и файл существует - удаляем
+    if overwrite && Path::new(&output_path_str).exists() {
+        std::fs::remove_file(&output_path_str)
+            .map_err(|e| format!("Cannot remove existing file: {}", e))?;
+    }
+    
+    Ok(output_path_str)
 }
 
-pub fn get_app_dir_path_with_hash(original_path: &str, to: &str, hash: &str) -> Result<String, String> {
-    let input_path = PathBuf::from(original_path);
-    let stem = input_path.file_stem().and_then(|s| s.to_str()).unwrap_or("converted");
-    let output_dir = converted_dir();
-    let output_path = output_dir.join(format!("{}_{}.{}", stem, hash, to));
+/// Сохраняет контент в файл с заменой хэша в имени
+/// Если файл уже существует - возвращает путь без перезаписи
+pub fn save_to_app_dir(content: &str, original_path: &str, to: &str, hash: &str) -> Result<String, String> {
+    // Получаем путь без перезаписи (overwrite = false)
+    let output_path = get_app_dir_path_with_hash(original_path, to, hash, false)?;
     
-    Ok(output_path.to_string_lossy().to_string())
+    // Если файл уже существует - просто возвращаем путь
+    if Path::new(&output_path).exists() {
+        return Ok(output_path);
+    }
+    
+    // Создаем директорию если нужно
+    if let Some(parent) = Path::new(&output_path).parent() {
+        if !parent.exists() {
+            std::fs::create_dir_all(parent)
+                .map_err(|e| format!("Cannot create directory: {}", e))?;
+        }
+    }
+    
+    // Записываем новый файл
+    std::fs::write(&output_path, content)
+        .map_err(|e| format!("Cannot write file: {}", e))?;
+    
+    Ok(output_path)
 }
 
 
@@ -724,7 +769,8 @@ pub async fn convert_file(
 ) -> Result<ConvertResult, String> {
     let input_hash = calculate_conversion_hash(&path, &from, &to)
         .map_err(|e| format!("Cannot read file: {e}"))?;
-    println!("INIT HASH=>{}",input_hash);
+    println!("INIT HASH=>{}", input_hash);
+    
     let db_guard = state.db.lock().await;
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
     
@@ -755,19 +801,42 @@ pub async fn convert_file(
         convert(&db_clone, &path_clone, &from_clone, &to_clone, &from_type_clone, &to_type_clone).await
     }).await.map_err(|e| format!("Task join error: {e}"))??;
 
-    // Сохраняем в кеш (используем db из внешнего scope)
-    // if enable_cache {
-        db::save_conversion(db, &input_hash, &output_path).await?;
-    // }
+    // Переименовываем файл с использованием правильного хэша
+    let output_path_buf = PathBuf::from(&output_path);
+    let output_dir = output_path_buf.parent()
+        .ok_or_else(|| "Failed to get output directory".to_string())?;
+    
+    let original_name = output_path_buf.file_stem()
+        .and_then(|s| s.to_str())
+        .ok_or_else(|| "Failed to get original file name".to_string())?;
+    
+    // Разделяем имя по @hash@ и берем первую часть (оригинальное имя)
+    let parts: Vec<&str> = original_name.split("@hash@").collect();
+    let base_name = parts.first().unwrap_or(&original_name);
+    
+    // Формируем новое имя с правильным хэшем
+    let new_file_name = format!("{}@hash@{}.{}", base_name, input_hash, to);
+    let new_output_path = output_dir.join(new_file_name);
+    
+    // Переименовываем файл только если пути разные
+    if output_path_buf != new_output_path {
+        tokio::fs::rename(&output_path_buf, &new_output_path).await
+            .map_err(|e| format!("Failed to rename file: {e}"))?;
+        println!("File renamed: {:?} -> {:?}", output_path_buf, new_output_path);
+    }
+    
+    // Сохраняем в кеш с новым путем
+    let final_path = new_output_path.to_string_lossy().to_string();
+    db::save_conversion(db, &input_hash, &final_path).await?;
 
-    let extension = Path::new(&output_path)
+    let extension = Path::new(&final_path)
         .extension()
         .and_then(|e| e.to_str())
         .map(|e| e.to_string());
 
     Ok(ConvertResult {
         success: true,
-        content: output_path,
+        content: final_path,
         hash: Some(input_hash),
         extension,
         error: None,
