@@ -100,7 +100,11 @@ async fn is_file_cached(
 ) -> Result<bool, String> {
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error: {}", e))?;
-    
+    println!("HASH=>{}",hash);
+    let a = db::find_conversion(db, &hash).await;
+    println!("FIND=>{:?}",a);
+    println!("Is_Some=>{}",db::find_conversion(db, &hash).await.is_some());
+
     Ok(db::find_conversion(db, &hash).await.is_some())
 }
 pub async fn convert(
@@ -216,7 +220,7 @@ async fn convert_text_to_text(db: &DatabaseConnection, path: &str, from: &str, t
         let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
         
         // Проверяем кеш перед удалением
-        if !is_file_cached(db, &docx_path, "docx", "rtf").await? {
+        if !is_file_cached(db,  path, from, "docx").await? {
             let _ = std::fs::remove_file(&docx_path);
         }
         
@@ -283,7 +287,7 @@ async fn convert_document_to_text(
         let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
         
         // Проверяем кеш перед удалением
-        if !is_file_cached(db, &docx_path, "docx", "rtf").await? {
+        if !is_file_cached(db,  path, from, "docx").await? {
             let _ = std::fs::remove_file(&docx_path);
         }
         
@@ -393,7 +397,7 @@ pub async fn convert_document_to_document(
                 .map_err(|e| format!("Save as XLSX: {}", e))?;
             
             // Проверяем кеш перед удалением
-            if !is_file_cached(db, &docx_path, "docx", "xlsx").await? {
+            if !is_file_cached(db, path, "odt", "docx").await? {
                 let _ = std::fs::remove_file(&docx_path);
             }
             
@@ -421,7 +425,7 @@ pub async fn convert_document_to_document(
             convert_with_soffice_explicit(&docx_path, &out)?;
             
             // Проверяем кеш перед удалением
-            if !is_file_cached(db, &docx_path, "docx", "odt").await? {
+            if !is_file_cached(db, path, "xlsx", "docx").await? {
                 let _ = std::fs::remove_file(&docx_path);
             }
             
@@ -518,7 +522,7 @@ async fn convert_video_to_text(
     let result = audio_to_text::convert_audio_to_text(db, &audio_path, "wav", to).await?;
     
     // 3. Проверяем кеш перед удалением
-    if !is_file_cached(db, &audio_path, "wav", to).await? {
+    if !is_file_cached(db, path, from, "wav").await? {
         if let Err(e) = std::fs::remove_file(&audio_path) {
             eprintln!("Warning: Failed to remove temp audio file: {}", e);
         }
@@ -545,7 +549,7 @@ async fn convert_audio_to_document(
     let result = stringify_document(db, &text, path, from, to).await?;
     
     // 4. Проверяем кеш перед удалением
-    if !is_file_cached(db, &text_path, "txt", to).await? {
+    if !is_file_cached(db, path, from, "txt").await? {
         let _ = std::fs::remove_file(&text_path);
     }
     
@@ -573,11 +577,11 @@ async fn convert_video_to_document(
     let result = stringify_document(db, &text, path, from, to).await?;
     
     // 5. Проверяем кеш перед удалением временных файлов
-    if !is_file_cached(db, &audio_path, "wav", "txt").await? {
+    if !is_file_cached(db, path, from, "wav").await? {
         let _ = std::fs::remove_file(&audio_path);
     }
     
-    if !is_file_cached(db, &text_path, "txt", to).await? {
+    if !is_file_cached(db, &audio_path, "wav", "txt").await? {
         let _ = std::fs::remove_file(&text_path);
     }
     
@@ -720,7 +724,7 @@ pub async fn convert_file(
 ) -> Result<ConvertResult, String> {
     let input_hash = calculate_conversion_hash(&path, &from, &to)
         .map_err(|e| format!("Cannot read file: {e}"))?;
-    
+    println!("INIT HASH=>{}",input_hash);
     let db_guard = state.db.lock().await;
     let db = db_guard.as_ref().ok_or("Database not initialized")?;
     
@@ -752,9 +756,9 @@ pub async fn convert_file(
     }).await.map_err(|e| format!("Task join error: {e}"))??;
 
     // Сохраняем в кеш (используем db из внешнего scope)
-    if enable_cache {
+    // if enable_cache {
         db::save_conversion(db, &input_hash, &output_path).await?;
-    }
+    // }
 
     let extension = Path::new(&output_path)
         .extension()

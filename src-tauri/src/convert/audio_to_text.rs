@@ -38,11 +38,14 @@ pub async fn convert_audio_to_text(
         .map_err(|e| format!("Failed to load WAV: {}", e))?;
     
     let _ = std::fs::remove_file(&temp_path);
-    
+
+    // println!("REMOVE ===={}===========",!is_file_cached(db, path, from, "wav").await?);
+
+
     // Если создавали WAV через convert_audio_to_audio - проверяем кеш перед удалением
-    if audio_path != path
-        && !is_file_cached(db, &audio_path, "wav", to).await? {
-            let _ = std::fs::remove_file(&audio_path);
+    if !is_file_cached(db, path, from, "wav").await? {
+        println!("REMOVE ===={}===========",audio_path);
+            // let _ = std::fs::remove_file(&audio_path);
         }
     
     // Создаем VAD с настройками для 16kHz

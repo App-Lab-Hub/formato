@@ -28,7 +28,7 @@ pub async fn stringify_pdf(
     let pdf_path = crate::convert::convert_document_to_document(db, &docx_path, "docx", "pdf").await?;
     
     // 3. Проверяем кеш перед удалением временного DOCX
-    if !is_file_cached(db, &docx_path, "docx", "pdf").await? {
+    if !is_file_cached(db, path, from, "docx").await? {
         let _ = std::fs::remove_file(&docx_path);
     }
     
