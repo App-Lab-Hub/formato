@@ -45,6 +45,10 @@
   let files = $derived(appState.getFilesForFormat(sourceFormatId));
   let totalFiles = $derived(appState.getTotalFilesForFormat(sourceFormatId));
 
+  // Состояние конвертации
+  let convertingFileIds = $state<Set<string>>(new Set());
+  let convertedFiles = $state<Map<string, { path: string; format: string }>>(new Map());
+
   let inputMode = $state<'file' | 'text'>(
     availability?.enable_text_mode ? 'file' : 'file'
   );
@@ -186,7 +190,6 @@
   // ============================================================
 
   async function addFilesHandler(filesToAdd: { path: string; name: string }[], suppressToast: boolean = false) {
-    // Получаем хэши уже добавленных файлов
     const existingHashes = new Set<string>();
     for (const file of appState.getFilesForFormat(sourceFormatId)) {
       try {
@@ -208,7 +211,6 @@
         continue;
       }
       
-      // Добавляем хэш в набор, чтобы не дублировать в рамках одной загрузки
       existingHashes.add(hash);
       
       const newId = appState.getNextIdForFormat(sourceFormatId);
@@ -231,7 +233,6 @@
       return;
     }
     
-    // Добавляем файлы по одному с анимацией
     for (let i = 0; i < newFiles.length; i++) {
       const file = newFiles[i];
       
@@ -287,16 +288,74 @@
     toast.info(m.all_files_cleared());
   }
 
-  // Заглушки
-  function convertOne(index: number) {
-    console.log('🔜 convertOne:', index);
-    toast.info('Конвертация временно отключена');
+  // ============================================================
+  // ФУНКЦИИ ДЛЯ КОНВЕРТАЦИИ
+  // ============================================================
+
+  async function convertOne(index: number) {
+    const file = files[index];
+    if (!file) return;
+    if (convertingFileIds.has(file.id)) return;
+    if (!selectedTarget) {
+      toast.warning(m.select_target_format());
+      return;
+    }
+
+    convertingFileIds.add(file.id);
+    
+    try {
+      const result = await invoke<{ success: boolean; content: string; extension: string | null; error: string | null }>(
+        'convert_file', { 
+          path: file.path, 
+          from: sourceFormatId, 
+          to: selectedTarget.id,
+          fromType: sourceFormat?.formatType || 'text',
+          toType: selectedTarget?.formatType || 'text',
+          enableCache: settings?.enable_cache ?? true
+        }
+      );
+      
+      if (result.success) {
+        const newConverted = new Map(convertedFiles);
+        newConverted.set(file.id, {
+          path: result.content,
+          format: result.extension || selectedTarget.id
+        });
+        convertedFiles = newConverted;
+
+        toast.success(m.convert_success({ from: file.name, to: selectedTarget.name }));
+      } else {
+        const errorMsg = result.error || m.unknown_error();
+        toast.error(m.convert_error({ name: file.name, error: errorMsg }));
+      }
+    } catch (e) { 
+      console.error(`Conversion failed: ${file.name}`, e);
+      const errorMsg = e instanceof Error ? e.message : m.backend_connection_error();
+      toast.error(m.convert_error({ name: file.name, error: errorMsg }));
+    } finally { 
+      convertingFileIds.delete(file.id); 
+    }
   }
 
-  function convertAll() {
-    console.log('🔜 convertAll');
-    toast.info('Конвертация временно отключена');
+  async function convertAll() {
+    if (files.length === 0) {
+      toast.warning(m.no_files_to_convert());
+      return;
+    }
+    
+    if (!selectedTarget) {
+      toast.warning(m.select_target_format());
+      return;
+    }
+    
+    for (let i = 0; i < files.length; i++) {
+      await convertOne(i);
+    }
   }
+
+  // ============================================================
+  // ЗАГЛУШКИ
+  // ============================================================
 
   function downloadFile(fileId: string) {
     console.log('🔜 downloadFile:', fileId);
@@ -380,6 +439,8 @@
             onpreview={previewFileFn}
             ondownload={downloadFile}
             onremove={removeFileWithConfirm}
+            convertingFiles={convertingFileIds}
+            convertedFiles={convertedFiles}
           />
         </main>
       </div>
