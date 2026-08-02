@@ -10,21 +10,25 @@ export interface FileItem {
   id: string;
 }
 
+export interface ConvertedFile {
+  path: string;
+  format: string;
+}
+
 // ============================================================
 // ЛОКАЛЬНЫЙ РЕАКТИВНЫЙ STATE
 // ============================================================
-// Хранилище: { formatId: [FileItem, ...] }
 const filesMap = new SvelteMap<string, FileItem[]>();
 const counterMap = new SvelteMap<string, number>();
+const convertedFilesMap = new SvelteMap<string, Map<string, ConvertedFile>>();
+const selectedTargetMap = new SvelteMap<string, string>();
 
-// Текущий формат (для отображения)
 let currentFormatId = $state("");
 
 // ============================================================
 // ЭКСПОРТ
 // ============================================================
 export const appState = {
-  // Получить файлы для конкретного формата
   getFilesForFormat(formatId: string): FileItem[] {
     if (!filesMap.has(formatId)) {
       return [];
@@ -32,9 +36,41 @@ export const appState = {
     return filesMap.get(formatId)!;
   },
 
-  // Получить все файлы (для текущего формата)
+  // ✅ Геттер только читает, НЕ создаёт новые Map
+  getConvertedFilesForFormat(formatId: string): Map<string, ConvertedFile> {
+    if (!convertedFilesMap.has(formatId)) {
+      return new Map(); // Возвращаем новый пустой Map, НЕ сохраняем в convertedFilesMap
+    }
+    return convertedFilesMap.get(formatId)!;
+  },
+
+  getConvertedFile(
+    formatId: string,
+    fileId: string,
+  ): ConvertedFile | undefined {
+    const converted = convertedFilesMap.get(formatId);
+    if (!converted) return undefined;
+    return converted.get(fileId);
+  },
+
+  getSelectedTargetForFormat(formatId: string): string | undefined {
+    return selectedTargetMap.get(formatId);
+  },
+
+  setSelectedTargetForFormat(sourceFormatId: string, targetFormatId: string) {
+    selectedTargetMap.set(sourceFormatId, targetFormatId);
+  },
+
+  clearSelectedTargetForFormat(formatId: string) {
+    selectedTargetMap.delete(formatId);
+  },
+
   get files() {
     return this.getFilesForFormat(currentFormatId);
+  },
+
+  get convertedFiles() {
+    return this.getConvertedFilesForFormat(currentFormatId);
   },
 
   get currentFormatId() {
@@ -45,47 +81,58 @@ export const appState = {
     currentFormatId = value;
   },
 
-  // Добавить файл в конкретный формат
   addFileToFormat(formatId: string, file: FileItem) {
     const current = this.getFilesForFormat(formatId);
     filesMap.set(formatId, [...current, file]);
   },
 
-  // Добавить файлы в конкретный формат
   addFilesToFormat(formatId: string, newFiles: FileItem[]) {
     const current = this.getFilesForFormat(formatId);
     filesMap.set(formatId, [...current, ...newFiles]);
   },
 
-  // Удалить файл из конкретного формата
+  // ✅ Добавляем сконвертированный файл (создаём новый Map только здесь)
+  addConvertedFile(formatId: string, fileId: string, data: ConvertedFile) {
+    const current = convertedFilesMap.get(formatId);
+    const newMap = new Map(current || []);
+    newMap.set(fileId, data);
+    convertedFilesMap.set(formatId, newMap);
+  },
+
   removeFileFromFormat(formatId: string, fileId: string) {
     const current = this.getFilesForFormat(formatId);
     const filtered = current.filter(f => f.id !== fileId);
     filesMap.set(formatId, filtered);
+
+    const converted = convertedFilesMap.get(formatId);
+    if (converted) {
+      const newMap = new Map(converted);
+      newMap.delete(fileId);
+      convertedFilesMap.set(formatId, newMap);
+    }
   },
 
-  // Очистить файлы в конкретном формате
   clearFilesForFormat(formatId: string) {
     filesMap.set(formatId, []);
     counterMap.set(formatId, 0);
+    convertedFilesMap.delete(formatId);
   },
 
-  // Получить следующий ID для формата
   getNextIdForFormat(formatId: string): string {
     const current = counterMap.get(formatId) || 0;
     counterMap.set(formatId, current + 1);
     return `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
   },
 
-  // Получить количество файлов в формате
   getTotalFilesForFormat(formatId: string): number {
     return this.getFilesForFormat(formatId).length;
   },
 
-  // Очистить всё
   resetAll() {
     filesMap.clear();
     counterMap.clear();
+    convertedFilesMap.clear();
+    selectedTargetMap.clear();
     currentFormatId = "";
   },
 };

@@ -41,13 +41,15 @@
 
   let selectedTarget = $state<Format | null>(null);
   
-  // Получаем файлы для текущего формата
+  // Получаем файлы для текущего формата из store
   let files = $derived(appState.getFilesForFormat(sourceFormatId));
   let totalFiles = $derived(appState.getTotalFilesForFormat(sourceFormatId));
+  
+  // Получаем сконвертированные файлы из store
+  let convertedFiles = $derived(appState.getConvertedFilesForFormat(sourceFormatId));
 
-  // Состояние конвертации
+  // Состояние конвертации (временное, только для текущей сессии)
   let convertingFileIds = $state<Set<string>>(new Set());
-  let convertedFiles = $state<Map<string, { path: string; format: string }>>(new Map());
 
   let inputMode = $state<'file' | 'text'>(
     availability?.enable_text_mode ? 'file' : 'file'
@@ -140,9 +142,23 @@
     }
   }
 
+  // ============================================================
+  // ИНИЦИАЛИЗАЦИЯ И ВОССТАНОВЛЕНИЕ СОСТОЯНИЯ
+  // ============================================================
+
   onMount(() => {
     if (sourceFormat) {
       targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
+      
+      // Восстанавливаем выбранный target из store
+      const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
+      if (savedTargetId && targetFormats.length > 0) {
+        const found = targetFormats.find(f => f.id === savedTargetId);
+        if (found) {
+          selectedTarget = found;
+        }
+      }
+      
       isLoading = false;
       return;
     }
@@ -154,6 +170,16 @@
           if (f) {
             sourceFormat = f;
             targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
+            
+            // Восстанавливаем выбранный target из store
+            const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
+            if (savedTargetId && targetFormats.length > 0) {
+              const found = targetFormats.find(f => f.id === savedTargetId);
+              if (found) {
+                selectedTarget = found;
+              }
+            }
+            
             isLoading = false;
           } else {
             loadError = m.format_not_found() + ` "${sourceFormatId}"`;
@@ -177,12 +203,18 @@
     goto('/');
   }
     
+  // ============================================================
+  // ВЫБОР TARGET ФОРМАТА С СОХРАНЕНИЕМ
+  // ============================================================
+
   function selectTarget(format: Format) {
     if (selectedTarget?.id === format.id) {
       selectedTarget = null;
+      appState.clearSelectedTargetForFormat(sourceFormatId);
       return;
     }
     selectedTarget = format;
+    appState.setSelectedTargetForFormat(sourceFormatId, format.id);
   }
 
   // ============================================================
@@ -316,12 +348,11 @@
       );
       
       if (result.success) {
-        const newConverted = new Map(convertedFiles);
-        newConverted.set(file.id, {
+        // Сохраняем в store (будет сохранено при перезагрузке)
+        appState.addConvertedFile(sourceFormatId, file.id, {
           path: result.content,
           format: result.extension || selectedTarget.id
         });
-        convertedFiles = newConverted;
 
         toast.success(m.convert_success({ from: file.name, to: selectedTarget.name }));
       } else {
