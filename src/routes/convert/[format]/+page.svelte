@@ -11,7 +11,7 @@
   import { m } from '$lib/paraglide/messages';
   import { toast } from '$lib/utils/toast';
   import { animate } from '@motionone/dom';
-  import { confirm } from '@tauri-apps/plugin-dialog';
+  import { confirm, save } from '@tauri-apps/plugin-dialog';
   import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   
   // Import components
@@ -26,6 +26,7 @@
   // Import store
   import { appState, type FileItem } from '$lib/stores/app.svelte';
   import { openPath } from '@tauri-apps/plugin-opener';
+  import { writeTextFile } from '@tauri-apps/plugin-fs';
 
   let isAddToList = $state(false);
   
@@ -425,9 +426,60 @@
   // ЗАГЛУШКИ
   // ============================================================
 
-  function downloadFile(fileId: string) {
-    console.log('🔜 downloadFile:', fileId);
-    toast.info('Скачивание временно отключено');
+  async function downloadFile(fileId: string) {
+    // Получаем сконвертированный файл
+    const converted = appState.getConvertedFile(sourceFormatId, fileId);
+    if (!converted) {
+      toast.warning(m.convert_first_download());
+      return;
+    }
+
+    const file = files.find(f => f.id === fileId);
+    const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
+    
+    try {
+      // Проверяем, включена ли архивация
+      const isArchive = settings?.enable_archive && settings?.archive_format;
+      const ext = isArchive ? settings.archive_format : converted.format;
+      const defaultName = `formato_${baseName}.${ext}`;
+      
+      // Открываем диалог сохранения
+      const filePath = await save({
+        defaultPath: defaultName,
+        title: isArchive ? m.save_archive() : m.save_file(),
+        filters: isArchive ? [
+          {
+            name: `${(settings?.archive_format || 'zip').toUpperCase()} Archive`,
+            extensions: [settings?.archive_format || 'zip'],
+          },
+        ] : undefined,
+      });
+      
+      if (!filePath) {
+        toast.info(m.save_cancelled());
+        return;
+      }
+      
+      if (isArchive) {
+        // Создаём архив
+        await invoke('archive_file', { 
+          sourcePath: converted.path, 
+          outputPath: filePath, 
+          format: settings.archive_format 
+        });
+      } else {
+        // Читаем и сохраняем файл
+        const content = await invoke<string>('read_file_content', { path: converted.path });
+        await writeTextFile(filePath, content);
+      }
+      
+      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'file';
+      toast.success(m.file_saved({ name: fileName }));
+    } catch (e) { 
+      console.error('[Download] Failed:', e);
+      toast.error(m.save_error());
+    }
+
   }
 
   function handleKeydown(e: KeyboardEvent) {
