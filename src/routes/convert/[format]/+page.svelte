@@ -12,6 +12,7 @@
   import { toast } from '$lib/utils/toast';
   import { animate } from '@motionone/dom';
   import { confirm } from '@tauri-apps/plugin-dialog';
+  import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   
   // Import components
   import SourceFormatHeader from '$lib/components/convert/SourceFormatHeader.svelte';
@@ -24,6 +25,7 @@
   
   // Import store
   import { appState, type FileItem } from '$lib/stores/app.svelte';
+  import { openPath } from '@tauri-apps/plugin-opener';
 
   let isAddToList = $state(false);
   
@@ -385,6 +387,41 @@
   }
 
   // ============================================================
+  // ПРЕВЬЮ
+  // ============================================================
+
+  async function previewFileFn(fileId: string) {
+    // Получаем сконвертированный файл
+    const converted = appState.getConvertedFile(sourceFormatId, fileId);
+    if (!converted) {
+      toast.warning(m.convert_first_download());
+      return;
+    }
+
+    try {
+      // Проверяем размер файла
+      const actualSize = await invoke<number>('get_file_size', { path: converted.path });
+      const maxSizeMB = settings?.max_preview_size ?? 5;
+      const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
+
+      if (actualSize > maxSizeBytes) {
+        toast.warning(m.preview_too_large_monaco({
+          size: formatFileSize(actualSize),
+          limit: maxSizeMB === 0 ? m.preview_unlimited() : formatSize(maxSizeMB)
+        }));
+        return;
+      }
+
+      // Открываем файл в системном приложении
+      await openPath(converted.path);
+      
+    } catch (e) {
+      console.error('Preview failed:', e);
+      toast.error(m.preview_error());
+    }
+  }
+
+  // ============================================================
   // ЗАГЛУШКИ
   // ============================================================
 
@@ -393,13 +430,20 @@
     toast.info('Скачивание временно отключено');
   }
 
-  function previewFileFn(fileId: string) {
-    console.log('🔜 previewFile:', fileId);
-    toast.info('Превью временно отключено');
-  }
-
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') goBack();
+  }
+
+  // Вспомогательные функции для форматирования размера
+  function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    if (bytes < 1024 * 1024 * 1024) return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    return (bytes / 1024 / 1024 / 1024).toFixed(1) + ' GB';
+  }
+
+  function formatSize(mb: number): string {
+    return mb + ' MB';
   }
 </script>
 
