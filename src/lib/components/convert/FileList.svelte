@@ -2,7 +2,7 @@
 <script lang="ts">
   import { m } from '$lib/paraglide/messages';
   import { Tooltip, TooltipContent, TooltipTrigger } from '$lib/components/ui/tooltip';
-  import { FileText, ArrowRight, Eye, Download, Play, Zap, ListX, Trash2, LoaderCircle } from 'lucide-svelte';
+  import { FileText, ArrowRight, Eye, Download, Play, Zap, ListX, Trash2, LoaderCircle, FolderArchive } from 'lucide-svelte';
   
   // Import store
   import { 
@@ -20,8 +20,10 @@
     onpreview,
     ondownload,
     onremove,
+    ondownloadallarchive,
     convertingFiles = new Set(),
     convertedFiles = new Map(),
+    settings,
   } = $props<{
     sourceFormatId: string;
     selectedTarget?: { id: string; name: string } | null;
@@ -32,12 +34,22 @@
     onpreview: (fileId: string) => void;
     ondownload: (fileId: string) => void;
     onremove: (index: number) => void;
+    ondownloadallarchive?: () => void;
     convertingFiles?: Set<string>;
     convertedFiles?: Map<string, { path: string; format: string }>;
+    settings?: { enable_archive: boolean; archive_format: string };
   }>();
   
   // Используем state из appState
   let files = $derived(appState.files);
+
+  // Проверяем, все ли файлы сконвертированы
+  const allConverted = $derived(
+    files.length > 0 && files.every(f => convertedFiles.has(f.id))
+  );
+
+  // Проверяем, включена ли архивация в настройках
+  const isArchiveEnabled = $derived(settings?.enable_archive ?? false);
 </script>
 
 {#if files.length > 0}
@@ -62,6 +74,23 @@
             </TooltipTrigger>
             <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
               <p>{m.convert_all()}</p>
+            </TooltipContent>
+          </Tooltip>
+        {/if}
+
+        <!-- Кнопка "Скачать все как архив" -->
+        {#if isArchiveEnabled && allConverted && ondownloadallarchive}
+          <Tooltip>
+            <TooltipTrigger>
+              <button 
+                onclick={ondownloadallarchive} 
+                class="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:bg-violet-600 light:bg-purple-500 text-white hover:dark:bg-violet-700 hover:light:bg-purple-600 h-9 w-9 shadow-sm shadow-violet-500/20"
+              >
+                <FolderArchive class="h-4 w-4 group-hover:scale-110 transition-transform" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
+              <p>{m.download_all_archive()}</p>
             </TooltipContent>
           </Tooltip>
         {/if}

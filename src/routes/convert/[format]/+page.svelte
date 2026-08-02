@@ -12,7 +12,6 @@
   import { toast } from '$lib/utils/toast';
   import { animate } from '@motionone/dom';
   import { confirm, save } from '@tauri-apps/plugin-dialog';
-  import { WebviewWindow } from '@tauri-apps/api/webviewWindow';
   
   // Import components
   import SourceFormatHeader from '$lib/components/convert/SourceFormatHeader.svelte';
@@ -423,7 +422,7 @@
   }
 
   // ============================================================
-  // ЗАГЛУШКИ
+  // СКАЧИВАНИЕ
   // ============================================================
 
   async function downloadFile(fileId: string) {
@@ -479,7 +478,74 @@
       console.error('[Download] Failed:', e);
       toast.error(m.save_error());
     }
+  }
 
+  // ============================================================
+  // СКАЧИВАНИЕ ВСЕХ КАК АРХИВ
+  // ============================================================
+
+  async function downloadAllAsArchive() {
+    if (files.length === 0) {
+      toast.warning(m.no_files_to_archive());
+      return;
+    }
+
+    // Проверяем, что все файлы сконвертированы
+    const allConverted = files.every(f => convertedFiles.has(f.id));
+    if (!allConverted) {
+      toast.warning(m.convert_all_first());
+      return;
+    }
+
+    try {
+      // Получаем пути всех сконвертированных файлов
+      const convertedPaths: string[] = [];
+      for (const file of files) {
+        const converted = convertedFiles.get(file.id);
+        if (converted) {
+          convertedPaths.push(converted.path);
+        }
+      }
+
+      if (convertedPaths.length === 0) {
+        toast.warning(m.no_converted_files());
+        return;
+      }
+
+      // Формируем имя архива
+      const archiveFormat = settings?.archive_format || 'zip';
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).slice(2, 8);
+      const defaultName = `formato_${timestamp}_${randomId}.${archiveFormat}`;
+
+      const filePath = await save({
+        defaultPath: defaultName,
+        title: m.save_archive(),
+        filters: [
+          {
+            name: `${archiveFormat.toUpperCase()} Archive`,
+            extensions: [archiveFormat],
+          },
+        ],
+      });
+
+      if (!filePath) {
+        toast.info(m.save_cancelled());
+        return;
+      }
+
+      await invoke('archive_multiple_files', {
+        files: convertedPaths,
+        outputPath: filePath,
+        format: archiveFormat,
+      });
+
+      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'archive';
+      toast.success(m.archive_saved({ name: fileName }));
+    } catch (e) {
+      console.error('[Download All Archive] Failed:', e);
+      toast.error(m.archive_error());
+    }
   }
 
   function handleKeydown(e: KeyboardEvent) {
@@ -566,8 +632,10 @@
             onpreview={previewFileFn}
             ondownload={downloadFile}
             onremove={removeFileWithConfirm}
+            ondownloadallarchive={downloadAllAsArchive}
             convertingFiles={convertingFileIds}
             convertedFiles={convertedFiles}
+            settings={settings}
           />
         </main>
       </div>
