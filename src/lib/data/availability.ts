@@ -7,6 +7,8 @@ export interface AvailabilityResponse {
   image: string;
   audio: string;
   video: string;
+  document: string;
+  enable_text_mode: boolean; // true только для Text
 }
 
 export async function getAvailability(
@@ -23,6 +25,8 @@ export async function getAvailability(
       image: "not_available",
       audio: "not_available",
       video: "not_available",
+      document: "not_available",
+      enable_text_mode: false,
     };
   }
 }

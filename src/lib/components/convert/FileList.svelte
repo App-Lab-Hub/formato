@@ -2,109 +2,120 @@
 <script lang="ts">
   import { m } from '$lib/paraglide/messages';
   import { Tooltip, TooltipContent, TooltipTrigger } from '$lib/components/ui/tooltip';
-  import { FileText, ArrowRight, Eye, Download, Play, X, LoaderCircle, Zap, ListX, FolderArchive, Trash2 } from 'lucide-svelte';
+  import { FileText, ArrowRight, Eye, Download, Play, LoaderCircle, Zap, ListX, FolderArchive, Trash2 } from 'lucide-svelte';
   import { onMount } from 'svelte';
   import { toast } from '$lib/utils/toast';
   import { invoke } from '@tauri-apps/api/core';
   import { confirm, save } from '@tauri-apps/plugin-dialog';
+  
+  // Import store
+  import { 
+    appState,
+    clearAllFiles,
+    clearConversionAll,
+    getConvertedPaths,
+    isAllConverted,
+    getFileProgress,
+    startDeletingAll,
+    stopDeletingAll,
+    removeFile as removeFileStore,
+    type FileItem
+  } from '$lib/stores/app.svelte';
 
-  type FileItem = { path: string; name: string; id: string };
-  type TargetFormat = { id: string; name: string };
-  type ConvertedFile = { path: string; format: string };
-
-let {
-  files,
-  sourceFormatId,
-  selectedTarget = null,
-  convertedFiles,
-  convertingFiles,
-  showExtensions = true,
-  onconvertone,
-  onconvertall,
-  onclearall,
-  onpreview,
-  ondownload,
-  onremove,
-  settings,
-  isClearing = $bindable(false),  // ← Используем $bindable
-} = $props<{
-  files: FileItem[];
-  sourceFormatId: string;
-  selectedTarget?: TargetFormat | null;
-  convertedFiles: Map<string, ConvertedFile>;
-  convertingFiles: Set<string>;
-  showExtensions?: boolean;
-  onconvertone: (index: number) => void;
-  onconvertall: () => void;
-  onclearall: () => void;
-  onpreview: (fileId: string) => void;
-  ondownload: (fileId: string) => void;
-  onremove: (index: number) => void;
-  settings: { enable_archive: boolean; archive_format: string };
-  isClearing: boolean;
-}>();
+  let {
+    sourceFormatId,
+    selectedTarget = null,
+    showExtensions = true,
+    onconvertone,
+    onconvertall,
+    onpreview,
+    ondownload,
+    settings,
+  } = $props<{
+    sourceFormatId: string;
+    selectedTarget?: { id: string; name: string } | null;
+    showExtensions?: boolean;
+    onconvertone: (index: number) => void;
+    onconvertall: () => void;
+    onpreview: (fileId: string) => void;
+    ondownload: (fileId: string) => void;
+    settings: { enable_archive: boolean; archive_format: string };
+  }>();
 
   let itemsAnimated = $state<Set<string>>(new Set());
   
+  // Используем state из appState
+  let files = $derived(appState.files);
+  let convertedFiles = $derived(appState.convertedFiles);
+  let convertingFiles = $derived(appState.isConverting);
+  let isClearing = $derived(appState.isDeletingAll);
 
-  
-async function removeFile(index: number) {
-  const file = files[index];
-  if (convertingFiles.has(file.id)) return;
+  // Проверяем, все ли файлы сконвертированы
+  const allConverted = $derived(isAllConverted());
 
-  // Подтверждение удаления через Tauri dialog с переводом
-  const confirmed = await confirm(m.confirm_delete_file({ name: file.name }), {
-    title: m.confirm_delete_title(),
-    kind: 'warning',
-  });
-  if (!confirmed) return;
+  // Проверяем, включена ли архивация в настройках
+  const isArchiveEnabled = $derived(settings?.enable_archive ?? false);
 
-  // Храним ПУТЬ в pending_removes_${sourceFormatId}
-  const storageKey = `pending_removes_${sourceFormatId}`;
-  const pendingRemoves = JSON.parse(sessionStorage.getItem(storageKey) || '[]');
-  pendingRemoves.push(file.path);
-  sessionStorage.setItem(storageKey, JSON.stringify(pendingRemoves));
+  async function removeFile(index: number) {
+    const file = files[index];
+    if (!file || convertingFiles.has(file.id)) return;
 
-  const el = document.querySelector(`[data-file-id="${file.id}"]`) as HTMLElement;
-  if (el) {
-    await el.animate(
-      [
-        { transform: 'translateX(0)', opacity: 1 },
-        { transform: 'translateX(300px)', opacity: 0 },
-      ],
-      { duration: 300, easing: 'ease-in', fill: 'forwards' },
-    ).finished;
+    // Подтверждение удаления через Tauri dialog с переводом
+    const confirmed = await confirm(m.confirm_delete_file({ name: file.name }), {
+      title: m.confirm_delete_title(),
+      kind: 'warning',
+    });
+    if (!confirmed) return;
+
+    const el = document.querySelector(`[data-file-id="${file.id}"]`) as HTMLElement;
+    if (el) {
+      await el.animate(
+        [
+          { transform: 'translateX(0)', opacity: 1 },
+          { transform: 'translateX(300px)', opacity: 0 },
+        ],
+        { duration: 300, easing: 'ease-in', fill: 'forwards' },
+      ).finished;
+    }
+
+    // Удаляем через store
+    removeFileStore(file.id);
+    
+    toast.info(m.file_removed({ name: file.name }));
   }
 
-  onremove(index);
-}
-
-async function clearAllWithAnimation() {
-  if (isClearing) return;
-  
-  // Подтверждение очистки всех файлов через Tauri dialog с переводом
-  const confirmed = await confirm(m.confirm_clear_all(), {
-    title: m.confirm_clear_all_title(),
-    kind: 'warning',
-  });
-  if (!confirmed) return;
-  
-  isClearing = true;
-  
-  const items = document.querySelectorAll('[data-file-item]');
-  const animations = Array.from(items).map(el =>
-    (el as HTMLElement).animate(
-      [
-        { transform: 'translateX(0)', opacity: 1 },
-        { transform: 'translateX(300px)', opacity: 0 },
-      ],
-      { duration: 300, easing: 'ease-in', fill: 'forwards' },
-    ).finished,
-  );
-  await Promise.all(animations);
-  await onclearall();
-  isClearing = false;
-}
+  async function clearAllWithAnimation() {
+    if (isClearing) return;
+    
+    // Подтверждение очистки всех файлов через Tauri dialog с переводом
+    const confirmed = await confirm(m.confirm_clear_all(), {
+      title: m.confirm_clear_all_title(),
+      kind: 'warning',
+    });
+    if (!confirmed) return;
+    
+    startDeletingAll();
+    
+    const items = document.querySelectorAll('[data-file-item]');
+    const animations = Array.from(items).map(el =>
+      (el as HTMLElement).animate(
+        [
+          { transform: 'translateX(0)', opacity: 1 },
+          { transform: 'translateX(300px)', opacity: 0 },
+        ],
+        { duration: 300, easing: 'ease-in', fill: 'forwards' },
+      ).finished,
+    );
+    await Promise.all(animations);
+    
+    // Очищаем всё через store
+    clearAllFiles();
+    clearConversionAll();
+    
+    stopDeletingAll();
+    
+    toast.info(m.all_files_cleared());
+  }
 
   async function downloadAllAsArchive() {
     if (files.length === 0) {
@@ -113,7 +124,6 @@ async function clearAllWithAnimation() {
     }
 
     // Проверяем, что все файлы сконвертированы
-    const allConverted = files.every((f: FileItem) => convertedFiles.has(f.id));
     if (!allConverted) {
       toast.warning(m.convert_all_first());
       return;
@@ -121,13 +131,7 @@ async function clearAllWithAnimation() {
 
     try {
       // Получаем пути всех сконвертированных файлов
-      const convertedPaths: string[] = [];
-      for (const f of files) {
-        const converted = convertedFiles.get(f.id);
-        if (converted) {
-          convertedPaths.push(converted.path);
-        }
-      }
+      const convertedPaths = getConvertedPaths();
 
       if (convertedPaths.length === 0) {
         toast.warning(m.no_converted_files());
@@ -156,7 +160,6 @@ async function clearAllWithAnimation() {
         return;
       }
 
-      // 🔥 ИСПРАВЛЕНО: используем archive_multiple_files вместо create_archive
       await invoke('archive_multiple_files', {
         files: convertedPaths,
         outputPath: filePath,
@@ -195,14 +198,6 @@ async function clearAllWithAnimation() {
       }
     });
   }
-
-  // Проверяем, все ли файлы сконвертированы
-  const allConverted = $derived(
-    files.length > 0 && files.every((f: FileItem) => convertedFiles.has(f.id))
-  );
-
-  // Проверяем, включена ли архивация в настройках
-  const isArchiveEnabled = $derived(settings?.enable_archive ?? false);
 
   // Анимируем новые элементы после монтирования
   onMount(() => {
@@ -284,12 +279,24 @@ async function clearAllWithAnimation() {
       {#each files as file, i (file.id)}
         {@const isConverting = convertingFiles.has(file.id)}
         {@const savedPath = convertedFiles.get(file.id)}
+        {@const progress = getFileProgress(file.id)}
+        
         <div
           data-file-item
           data-file-id={file.id}
-          class="group relative flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 p-3.5 transition-all duration-200 dark:hover:bg-violet-500/10 light:hover:bg-purple-200/70 dark:hover:border-violet-500/20 light:hover:border-purple-400/50 hover:shadow-sm"
+          class="group relative flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 p-3.5 transition-all duration-200 dark:hover:bg-violet-500/10 light:hover:bg-purple-200/70 dark:hover:border-violet-500/20 light:hover:border-purple-400/50 hover:shadow-sm overflow-hidden"
           class:opacity-70={isConverting}
         >
+          <!-- Прогресс-бар для конвертации -->
+          {#if isConverting && progress}
+            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gray-700">
+              <div 
+                class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
+                style="width: {Math.max(0, Math.min(progress.progress * 100, 100))}%"
+              />
+            </div>
+          {/if}
+
           <div class="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg dark:bg-violet-500/20 light:bg-purple-300/60 dark:text-violet-400 light:text-purple-700 dark:group-hover:bg-violet-500/30 light:group-hover:bg-purple-400/60 dark:group-hover:text-violet-300 light:group-hover:text-purple-800 transition-colors">
             <FileText class="h-5 w-5" />
           </div>
@@ -304,12 +311,22 @@ async function clearAllWithAnimation() {
                   {savedPath.format}
                 </span>
               {/if}
+              {#if isConverting && progress}
+                <span class="shrink-0 text-[10px] font-mono dark:text-blue-400 light:text-blue-600 dark:bg-blue-400/10 light:bg-blue-500/10 px-1.5 py-0.5 rounded-md">
+                  {Math.round(progress.progress * 100)}%
+                </span>
+              {/if}
             </div>
             {#if selectedTarget}
               <div class="flex items-center gap-1.5 text-xs font-medium dark:text-muted-foreground/80 light:text-purple-700/60">
                 <span class="uppercase tracking-wide opacity-70">{sourceFormatId}</span>
                 <ArrowRight class="h-3.5 w-3.5 dark:text-violet-500 light:text-violet-600" />
                 <span class="uppercase tracking-wide dark:text-violet-400 light:text-violet-600">{selectedTarget.id}</span>
+              </div>
+            {/if}
+            {#if isConverting && progress?.message}
+              <div class="text-xs dark:text-muted-foreground/70 light:text-purple-600/70 truncate">
+                {progress.message}
               </div>
             {/if}
           </div>
