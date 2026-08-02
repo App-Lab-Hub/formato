@@ -2,23 +2,11 @@
 <script lang="ts">
   import { m } from '$lib/paraglide/messages';
   import { Tooltip, TooltipContent, TooltipTrigger } from '$lib/components/ui/tooltip';
-  import { FileText, ArrowRight, Eye, Download, Play, LoaderCircle, Zap, ListX, FolderArchive, Trash2 } from 'lucide-svelte';
-  import { onMount } from 'svelte';
-  import { toast } from '$lib/utils/toast';
-  import { invoke } from '@tauri-apps/api/core';
-  import { confirm, save } from '@tauri-apps/plugin-dialog';
+  import { FileText, ArrowRight, Eye, Download, Play, Zap, ListX, Trash2 } from 'lucide-svelte';
   
   // Import store
   import { 
     appState,
-    clearAllFiles,
-    clearConversionAll,
-    getConvertedPaths,
-    isAllConverted,
-    getFileProgress,
-    startDeletingAll,
-    stopDeletingAll,
-    removeFile as removeFileStore,
     type FileItem
   } from '$lib/stores/app.svelte';
 
@@ -28,195 +16,24 @@
     showExtensions = true,
     onconvertone,
     onconvertall,
+    onclearall,
     onpreview,
     ondownload,
-    settings,
+    onremove,
   } = $props<{
     sourceFormatId: string;
     selectedTarget?: { id: string; name: string } | null;
     showExtensions?: boolean;
     onconvertone: (index: number) => void;
     onconvertall: () => void;
+    onclearall: () => void;
     onpreview: (fileId: string) => void;
     ondownload: (fileId: string) => void;
-    settings: { enable_archive: boolean; archive_format: string };
+    onremove: (index: number) => void;
   }>();
-
-  let itemsAnimated = $state<Set<string>>(new Set());
   
   // Используем state из appState
   let files = $derived(appState.files);
-  let convertedFiles = $derived(appState.convertedFiles);
-  let convertingFiles = $derived(appState.isConverting);
-  let isClearing = $derived(appState.isDeletingAll);
-
-  // Проверяем, все ли файлы сконвертированы
-  const allConverted = $derived(isAllConverted());
-
-  // Проверяем, включена ли архивация в настройках
-  const isArchiveEnabled = $derived(settings?.enable_archive ?? false);
-
-  async function removeFile(index: number) {
-    const file = files[index];
-    if (!file || convertingFiles.has(file.id)) return;
-
-    // Подтверждение удаления через Tauri dialog с переводом
-    const confirmed = await confirm(m.confirm_delete_file({ name: file.name }), {
-      title: m.confirm_delete_title(),
-      kind: 'warning',
-    });
-    if (!confirmed) return;
-
-    const el = document.querySelector(`[data-file-id="${file.id}"]`) as HTMLElement;
-    if (el) {
-      await el.animate(
-        [
-          { transform: 'translateX(0)', opacity: 1 },
-          { transform: 'translateX(300px)', opacity: 0 },
-        ],
-        { duration: 300, easing: 'ease-in', fill: 'forwards' },
-      ).finished;
-    }
-
-    // Удаляем через store
-    removeFileStore(file.id);
-    
-    toast.info(m.file_removed({ name: file.name }));
-  }
-
-  async function clearAllWithAnimation() {
-    if (isClearing) return;
-    
-    // Подтверждение очистки всех файлов через Tauri dialog с переводом
-    const confirmed = await confirm(m.confirm_clear_all(), {
-      title: m.confirm_clear_all_title(),
-      kind: 'warning',
-    });
-    if (!confirmed) return;
-    
-    startDeletingAll();
-    
-    const items = document.querySelectorAll('[data-file-item]');
-    const animations = Array.from(items).map(el =>
-      (el as HTMLElement).animate(
-        [
-          { transform: 'translateX(0)', opacity: 1 },
-          { transform: 'translateX(300px)', opacity: 0 },
-        ],
-        { duration: 300, easing: 'ease-in', fill: 'forwards' },
-      ).finished,
-    );
-    await Promise.all(animations);
-    
-    // Очищаем всё через store
-    clearAllFiles();
-    clearConversionAll();
-    
-    stopDeletingAll();
-    
-    toast.info(m.all_files_cleared());
-  }
-
-  async function downloadAllAsArchive() {
-    if (files.length === 0) {
-      toast.warning(m.no_files_to_archive());
-      return;
-    }
-
-    // Проверяем, что все файлы сконвертированы
-    if (!allConverted) {
-      toast.warning(m.convert_all_first());
-      return;
-    }
-
-    try {
-      // Получаем пути всех сконвертированных файлов
-      const convertedPaths = getConvertedPaths();
-
-      if (convertedPaths.length === 0) {
-        toast.warning(m.no_converted_files());
-        return;
-      }
-
-      // Формируем имя архива с уникальным значением
-      const archiveFormat = settings?.archive_format || 'zip';
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).slice(2, 8);
-      const defaultName = `formato_${timestamp}_${randomId}.${archiveFormat}`;
-
-      const filePath = await save({
-        defaultPath: defaultName,
-        title: m.save_archive(),
-        filters: [
-          {
-            name: `${archiveFormat.toUpperCase()} Archive`,
-            extensions: [archiveFormat],
-          },
-        ],
-      });
-
-      if (!filePath) {
-        toast.info(m.save_cancelled());
-        return;
-      }
-
-      await invoke('archive_multiple_files', {
-        files: convertedPaths,
-        outputPath: filePath,
-        format: archiveFormat,
-      });
-
-      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'archive';
-      toast.success(m.archive_saved({ name: fileName }));
-    } catch (e) {
-      console.error('[Download All Archive] Failed:', e);
-      toast.error(m.archive_error());
-    }
-  }
-
-  function animateNewItems() {
-    const items = document.querySelectorAll('[data-file-item]');
-    items.forEach((el, i) => {
-      const id = (el as HTMLElement).dataset.fileId;
-      if (id && !itemsAnimated.has(id)) {
-        itemsAnimated.add(id);
-        
-        // Начальное состояние: на 300px вправо и прозрачный
-        (el as HTMLElement).style.transform = 'translateX(300px)';
-        (el as HTMLElement).style.opacity = '0';
-        
-        // Запускаем анимацию к нулю с задержкой
-        setTimeout(() => {
-          (el as HTMLElement).animate(
-            [
-              { transform: 'translateX(300px)', opacity: 0 },
-              { transform: 'translateX(0)', opacity: 1 },
-            ],
-            { duration: 300, easing: 'ease-out', fill: 'forwards' },
-          );
-        }, i * 50);
-      }
-    });
-  }
-
-  // Анимируем новые элементы после монтирования
-  onMount(() => {
-    animateNewItems();
-  });
-
-  // Следим за изменениями файлов
-  $effect(() => {
-    // Сбрасываем анимацию для удалённых файлов
-    const currentIds = new Set(files.map((f: FileItem) => f.id));
-    for (const id of itemsAnimated) {
-      if (!currentIds.has(id)) {
-        itemsAnimated.delete(id);
-      }
-    }
-    
-    // Анимируем новые файлы
-    animateNewItems();
-  });
 </script>
 
 {#if files.length > 0}
@@ -245,26 +62,9 @@
           </Tooltip>
         {/if}
 
-        <!-- Кнопка "Скачать все как архив" -->
-        {#if isArchiveEnabled && allConverted}
-        <Tooltip>
-            <TooltipTrigger>
-            <button 
-                onclick={downloadAllAsArchive} 
-                class="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 dark:bg-violet-600 light:bg-purple-500 text-white hover:dark:bg-violet-700 hover:light:bg-purple-600 h-9 w-9 shadow-sm shadow-violet-500/20"
-            >
-                <FolderArchive class="h-4 w-4 group-hover:scale-110 transition-transform" />
-            </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
-            <p>{m.download_all_archive()}</p>
-            </TooltipContent>
-        </Tooltip>
-        {/if}
-
         <Tooltip>
           <TooltipTrigger>
-            <button onclick={clearAllWithAnimation} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-destructive/10 hover:text-destructive h-9 w-9 dark:text-muted-foreground light:text-purple-600/60 group/btn">
+            <button onclick={onclearall} class="cursor-pointer inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:bg-destructive/10 hover:text-destructive h-9 w-9 dark:text-muted-foreground light:text-purple-600/60 group/btn">
               <ListX class="h-5 w-5 group-hover/btn:scale-110 transition-transform" />
             </button>
           </TooltipTrigger>
@@ -277,26 +77,11 @@
 
     <div class="flex flex-col gap-2">
       {#each files as file, i (file.id)}
-        {@const isConverting = convertingFiles.has(file.id)}
-        {@const savedPath = convertedFiles.get(file.id)}
-        {@const progress = getFileProgress(file.id)}
-        
         <div
           data-file-item
           data-file-id={file.id}
           class="group relative flex items-center gap-4 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 p-3.5 transition-all duration-200 dark:hover:bg-violet-500/10 light:hover:bg-purple-200/70 dark:hover:border-violet-500/20 light:hover:border-purple-400/50 hover:shadow-sm overflow-hidden"
-          class:opacity-70={isConverting}
         >
-          <!-- Прогресс-бар для конвертации -->
-          {#if isConverting && progress}
-            <div class="absolute bottom-0 left-0 right-0 h-1 bg-gray-700">
-              <div 
-                class="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-300"
-                style="width: {Math.max(0, Math.min(progress.progress * 100, 100))}%"
-              />
-            </div>
-          {/if}
-
           <div class="shrink-0 flex items-center justify-center w-10 h-10 rounded-lg dark:bg-violet-500/20 light:bg-purple-300/60 dark:text-violet-400 light:text-purple-700 dark:group-hover:bg-violet-500/30 light:group-hover:bg-purple-400/60 dark:group-hover:text-violet-300 light:group-hover:text-purple-800 transition-colors">
             <FileText class="h-5 w-5" />
           </div>
@@ -306,16 +91,6 @@
               <span class="text-base font-medium dark:text-foreground light:text-purple-800/90 truncate" title={file.name}>
                 {showExtensions ? file.name : file.name.replace(/\.[^.]+$/, '')}
               </span>
-              {#if savedPath}
-                <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wider dark:text-emerald-400 light:text-emerald-600 dark:bg-emerald-400/10 light:bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
-                  {savedPath.format}
-                </span>
-              {/if}
-              {#if isConverting && progress}
-                <span class="shrink-0 text-[10px] font-mono dark:text-blue-400 light:text-blue-600 dark:bg-blue-400/10 light:bg-blue-500/10 px-1.5 py-0.5 rounded-md">
-                  {Math.round(progress.progress * 100)}%
-                </span>
-              {/if}
             </div>
             {#if selectedTarget}
               <div class="flex items-center gap-1.5 text-xs font-medium dark:text-muted-foreground/80 light:text-purple-700/60">
@@ -324,63 +99,52 @@
                 <span class="uppercase tracking-wide dark:text-violet-400 light:text-violet-600">{selectedTarget.id}</span>
               </div>
             {/if}
-            {#if isConverting && progress?.message}
-              <div class="text-xs dark:text-muted-foreground/70 light:text-purple-600/70 truncate">
-                {progress.message}
-              </div>
-            {/if}
           </div>
 
           <div class="flex items-center gap-1 shrink-0 pl-3 border-l dark:border-border/50 light:border-purple-300/40 ml-2">
             <Tooltip>
               <TooltipTrigger>
-                <button onclick={() => onpreview(file.id)} disabled={!savedPath} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:text-foreground light:hover:text-purple-800 h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <button onclick={() => onpreview(file.id)} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:text-foreground light:hover:text-purple-800 h-8 w-8 transition-colors">
                   <Eye class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
-                <p>{savedPath ? m.preview() : m.convert_first()}</p>
+                <p>{m.preview()}</p>
               </TooltipContent>
             </Tooltip>
 
             <Tooltip>
               <TooltipTrigger>
-                <button onclick={() => ondownload(file.id)} disabled={!savedPath} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:text-foreground light:hover:text-purple-800 h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <button onclick={() => ondownload(file.id)} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:text-foreground light:hover:text-purple-800 h-8 w-8 transition-colors">
                   <Download class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
-                <p>{savedPath ? m.download() : m.convert_first()}</p>
+                <p>{m.download()}</p>
               </TooltipContent>
             </Tooltip>
 
             {#if selectedTarget}
               <Tooltip>
                 <TooltipTrigger>
-                  {#if isConverting}
-                    <span class="inline-flex items-center justify-center rounded-md h-8 w-8">
-                      <LoaderCircle class="h-4 w-4 dark:text-violet-500 light:text-violet-600 animate-spin" />
-                    </span>
-                  {:else}
-                    <button onclick={() => onconvertone(i)} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-700 dark:hover:bg-violet-500 light:hover:bg-purple-500/50 dark:hover:text-white light:hover:text-white h-8 w-8 transition-all duration-200 bg-transparent hover:bg-purple-500/20">
-                      <Play class="h-4 w-4" />
-                    </button>
-                  {/if}
+                  <button onclick={() => onconvertone(i)} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-700 dark:hover:bg-violet-500 light:hover:bg-purple-500/50 dark:hover:text-white light:hover:text-white h-8 w-8 transition-all duration-200 bg-transparent hover:bg-purple-500/20">
+                    <Play class="h-4 w-4" />
+                  </button>
                 </TooltipTrigger>
                 <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
-                  <p>{isConverting ? m.converting() : m.convert()}</p>
+                  <p>{m.convert()}</p>
                 </TooltipContent>
               </Tooltip>
             {/if}
 
             <Tooltip>
               <TooltipTrigger>
-                <button onclick={() => removeFile(i)} disabled={isConverting} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive h-8 w-8 transition-colors disabled:opacity-30 disabled:cursor-not-allowed">
+                <button onclick={() => onremove(i)} class="cursor-pointer inline-flex items-center justify-center rounded-md dark:text-muted-foreground light:text-purple-600/60 dark:hover:bg-destructive/10 light:hover:bg-destructive/10 dark:hover:text-destructive light:hover:text-destructive h-8 w-8 transition-colors">
                   <Trash2 class="h-4 w-4" />
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" class="bg-popover text-popover-foreground border shadow-md">
-                <p>{isConverting ? m.cannot_remove() : m.remove()}</p>
+                <p>{m.remove()}</p>
               </TooltipContent>
             </Tooltip>
           </div>
