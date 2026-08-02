@@ -1,4 +1,3 @@
-<!-- +page.svelte -->
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
@@ -23,19 +22,12 @@
   import BackButton from '$lib/components/BackButton.svelte';
   
   // Import store
-  import { 
-    appState,
-    getNextId,
-    getTotalFiles,
-    addFile,
-    removeFile as removeFileStore,
-    clearAllFiles as clearAllFilesStore,
-  } from '$lib/stores/app.svelte';
+  import { appState, type FileItem } from '$lib/stores/app.svelte';
 
   let isAddToList = $state(false);
   
   const sourceFormatId: string = page.params.format!;
-  appState.sourceFormatId = sourceFormatId;
+  appState.currentFormatId = sourceFormatId;
   
   let settings = $derived(page.data.settings);
   const availability = $derived(page.data.availability);
@@ -48,9 +40,9 @@
 
   let selectedTarget = $state<Format | null>(null);
   
-  // Используем state из appState
-  let files = $derived(appState.files);
-  let totalFiles = $derived(getTotalFiles());
+  // Получаем файлы для текущего формата
+  let files = $derived(appState.getFilesForFormat(sourceFormatId));
+  let totalFiles = $derived(appState.getTotalFilesForFormat(sourceFormatId));
 
   let inputMode = $state<'file' | 'text'>(
     availability?.enable_text_mode ? 'file' : 'file'
@@ -189,14 +181,14 @@
   }
 
   // ============================================================
-  // ФУНКЦИИ ДЛЯ РАБОТЫ С ФАЙЛАМИ С АНИМАЦИЕЙ
+  // ФУНКЦИИ ДЛЯ РАБОТЫ С ФАЙЛАМИ
   // ============================================================
 
   async function addFilesHandler(filesToAdd: { path: string; name: string }[], suppressToast: boolean = false) {
-    const newFiles: { path: string; name: string; id: string }[] = [];
+    const newFiles: FileItem[] = [];
     
     for (const file of filesToAdd) {
-      const newId = getNextId();
+      const newId = appState.getNextIdForFormat(sourceFormatId);
       
       newFiles.push({
         path: file.path,
@@ -216,13 +208,12 @@
     for (let i = 0; i < newFiles.length; i++) {
       const file = newFiles[i];
       
-      // Добавляем один файл в store
-      addFile(file);
+      // Добавляем в store для конкретного формата
+      appState.addFileToFormat(sourceFormatId, file);
       
       // Ждем появления в DOM и анимируем
       await animateFileAdd(file.id);
       
-      // Небольшая задержка между файлами для эффекта
       if (i < newFiles.length - 1) {
         await new Promise(resolve => setTimeout(resolve, 100));
       }
@@ -243,11 +234,9 @@
     });
     if (!confirmed) return;
 
-    // Анимация удаления
     await animateFileRemove(file.id);
     
-    // Удаляем из store
-    removeFileStore(file.id);
+    appState.removeFileFromFormat(sourceFormatId, file.id);
     toast.info(m.file_removed({ name: file.name }));
   }
 
@@ -263,18 +252,13 @@
     });
     if (!confirmed) return;
     
-    // Анимация удаления всех файлов
     await animateAllFilesRemove();
     
-    // Очищаем store
-    clearAllFilesStore();
+    appState.clearFilesForFormat(sourceFormatId);
     toast.info(m.all_files_cleared());
   }
 
-  // ============================================================
-  // ЗАГЛУШКИ ДЛЯ НЕРАБОТАЮЩИХ ФУНКЦИЙ
-  // ============================================================
-
+  // Заглушки
   function convertOne(index: number) {
     console.log('🔜 convertOne:', index);
     toast.info('Конвертация временно отключена');
@@ -299,6 +283,8 @@
     if (e.key === 'Escape') goBack();
   }
 </script>
+
+<!-- Шаблон без изменений -->
 
 <svelte:window on:keydown={handleKeydown} />
 <ScrollContainer>

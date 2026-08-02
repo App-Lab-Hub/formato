@@ -11,108 +11,81 @@ export interface FileItem {
 }
 
 // ============================================================
-// ЛОКАЛЬНЫЙ РЕАКТИВНЫЙ STATE (ЗАМЫКАНИЕ)
+// ЛОКАЛЬНЫЙ РЕАКТИВНЫЙ STATE
 // ============================================================
-// Хранилище файлов по группам (ключ = sourceFormatId)
-// Инициализируем с пустым массивом для всех групп
+// Хранилище: { formatId: [FileItem, ...] }
 const filesMap = new SvelteMap<string, FileItem[]>();
 const counterMap = new SvelteMap<string, number>();
 
-let sourceFormatId = $state("");
+// Текущий формат (для отображения)
+let currentFormatId = $state("");
 
 // ============================================================
-// ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-// ============================================================
-
-function getGroupFiles(groupId: string): FileItem[] {
-  // Если группы нет, возвращаем пустой массив, НЕ мутируем SvelteMap
-  if (!filesMap.has(groupId)) {
-    return [];
-  }
-  return filesMap.get(groupId)!;
-}
-
-function getGroupCounter(groupId: string): number {
-  if (!counterMap.has(groupId)) {
-    return 0;
-  }
-  return counterMap.get(groupId)!;
-}
-
-// ============================================================
-// ЭКСПОРТ ЕДИНОГО ОБЪЕКТА STATE
+// ЭКСПОРТ
 // ============================================================
 export const appState = {
-  get files() {
-    return getGroupFiles(sourceFormatId);
-  },
-  get counter() {
-    return getGroupCounter(sourceFormatId);
-  },
-  get sourceFormatId() {
-    return sourceFormatId;
+  // Получить файлы для конкретного формата
+  getFilesForFormat(formatId: string): FileItem[] {
+    if (!filesMap.has(formatId)) {
+      return [];
+    }
+    return filesMap.get(formatId)!;
   },
 
-  set sourceFormatId(value: string) {
-    sourceFormatId = value;
+  // Получить все файлы (для текущего формата)
+  get files() {
+    return this.getFilesForFormat(currentFormatId);
+  },
+
+  get currentFormatId() {
+    return currentFormatId;
+  },
+
+  set currentFormatId(value: string) {
+    currentFormatId = value;
+  },
+
+  // Добавить файл в конкретный формат
+  addFileToFormat(formatId: string, file: FileItem) {
+    const current = this.getFilesForFormat(formatId);
+    filesMap.set(formatId, [...current, file]);
+  },
+
+  // Добавить файлы в конкретный формат
+  addFilesToFormat(formatId: string, newFiles: FileItem[]) {
+    const current = this.getFilesForFormat(formatId);
+    filesMap.set(formatId, [...current, ...newFiles]);
+  },
+
+  // Удалить файл из конкретного формата
+  removeFileFromFormat(formatId: string, fileId: string) {
+    const current = this.getFilesForFormat(formatId);
+    const filtered = current.filter(f => f.id !== fileId);
+    filesMap.set(formatId, filtered);
+  },
+
+  // Очистить файлы в конкретном формате
+  clearFilesForFormat(formatId: string) {
+    filesMap.set(formatId, []);
+    counterMap.set(formatId, 0);
+  },
+
+  // Получить следующий ID для формата
+  getNextIdForFormat(formatId: string): string {
+    const current = counterMap.get(formatId) || 0;
+    counterMap.set(formatId, current + 1);
+    return `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  },
+
+  // Получить количество файлов в формате
+  getTotalFilesForFormat(formatId: string): number {
+    return this.getFilesForFormat(formatId).length;
+  },
+
+  // Очистить всё
+  resetAll() {
+    filesMap.clear();
+    counterMap.clear();
+    currentFormatId = "";
   },
 };
-
-// ============================================================
-// ФУНКЦИИ ДЛЯ ФАЙЛОВ
-// ============================================================
-
-/** Добавить один файл */
-export function addFile(file: FileItem) {
-  const current = getGroupFiles(sourceFormatId);
-  filesMap.set(sourceFormatId, [...current, file]);
-}
-
-/** Добавить несколько файлов */
-export function addFiles(newFiles: FileItem[]) {
-  const current = getGroupFiles(sourceFormatId);
-  filesMap.set(sourceFormatId, [...current, ...newFiles]);
-}
-
-/** Удалить файл по ID */
-export function removeFile(fileId: string) {
-  const current = getGroupFiles(sourceFormatId);
-  const filtered = current.filter(f => f.id !== fileId);
-  filesMap.set(sourceFormatId, filtered);
-}
-
-/** Очистить все файлы в текущей группе */
-export function clearAllFiles() {
-  filesMap.set(sourceFormatId, []);
-  counterMap.set(sourceFormatId, 0);
-}
-
-/** Получить следующий ID для файла */
-export function getNextId(): string {
-  const current = getGroupCounter(sourceFormatId);
-  counterMap.set(sourceFormatId, current + 1);
-  return `file-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
-}
-
-/** Получить файл по ID */
-export function getFile(fileId: string): FileItem | undefined {
-  const current = getGroupFiles(sourceFormatId);
-  return current.find(f => f.id === fileId);
-}
-
-/** Получить общее количество файлов в текущей группе */
-export function getTotalFiles(): number {
-  return getGroupFiles(sourceFormatId).length;
-}
-
-/** Получить список всех файлов в текущей группе */
-export function getAllFiles(): FileItem[] {
-  return getGroupFiles(sourceFormatId);
-}
-
-/** Очистить всё (все группы) */
-export function resetAll() {
-  filesMap.clear();
-  counterMap.clear();
-  sourceFormatId = "";
-}
