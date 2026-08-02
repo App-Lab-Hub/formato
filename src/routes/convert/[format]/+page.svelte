@@ -1,3 +1,4 @@
+<!-- +page.svelte -->
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
@@ -185,9 +186,31 @@
   // ============================================================
 
   async function addFilesHandler(filesToAdd: { path: string; name: string }[], suppressToast: boolean = false) {
+    // Получаем хэши уже добавленных файлов
+    const existingHashes = new Set<string>();
+    for (const file of appState.getFilesForFormat(sourceFormatId)) {
+      try {
+        const hash = await invoke<string>('hash_file', { path: file.path });
+        existingHashes.add(hash);
+      } catch (e) {
+        console.warn('Failed to get hash for existing file:', file.path);
+      }
+    }
+
     const newFiles: FileItem[] = [];
+    let duplicates = 0;
     
     for (const file of filesToAdd) {
+      const hash = await invoke<string>('hash_file', { path: file.path });
+      
+      if (existingHashes.has(hash)) {
+        duplicates++;
+        continue;
+      }
+      
+      // Добавляем хэш в набор, чтобы не дублировать в рамках одной загрузки
+      existingHashes.add(hash);
+      
       const newId = appState.getNextIdForFormat(sourceFormatId);
       
       newFiles.push({
@@ -199,7 +222,11 @@
     
     if (newFiles.length === 0) {
       if (!suppressToast) {
-        toast.warning(m.file_no_new());
+        if (duplicates > 0) {
+          toast.warning(m.file_duplicate_all({ count: duplicates }));
+        } else {
+          toast.warning(m.file_no_new());
+        }
       }
       return;
     }
@@ -208,10 +235,7 @@
     for (let i = 0; i < newFiles.length; i++) {
       const file = newFiles[i];
       
-      // Добавляем в store для конкретного формата
       appState.addFileToFormat(sourceFormatId, file);
-      
-      // Ждем появления в DOM и анимируем
       await animateFileAdd(file.id);
       
       if (i < newFiles.length - 1) {
@@ -220,7 +244,12 @@
     }
     
     if (!suppressToast) {
-      toast.success(m.file_added({ count: newFiles.length }));
+      if (duplicates > 0) {
+        toast.success(m.file_added({ count: newFiles.length }));
+        toast.warning(m.file_duplicate_skipped({ count: duplicates }));
+      } else {
+        toast.success(m.file_added({ count: newFiles.length }));
+      }
     }
   }
 
@@ -283,8 +312,6 @@
     if (e.key === 'Escape') goBack();
   }
 </script>
-
-<!-- Шаблон без изменений -->
 
 <svelte:window on:keydown={handleKeydown} />
 <ScrollContainer>
