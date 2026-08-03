@@ -26,6 +26,7 @@
   import { appState, type FileItem } from '$lib/stores/app.svelte';
   import { openPath } from '@tauri-apps/plugin-opener';
   import { writeTextFile } from '@tauri-apps/plugin-fs';
+  import { SvelteSet } from 'svelte/reactivity';
 
   let isAddToList = $state(false);
   
@@ -50,8 +51,8 @@
   // Получаем сконвертированные файлы из store
   let convertedFiles = $derived(appState.getConvertedFilesForFormat(sourceFormatId));
 
-  // Состояние конвертации (временное, только для текущей сессии)
-  let convertingFileIds = $state<Set<string>>(new Set());
+  // Состояние конвертации — используем SvelteSet для реактивности
+  let convertingFileIds = $state(new SvelteSet<string>());
 
   let inputMode = $state<'file' | 'text'>(
     availability?.enable_text_mode ? 'file' : 'file'
@@ -316,10 +317,42 @@
     });
     if (!confirmed) return;
     
-    await animateAllFilesRemove();
+    // Удаляем только файлы, которые НЕ конвертируются
+    const filesToRemove = files.filter(f => !convertingFileIds.has(f.id));
     
-    appState.clearFilesForFormat(sourceFormatId);
-    toast.info(m.all_files_cleared());
+    if (filesToRemove.length === 0) {
+      toast.warning(m.no_files_to_delete());
+      return;
+    }
+    
+    // Анимируем удаление только тех файлов, которые удаляем
+    const items = document.querySelectorAll('[data-file-item]');
+    const animations = Array.from(items)
+      .filter(el => {
+        const fileId = (el as HTMLElement).dataset.fileId;
+        return fileId && filesToRemove.some(f => f.id === fileId);
+      })
+      .map(el =>
+        (el as HTMLElement).animate(
+          [
+            { transform: 'translateX(0)', opacity: 1 },
+            { transform: 'translateX(300px)', opacity: 0 },
+          ],
+          { duration: 300, easing: 'ease-in', fill: 'forwards' }
+        ).finished
+      );
+    await Promise.all(animations);
+    
+    // Удаляем только те файлы, которые не конвертируются
+    for (const file of filesToRemove) {
+      appState.removeFileFromFormat(sourceFormatId, file.id);
+    }
+    
+    toast.success(m.files_deleted({ count: filesToRemove.length }));
+    
+    if (filesToRemove.length < files.length) {
+      toast.warning(m.files_skipped_converting());
+    }
   }
 
   // ============================================================
@@ -335,6 +368,7 @@
       return;
     }
 
+    const startTime = Date.now();
     convertingFileIds.add(file.id);
     
     try {
@@ -366,6 +400,12 @@
       const errorMsg = e instanceof Error ? e.message : m.backend_connection_error();
       toast.error(m.convert_error({ name: file.name, error: errorMsg }));
     } finally { 
+      // Минимальная задержка 0.5 секунды для лоадера
+      const elapsed = Date.now() - startTime;
+      const minDelay = 500;
+      if (elapsed < minDelay) {
+        await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
+      }
       convertingFileIds.delete(file.id); 
     }
   }

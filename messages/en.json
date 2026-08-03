@@ -239,5 +239,7 @@
 
   "remove_file": "Remove file",
 
-  "files_management_subtitle": "Manage your converted and temporary files"
+  "files_management_subtitle": "Manage your converted and temporary files",
+
+  "files_skipped_converting_en": "Some files skipped (conversion in progress)"
 }
