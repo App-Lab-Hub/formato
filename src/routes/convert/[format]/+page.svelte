@@ -1,3 +1,4 @@
+
 <!-- +page.svelte -->
 <script lang="ts">
   import { page } from '$app/state';
@@ -25,7 +26,7 @@
   // Import store
   import { appState, type FileItem } from '$lib/stores/app.svelte';
   import { openPath } from '@tauri-apps/plugin-opener';
-  import { writeTextFile } from '@tauri-apps/plugin-fs';
+  import { writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
   import { SvelteSet } from 'svelte/reactivity';
 
   let isAddToList = $state(false);
@@ -461,132 +462,166 @@
     }
   }
 
-  // ============================================================
-  // СКАЧИВАНИЕ
-  // ============================================================
 
-  async function downloadFile(fileId: string) {
-    // Получаем сконвертированный файл
-    const converted = appState.getConvertedFile(sourceFormatId, fileId);
-    if (!converted) {
-      toast.warning(m.convert_first_download());
-      return;
-    }
+// ============================================================
+// СКАЧИВАНИЕ
+// ============================================================
 
-    const file = files.find(f => f.id === fileId);
-    const baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
+
+async function downloadFile(fileId: string) {
+  const converted = appState.getConvertedFile(sourceFormatId, fileId);
+  if (!converted) {
+    toast.warning(m.convert_first_download());
+    return;
+  }
+
+  const file = files.find(f => f.id === fileId);
+  // Извлекаем оригинальное имя (до @hash@)
+  let baseName = file?.name.replace(/\.[^.]+$/, '') ?? 'file';
+  if (baseName.includes('@hash@')) {
+    baseName = baseName.split('@hash@')[0];
+  }
+  
+  try {
+    const isArchive = settings?.enable_archive && settings?.archive_format;
     
-    try {
-      // Проверяем, включена ли архивация
-      const isArchive = settings?.enable_archive && settings?.archive_format;
-      const ext = isArchive ? settings.archive_format : converted.format;
-      const defaultName = `formato_${baseName}.${ext}`;
-      
-      // Открываем диалог сохранения
-      const filePath = await save({
-        defaultPath: defaultName,
-        title: isArchive ? m.save_archive() : m.save_file(),
-        filters: isArchive ? [
-          {
-            name: `${(settings?.archive_format || 'zip').toUpperCase()} Archive`,
-            extensions: [settings?.archive_format || 'zip'],
-          },
-        ] : undefined,
-      });
-      
-      if (!filePath) {
-        toast.info(m.save_cancelled());
-        return;
-      }
-      
-      if (isArchive) {
-        // Создаём архив
-        await invoke('archive_file', { 
-          sourcePath: converted.path, 
-          outputPath: filePath, 
-          format: settings.archive_format 
-        });
-      } else {
-        // Читаем и сохраняем файл
-        const content = await invoke<string>('read_file_content', { path: converted.path });
-        await writeTextFile(filePath, content);
-      }
-      
-      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'file';
-      toast.success(m.file_saved({ name: fileName }));
-    } catch (e) { 
-      console.error('[Download] Failed:', e);
-      toast.error(m.save_error());
+    const ext = isArchive ? settings.archive_format : converted.format;
+    const defaultName = `formato_${baseName}.${ext}`;
+    
+    const filePath = await save({
+      defaultPath: defaultName,
+      title: isArchive ? m.save_archive() : m.save_file(),
+      filters: isArchive ? [
+        {
+          name: `${(settings?.archive_format || 'zip').toUpperCase()} Archive`,
+          extensions: [settings?.archive_format || 'zip'],
+        },
+      ] : undefined,
+    });
+    
+    if (!filePath) {
+      toast.info(m.save_cancelled());
+      return;
     }
+    
+    if (isArchive) {
+      // ✅ Передаём имя файла внутри архива
+      const nameInsideArchive = `formato_${baseName}.${converted.format}`;
+      await invoke('archive_file', { 
+        sourcePath: converted.path, 
+        outputPath: filePath, 
+        format: settings.archive_format,
+        nameInArchive: nameInsideArchive,  // ← новое имя внутри архива
+      });
+    } else {
+      const bytes = await invoke<number[]>('read_file_bytes', { path: converted.path });
+      await writeFile(filePath, new Uint8Array(bytes));
+    }
+    
+    const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'file';
+    toast.success(m.file_saved({ name: fileName }));
+  } catch (e) { 
+    console.error('[Download] Failed:', e);
+    toast.error(m.save_error());
+  }
+}
+
+
+
+
+// ============================================================
+// СКАЧИВАНИЕ ВСЕХ КАК АРХИВ
+// ============================================================
+
+async function downloadAllAsArchive() {
+  if (files.length === 0) {
+    toast.warning(m.no_files_to_archive());
+    return;
   }
 
-  // ============================================================
-  // СКАЧИВАНИЕ ВСЕХ КАК АРХИВ
-  // ============================================================
+  const allConverted = files.every(f => convertedFiles.has(f.id));
+  if (!allConverted) {
+    toast.warning(m.convert_all_first());
+    return;
+  }
 
-  async function downloadAllAsArchive() {
-    if (files.length === 0) {
-      toast.warning(m.no_files_to_archive());
-      return;
-    }
-
-    // Проверяем, что все файлы сконвертированы
-    const allConverted = files.every(f => convertedFiles.has(f.id));
-    if (!allConverted) {
-      toast.warning(m.convert_all_first());
-      return;
-    }
-
-    try {
-      // Получаем пути всех сконвертированных файлов
-      const convertedPaths: string[] = [];
-      for (const file of files) {
-        const converted = convertedFiles.get(file.id);
-        if (converted) {
-          convertedPaths.push(converted.path);
+  try {
+    // Получаем пути и оригинальные имена файлов
+    const filesData: { path: string; name: string }[] = [];
+    const usedNames = new Set<string>();
+    
+    for (const file of files) {
+      const converted = convertedFiles.get(file.id);
+      if (converted) {
+        // Извлекаем оригинальное имя (до @hash@)
+        let baseName = file.name.replace(/\.[^.]+$/, '');
+        if (baseName.includes('@hash@')) {
+          baseName = baseName.split('@hash@')[0];
         }
+        
+        let finalName = `formato_${baseName}.${converted.format}`;
+        
+        // Проверяем на дубликаты
+        if (usedNames.has(finalName)) {
+          let counter = 1;
+          const nameWithoutExt = finalName.replace(/\.[^.]+$/, '');
+          const ext = finalName.split('.').pop() || converted.format;
+          do {
+            finalName = `${nameWithoutExt}${counter}.${ext}`;
+            counter++;
+          } while (usedNames.has(finalName));
+        }
+        usedNames.add(finalName);
+        
+        filesData.push({
+          path: converted.path,
+          name: finalName,
+        });
       }
-
-      if (convertedPaths.length === 0) {
-        toast.warning(m.no_converted_files());
-        return;
-      }
-
-      // Формируем имя архива
-      const archiveFormat = settings?.archive_format || 'zip';
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).slice(2, 8);
-      const defaultName = `formato_${timestamp}_${randomId}.${archiveFormat}`;
-
-      const filePath = await save({
-        defaultPath: defaultName,
-        title: m.save_archive(),
-        filters: [
-          {
-            name: `${archiveFormat.toUpperCase()} Archive`,
-            extensions: [archiveFormat],
-          },
-        ],
-      });
-
-      if (!filePath) {
-        toast.info(m.save_cancelled());
-        return;
-      }
-
-      await invoke('archive_multiple_files', {
-        files: convertedPaths,
-        outputPath: filePath,
-        format: archiveFormat,
-      });
-
-      const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'archive';
-      toast.success(m.archive_saved({ name: fileName }));
-    } catch (e) {
-      console.error('[Download All Archive] Failed:', e);
-      toast.error(m.archive_error());
     }
+
+    if (filesData.length === 0) {
+      toast.warning(m.no_converted_files());
+      return;
+    }
+
+    // Формируем имя архива
+    const archiveFormat = settings?.archive_format || 'zip';
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).slice(2, 8);
+    const defaultName = `formato_${timestamp}_${randomId}.${archiveFormat}`;
+
+    const filePath = await save({
+      defaultPath: defaultName,
+      title: m.save_archive(),
+      filters: [
+        {
+          name: `${archiveFormat.toUpperCase()} Archive`,
+          extensions: [archiveFormat],
+        },
+      ],
+    });
+
+    if (!filePath) {
+      toast.info(m.save_cancelled());
+      return;
+    }
+
+    // Для ZIP используем archive_multiple_files_with_names
+    await invoke('archive_multiple_files', {
+      files: filesData,
+      outputPath: filePath,
+      format: archiveFormat,
+    });
+
+    const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'archive';
+    toast.success(m.archive_saved({ name: fileName }));
+  } catch (e) {
+    console.error('[Download All Archive] Failed:', e);
+    toast.error(m.archive_error());
   }
+}
+
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') goBack();

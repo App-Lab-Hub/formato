@@ -849,6 +849,13 @@ pub async fn read_file_content(path: String) -> Result<String, String> {
 }
 
 #[tauri::command]
+pub async fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
+    tokio::fs::read(&path)
+        .await
+        .map_err(|e| format!("Cannot read file: {e}"))
+}
+
+#[tauri::command]
 pub async fn open_file(path: String) -> Result<(), String> {
     opener::open(&path).map_err(|e| format!("Cannot open file: {e}"))
 }

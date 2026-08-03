@@ -61,6 +61,7 @@ pub fn run() {
             // Convert
             convert::convert_file,
             convert::read_file_content,
+            convert::read_file_bytes,
             convert::open_file,
             convert::hash_file,
             
