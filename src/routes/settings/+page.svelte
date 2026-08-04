@@ -7,9 +7,8 @@
     Sun, Moon, Monitor, Languages, Palette, Eye, Database, 
     FolderOpen, FileCheck, Shield, Archive, ShieldCheck, 
     Mic, Speaker, CheckCircle, XCircle, 
-    Download, LoaderCircle, Globe, Flag, User, UserRound,
-    Sparkles, Zap, Cpu, HardDrive, Lock, ShieldAlert,
-    Check, AlertTriangle
+    Download, LoaderCircle, Globe, User, UserRound,
+    Cpu, Check, AlertTriangle
   } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { onMount } from 'svelte';
@@ -20,6 +19,7 @@
   import { toast } from '$lib/utils/toast';
   import { getModelsStatus, type ModelsStatus } from '$lib/data/models';
   import { invoke } from '@tauri-apps/api/core';
+  import { loader } from '$lib/stores/loader.svelte';
 
   // ✅ Получаем modelsStatus из layout через page.data
   let modelsStatus = $derived<ModelsStatus | null>(page.data.modelsStatus);
@@ -36,10 +36,6 @@
   let archiveFormat = $state(settings.archive_format);
   let synthesisModel = $state(settings.synthesis_model);
   let recognitionModel = $state(settings.recognition_model);
-
-  // Состояние загрузки для кнопок скачивания
-  let downloadingSynthesis = $state(false);
-  let downloadingRecognition = $state(false);
 
   const maxPreviewSizes = [0.25, 0.5, 1.0, 10.0, 50.0, 100.0, 500.0, 1024.0];
 
@@ -96,10 +92,10 @@
   }
 
   async function downloadSynthesisModel() {
-    if (downloadingSynthesis) return;
+    if (loader.downloadingSynthesis) return;
     
     const startTime = Date.now();
-    downloadingSynthesis = true;
+    loader.startDownloadingSynthesis();
     
     try {
       const modelsToDownload = [
@@ -123,15 +119,15 @@
       if (elapsed < minDelay) {
         await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
       }
-      downloadingSynthesis = false;
+      loader.stopDownloadingSynthesis();
     }
   }
 
   async function downloadRecognitionModel() {
-    if (downloadingRecognition) return;
+    if (loader.downloadingRecognition) return;
     
     const startTime = Date.now();
-    downloadingRecognition = true;
+    loader.startDownloadingRecognition();
     
     try {
       await invoke('download_recognition_model', { modelName: recognitionModel });
@@ -146,7 +142,7 @@
       if (elapsed < minDelay) {
         await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
       }
-      downloadingRecognition = false;
+      loader.stopDownloadingRecognition();
     }
   }
 
@@ -340,10 +336,10 @@
             </div>
             <button 
               onclick={downloadSynthesisModel}
-              disabled={downloadingSynthesis}
+              disabled={loader.downloadingSynthesis}
               class="cursor-pointer mt-4 px-4 py-2 rounded-lg border-2 dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60 text-sm font-medium transition-all hover:shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {#if downloadingSynthesis}
+              {#if loader.downloadingSynthesis}
                 <LoaderCircle class="h-4 w-4 animate-spin" />
                 Загрузка...
               {:else}
@@ -408,10 +404,10 @@
             </div>
             <button 
               onclick={downloadRecognitionModel}
-              disabled={downloadingRecognition}
+              disabled={loader.downloadingRecognition}
               class="cursor-pointer mt-4 px-4 py-2 rounded-lg border-2 dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60 text-sm font-medium hover:shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {#if downloadingRecognition}
+              {#if loader.downloadingRecognition}
                 <LoaderCircle class="h-4 w-4 animate-spin" />
                 Загрузка...
               {:else}
