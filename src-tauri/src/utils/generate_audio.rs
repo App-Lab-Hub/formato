@@ -5,12 +5,10 @@ use tempfile::Builder;
 use crate::paths;
 use piper_rs::Piper;
 use std::fs::File;
-use reqwest::blocking::Client;
-use std::time::Duration;
-use anyhow::anyhow;
 use std::io::Write;
 use hound::{WavSpec, WavWriter};
-
+use crate::settings::get_settings;
+use std::path::PathBuf;
 /// Разбивает текст на части по предложениям
 fn split_text_into_chunks(text: &str, max_chars: usize) -> Vec<String> {
     let sentences: Vec<&str> = text
@@ -21,12 +19,11 @@ fn split_text_into_chunks(text: &str, max_chars: usize) -> Vec<String> {
     let mut current_chunk = String::new();
     
     for sentence in sentences {
-        if current_chunk.len() + sentence.len() > max_chars {
-            if !current_chunk.is_empty() {
+        if current_chunk.len() + sentence.len() > max_chars
+            && !current_chunk.is_empty() {
                 chunks.push(current_chunk.clone());
                 current_chunk.clear();
             }
-        }
         current_chunk.push_str(sentence);
     }
     
@@ -63,65 +60,36 @@ fn detect_language(text: &str) -> String {
     }
 }
 
-/// Получение модели для языка
-fn get_model_for_language(lang: &str) -> &'static str {
+/// Получение модели для языка из настроек (синхронная версия)
+fn get_model_for_language(lang: &str) -> String {
+    // Блокирующий вызов для синхронной функции
+    let settings = tokio::task::block_in_place(|| {
+        tokio::runtime::Handle::current()
+            .block_on(async { get_settings().await })
+    });
+    
+    let synthesis_map = settings.synthesis_model;
+    
     match lang {
-        "ru" => "ru_RU-dmitri-medium",
-        "en" => "en_US-lessac-medium",
-        _ => "ru_RU-dmitri-medium",
+        "ru" => synthesis_map.get("ru").cloned().unwrap_or("ru_RU-dmitri-medium".to_string()),
+        "en" => synthesis_map.get("en").cloned().unwrap_or("en_US-lessac-medium".to_string()),
+        _ => synthesis_map.get("en").cloned().unwrap_or("en_US-lessac-medium".to_string()),
     }
 }
 
-/// Скачивание модели Piper с Hugging Face
-fn download_piper_model(model_name: &str, onnx_path: &Path, config_path: &Path) -> Result<(), String> {
-    let base_url = "https://huggingface.co/rhasspy/piper-voices/resolve/main";
-    
-    let (lang, voice, voice_name) = if model_name.starts_with("ru_RU") {
-        ("ru", "ru_RU", "dmitri")
-    } else if model_name.starts_with("en_US") {
-        ("en", "en_US", "lessac")
-    } else {
-        ("ru", "ru_RU", "dmitri")
-    };
-    
-    let onnx_url = format!("{}/{}/{}/{}/medium/{}.onnx", base_url, lang, voice, voice_name, model_name);
-    let config_url = format!("{}/{}/{}/{}/medium/{}.onnx.json", base_url, lang, voice, voice_name, model_name);
-    
-    download_file(&onnx_url, onnx_path)?;
-    download_file(&config_url, config_path)?;
-    
-    Ok(())
-}
-
-/// Скачивание файла
-fn download_file(url: &str, path: &Path) -> Result<(), String> {
-    println!("   Скачиваю {}...", url);
-    
-    let client = Client::builder()
-        .timeout(Duration::from_secs(300))
-        .build()
-        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
-    
-    let response = client.get(url)
-        .send()
-        .map_err(|e| format!("Download failed: {}", e))?;
-    
-    if !response.status().is_success() {
-        return Err(format!("HTTP error: {}", response.status()));
+/// Получить путь к модели (без скачивания)
+fn get_model_path(model_name: &str) -> Result<PathBuf, String> {
+    let model_dir = paths::app_root().join("models/piper");
+    if !model_dir.exists() {
+        return Err(format!("Models directory does not exist: {:?}", model_dir));
     }
     
-    let bytes = response.bytes()
-        .map_err(|e| format!("Failed to read response: {}", e))?;
+    let onnx_path = model_dir.join(format!("{}.onnx", model_name));
+    if !onnx_path.exists() {
+        return Err(format!("Model file not found: {:?}", onnx_path));
+    }
     
-    let mut file = File::create(path)
-        .map_err(|e| format!("Failed to create file: {}", e))?;
-    
-    file.write_all(&bytes)
-        .map_err(|e| format!("Failed to write file: {}", e))?;
-    
-    println!("   ✅ Скачано ({} байт)", bytes.len());
-    
-    Ok(())
+    Ok(onnx_path)
 }
 
 /// Генерация речи через Piper с чанкингом, склейкой аудио и автоопределением языка
@@ -140,18 +108,19 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
     let model_dir = paths::app_root().join("models/piper");
     
     if !model_dir.exists() {
-        std::fs::create_dir_all(&model_dir)
-            .map_err(|e| format!("Failed to create models directory: {}", e))?;
+        return Err(format!("Models directory does not exist: {:?}", model_dir));
     }
     
     let onnx_path = model_dir.join(format!("{}.onnx", model_name));
     let config_path = model_dir.join(format!("{}.onnx.json", model_name));
     
-    // Скачиваем модель если её нет
+    // Проверяем наличие модели
     if !onnx_path.exists() {
-        println!("📥 Скачиваю модель Piper ({}, ~63 МБ)...", model_name);
-        download_piper_model(model_name, &onnx_path, &config_path)?;
-        println!("✅ Модель скачана!");
+        return Err(format!("Model file not found: {:?}. Please download it in settings.", onnx_path));
+    }
+    
+    if !config_path.exists() {
+        return Err(format!("Model config file not found: {:?}. Please download it in settings.", config_path));
     }
     
     println!("🔄 Загружаем модель Piper ({})...", model_name);
@@ -192,8 +161,6 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
                 false,
                 None,                    // speaker_id (None = используем дефолтный)
                 Some(1.5),              // length_scale - 1.5 = медленнее и плавнее
-                // Some(0.667),            // noise_scale (стандарт)
-                // Some(0.8),              // noise_w_scale (стандарт)
                 None,
                 None,
             )

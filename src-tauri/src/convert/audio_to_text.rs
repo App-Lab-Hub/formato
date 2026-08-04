@@ -9,8 +9,8 @@ use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash, pars
 use crate::convert::audio::convert_audio_to_audio;
 use std::path::{Path, PathBuf};
 use ffmpeg_sidecar::command::FfmpegCommand;
-use crate::convert::is_file_cached;
 use sea_orm::DatabaseConnection;
+use crate::settings::get_settings;
 
 pub async fn convert_audio_to_text(
     db: &DatabaseConnection,
@@ -21,9 +21,10 @@ pub async fn convert_audio_to_text(
     // Если входной файл не WAV - конвертируем в WAV через convert_audio_to_audio
     let audio_path = convert_audio_to_audio(path, from, "wav")?;
 
-
-    
-    let model_path = get_or_download_model()?;
+    // ✅ Получаем выбранную модель из настроек
+    let settings = get_settings().await;
+    let model_name = settings.recognition_model;
+    let model_path = get_model_path(&model_name)?;
     
     let mut engine = WhisperEngine::load(&model_path)
         .map_err(|e| format!("Failed to load Whisper model: {}", e))?;
@@ -35,15 +36,6 @@ pub async fn convert_audio_to_text(
         .map_err(|e| format!("Failed to load WAV: {}", e))?;
     
     let _ = std::fs::remove_file(&temp_path);
-
-    // println!("REMOVE ===={}===========",!is_file_cached(db, path, from, "wav").await?);
-
-
-    // Если создавали WAV через convert_audio_to_audio - проверяем кеш перед удалением
-    // if !is_file_cached(db, path, from, "wav").await? {
-    //     println!("REMOVE ===={}===========",audio_path);
-    //         let _ = std::fs::remove_file(&audio_path);
-    //     }
     
     // Создаем VAD с настройками для 16kHz
     // frame_size = 512 samples = 32ms при 16kHz
@@ -98,14 +90,13 @@ pub async fn convert_audio_to_text(
     
     Ok(output_path)
 }
+
 /// Конвертирует в 16kHz моно WAV для Whisper с очисткой и улучшением речи
 fn convert_to_16khz_wav(input_path: &str, output_path: &Path) -> Result<(), String> {
     let output_str = output_path.to_str().ok_or("Invalid temp path")?;
-    // let filter_string = "highpass=f=200,afftdn,dynaudnorm";
 
     let mut cmd = FfmpegCommand::new();
     cmd.input(input_path);
-    // cmd.args(&["-af", filter_string]);
     cmd.args(&["-ar", "16000"]);
     cmd.args(&["-ac", "1"]);
     cmd.args(&["-c:a", "pcm_s16le"]);
@@ -137,34 +128,17 @@ fn get_safe_temp_wav_path() -> PathBuf {
     std::env::temp_dir().join(format!("whisper_input_{}.wav", timestamp))
 }
 
-fn get_or_download_model() -> Result<std::path::PathBuf, String> {
+/// Получить путь к модели (без скачивания)
+fn get_model_path(model_name: &str) -> Result<std::path::PathBuf, String> {
     let model_dir = crate::paths::app_root().join("models/whisper");
     if !model_dir.exists() {
-        std::fs::create_dir_all(&model_dir).map_err(|e| format!("Cannot create model dir: {}", e))?;
+        return Err(format!("Models directory does not exist: {:?}", model_dir));
     }
     
-    let model_name = "ggml-tiny-q5_1.bin";
-    // let model_name = "ggml-base-q5_1.bin";
-
     let model_path = model_dir.join(model_name);
-    if model_path.exists() {
-        return Ok(model_path);
+    if !model_path.exists() {
+        return Err(format!("Model file not found: {:?}", model_path));
     }
-    
-    let url = format!("https://huggingface.co/ggerganov/whisper.cpp/resolve/main/{}", model_name);
-    let client = reqwest::blocking::Client::builder()
-        .timeout(std::time::Duration::from_secs(600))
-        .build()
-        .map_err(|e| format!("Failed to create HTTP client: {}", e))?;
-    
-    let response = client.get(&url).send().map_err(|e| format!("Download request failed: {}", e))?;
-    if !response.status().is_success() {
-        return Err(format!("Server returned error: {}", response.status()));
-    }
-    
-    let bytes = response.bytes().map_err(|e| format!("Failed to read download bytes: {}", e))?;
-    let mut file = std::fs::File::create(&model_path).map_err(|e| format!("Failed to create model file: {}", e))?;
-    std::io::Write::write_all(&mut file, &bytes).map_err(|e| format!("Failed to write model data: {}", e))?;
     
     Ok(model_path)
 }
