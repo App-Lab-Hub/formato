@@ -1,13 +1,23 @@
 <!-- src/routes/settings/+page.svelte -->
 <script lang="ts">
+  import { page } from '$app/state';
   import { goto } from '$app/navigation';
-  import { ArrowLeft, Sun, Moon, Monitor, Languages, Palette, Eye, Database, FolderOpen, FileCheck, Shield, Archive, ShieldCheck } from 'lucide-svelte';
+  import { invalidateAll } from '$app/navigation';
+  import { Sun, Moon, Monitor, Languages, Palette, Eye, Database, FolderOpen, FileCheck, Shield, Archive, ShieldCheck, Mic, Speaker, CheckCircle, XCircle } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { onMount } from 'svelte';
   import { getSettings, saveSettings, type AppSettings } from '$lib/data/settings';
   import { formatSize } from '$lib/utils/format';
   import { m } from '$lib/paraglide/messages';
   import BackButton from '$lib/components/BackButton.svelte';
+  import { toast } from '$lib/utils/toast';
+  import { Download, LoaderCircle } from '@lucide/svelte';
+  import { getModelsStatus, type ModelsStatus } from '$lib/data/models';
+  import { invoke } from '@tauri-apps/api/core';
+
+  // ✅ Получаем modelsStatus из layout через page.data
+  let modelsStatus = $derived<ModelsStatus | null>(page.data.modelsStatus);
+  let loadingModels = $derived(modelsStatus === null);
 
   let settings = $state<AppSettings>(getSettings());
   let theme = $state(settings.theme);
@@ -18,8 +28,52 @@
   let enableCache = $state(settings.enable_cache);
   let enableArchive = $state(settings.enable_archive);
   let archiveFormat = $state(settings.archive_format);
+  let synthesisModel = $state(settings.synthesis_model);
+  let recognitionModel = $state(settings.recognition_model);
+
+  // Состояние загрузки для кнопок скачивания
+  let downloadingSynthesis = $state(false);
+  let downloadingRecognition = $state(false);
 
   const maxPreviewSizes = [0.25, 0.5, 1.0, 10.0, 50.0, 100.0, 500.0, 1024.0];
+
+  // Список всех моделей синтеза
+  const synthesisModels = [
+    { id: 'ru', label: 'Дмитрий (мужской)', model: 'ru_RU-dmitri-medium' },
+    { id: 'ru', label: 'Ирина (женский)', model: 'ru_RU-irina-medium' },
+    { id: 'en', label: 'Lessac (мужской)', model: 'en_US-lessac-medium' },
+    { id: 'en', label: 'Amy (женский)', model: 'en_US-amy-medium' }
+  ];
+
+  // Список моделей распознавания
+  const recognitionModels = [
+    { id: 'ggml-tiny-q5_1.bin', label: 'Tiny', desc: 'Самая быстрая' },
+    { id: 'ggml-base-q5_1.bin', label: 'Base', desc: 'Быстрая' },
+    { id: 'ggml-small-q5_1.bin', label: 'Small', desc: 'Средняя' },
+    { id: 'ggml-medium-q5_0.bin', label: 'Medium', desc: 'Высокая' },
+    { id: 'ggml-large-v3-turbo-q5_0.bin', label: 'Large', desc: 'Максимальная' }
+  ];
+
+  // ✅ Обновляем статус после скачивания через invalidateAll
+  async function reloadModelsStatus() {
+    try {
+      await invalidateAll();
+      // После invalidateAll page.data.modelsStatus обновится автоматически
+      console.log('✅ Models status reloaded via invalidateAll');
+    } catch (e) {
+      console.error('❌ Failed to reload models status:', e);
+    }
+  }
+
+  function isSynthesisModelDownloaded(modelName: string): boolean {
+    if (!modelsStatus) return false;
+    return modelsStatus.synthesis[modelName]?.exists || false;
+  }
+
+  function isRecognitionModelDownloaded(modelName: string): boolean {
+    if (!modelsStatus) return false;
+    return modelsStatus.recognition[modelName]?.exists || false;
+  }
 
   function goBack() {
     goto('/');
@@ -31,7 +85,64 @@
       max_preview_size: maxPreviewSize,
       show_extensions: showExtensions, enable_cache: enableCache,
       enable_archive: enableArchive, archive_format: archiveFormat,
+      synthesis_model: synthesisModel,
+      recognition_model: recognitionModel,
     });
+  }
+
+  async function downloadSynthesisModel() {
+    if (downloadingSynthesis) return;
+    
+    const startTime = Date.now();
+    downloadingSynthesis = true;
+    
+    try {
+      const modelsToDownload = [
+        { lang: 'ru', model: synthesisModel.ru },
+        { lang: 'en', model: synthesisModel.en }
+      ];
+      
+      for (const { lang, model } of modelsToDownload) {
+        toast.info(`Скачивание модели ${lang.toUpperCase()}...`);
+        await invoke('download_synthesis_model', { modelName: model });
+      }
+      
+      toast.success('Модели синтеза речи успешно скачаны!');
+      await reloadModelsStatus();
+    } catch (e) {
+      toast.error('Ошибка при скачивании модели');
+      console.error(e);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const minDelay = 500;
+      if (elapsed < minDelay) {
+        await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
+      }
+      downloadingSynthesis = false;
+    }
+  }
+
+  async function downloadRecognitionModel() {
+    if (downloadingRecognition) return;
+    
+    const startTime = Date.now();
+    downloadingRecognition = true;
+    
+    try {
+      await invoke('download_recognition_model', { modelName: recognitionModel });
+      toast.success('Модель распознавания речи успешно скачана!');
+      await reloadModelsStatus();
+    } catch (e) {
+      toast.error('Ошибка при скачивании модели');
+      console.error(e);
+    } finally {
+      const elapsed = Date.now() - startTime;
+      const minDelay = 500;
+      if (elapsed < minDelay) {
+        await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
+      }
+      downloadingRecognition = false;
+    }
   }
 
   onMount(() => {
@@ -44,6 +155,7 @@
   $effect(() => {
     save();
   });
+
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') goBack();
   }
@@ -121,6 +233,156 @@
                 </button>
               {/each}
             </div>
+          </div>
+
+          <!-- Модель синтеза речи -->
+          <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <Speaker class="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div>
+                <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">Модель синтеза речи</h2>
+                <p class="text-sm dark:text-muted-foreground light:text-purple-700/70">
+                  Текущая модель: <span class="font-mono text-purple-600 dark:text-purple-400">
+                    {synthesisModel.ru}
+                  </span> (RU) / <span class="font-mono text-purple-600 dark:text-purple-400">
+                    {synthesisModel.en}
+                  </span> (EN)
+                </p>
+                {#if loadingModels}
+                  <p class="text-xs text-muted-foreground mt-1">Проверка моделей...</p>
+                {:else if modelsStatus}
+                  <p class="text-xs mt-1">
+                    {#if modelsStatus.has_any_synthesis}
+                      <span class="text-emerald-400">✅ Модели скачаны</span>
+                    {:else}
+                      <span class="text-amber-400">⚠️ Модели не скачаны</span>
+                    {/if}
+                  </p>
+                {/if}
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+              <!-- Русские модели -->
+              <div class="space-y-2">
+                <p class="text-xs font-medium text-purple-600 dark:text-purple-400">🇷🇺 Русский</p>
+                {#each synthesisModels.filter(m => m.id === 'ru') as opt}
+                  <button 
+                    onclick={() => synthesisModel = { ...synthesisModel, [opt.id]: opt.model }}
+                    class="cursor-pointer w-full px-4 py-2 rounded-xl border-2 transition-all text-left {synthesisModel[opt.id] === opt.model ? 'border-purple-600 bg-purple-300/50 text-purple-800 dark:border-purple-400 dark:bg-purple-500/20 dark:text-purple-300' : 'dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60'}"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <span class="text-sm font-medium">{opt.label}</span>
+                        <p class="text-xs dark:text-muted-foreground light:text-purple-700/60 mt-0.5 truncate">{opt.model}</p>
+                      </div>
+                      {#if !loadingModels}
+                        {#if isSynthesisModelDownloaded(opt.model)}
+                          <CheckCircle class="h-4 w-4 text-emerald-400" />
+                        {:else}
+                          <XCircle class="h-4 w-4 text-muted-foreground/30" />
+                        {/if}
+                      {/if}
+                    </div>
+                  </button>
+                {/each}
+              </div>
+              <!-- Английские модели -->
+              <div class="space-y-2">
+                <p class="text-xs font-medium text-purple-600 dark:text-purple-400">🇬🇧 English</p>
+                {#each synthesisModels.filter(m => m.id === 'en') as opt}
+                  <button 
+                    onclick={() => synthesisModel = { ...synthesisModel, [opt.id]: opt.model }}
+                    class="cursor-pointer w-full px-4 py-2 rounded-xl border-2 transition-all text-left {synthesisModel[opt.id] === opt.model ? 'border-purple-600 bg-purple-300/50 text-purple-800 dark:border-purple-400 dark:bg-purple-500/20 dark:text-purple-300' : 'dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60'}"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div>
+                        <span class="text-sm font-medium">{opt.label}</span>
+                        <p class="text-xs dark:text-muted-foreground light:text-purple-700/60 mt-0.5 truncate">{opt.model}</p>
+                      </div>
+                      {#if !loadingModels}
+                        {#if isSynthesisModelDownloaded(opt.model)}
+                          <CheckCircle class="h-4 w-4 text-emerald-400" />
+                        {:else}
+                          <XCircle class="h-4 w-4 text-muted-foreground/30" />
+                        {/if}
+                      {/if}
+                    </div>
+                  </button>
+                {/each}
+              </div>
+            </div>
+            <button 
+              onclick={downloadSynthesisModel}
+              disabled={downloadingSynthesis}
+              class="cursor-pointer mt-4 px-4 py-2 rounded-lg border-2 dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60 text-sm font-medium transition-all hover:shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {#if downloadingSynthesis}
+                <LoaderCircle class="h-4 w-4 animate-spin" />
+                Загрузка...
+              {:else}
+                <Download class="h-4 w-4" />
+                Скачать выбранные модели
+              {/if}
+            </button>
+          </div>
+
+          <!-- Модель распознавания речи -->
+          <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
+            <div class="flex items-center gap-3 mb-4">
+              <Mic class="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              <div>
+                <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">Модель распознавания речи</h2>
+                <p class="text-sm dark:text-muted-foreground light:text-purple-700/70">
+                  Текущая модель: <span class="font-mono text-purple-600 dark:text-purple-400">{recognitionModel}</span>
+                </p>
+                {#if loadingModels}
+                  <p class="text-xs text-muted-foreground mt-1">Проверка моделей...</p>
+                {:else if modelsStatus}
+                  <p class="text-xs mt-1">
+                    {#if modelsStatus.has_any_recognition}
+                      <span class="text-emerald-400">✅ Модели скачаны</span>
+                    {:else}
+                      <span class="text-amber-400">⚠️ Модели не скачаны</span>
+                    {/if}
+                  </p>
+                {/if}
+              </div>
+            </div>
+            <div class="grid grid-cols-3 gap-3">
+              {#each recognitionModels as opt}
+                <button 
+                  onclick={() => recognitionModel = opt.id}
+                  class="cursor-pointer px-4 py-3 rounded-xl border-2 transition-all text-left {recognitionModel === opt.id ? 'border-purple-600 bg-purple-300/50 text-purple-800 dark:border-purple-400 dark:bg-purple-500/20 dark:text-purple-300' : 'dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60'}"
+                >
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="text-sm font-medium">{opt.label}</span>
+                      <p class="text-xs dark:text-muted-foreground light:text-purple-700/60 mt-1">{opt.desc}</p>
+                    </div>
+                    {#if !loadingModels}
+                      {#if isRecognitionModelDownloaded(opt.id)}
+                        <CheckCircle class="h-4 w-4 text-emerald-400" />
+                      {:else}
+                        <XCircle class="h-4 w-4 text-muted-foreground/30" />
+                      {/if}
+                    {/if}
+                  </div>
+                </button>
+              {/each}
+            </div>
+          <button 
+            onclick={downloadRecognitionModel}
+            disabled={downloadingRecognition}
+            class="cursor-pointer mt-4 px-4 py-2 rounded-lg border-2 dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60 text-sm font-medium hover:shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {#if downloadingRecognition}
+              <LoaderCircle class="h-4 w-4 animate-spin" />
+              Загрузка...
+            {:else}
+              <Download class="h-4 w-4" />
+              Скачать выбранную модель
+            {/if}
+          </button>
           </div>
 
           <!-- Авто-превью -->

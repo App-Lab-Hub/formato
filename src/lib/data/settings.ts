@@ -13,6 +13,8 @@ export interface AppSettings {
   enable_cache: boolean;
   enable_archive: boolean;
   archive_format: string;
+  synthesis_model: Record<string, string>; // { "ru": "ru_RU-dmitri-medium", "en": "en_US-lessac-medium" }
+  recognition_model: string;
 }
 
 let settings: AppSettings | null = null;
@@ -51,11 +53,9 @@ function getSystemTheme(): "dark" | "light" {
     const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const isLight = window.matchMedia("(prefers-color-scheme: light)").matches;
 
-    // Если точно определили dark или light
     if (isDark) return "dark";
     if (isLight) return "light";
 
-    // Если ни то, ни другое (экзотика) — fallback на dark
     console.log("⚠️ Unknown system theme, falling back to dark");
     return "dark";
   } catch (error) {
@@ -71,26 +71,21 @@ function getWindowBackgroundColors(theme: string): {
   b: number;
   a: number;
 } {
-  // Определяем, тёмная ли тема
   let isDark: boolean;
 
   if (theme === "system") {
-    // Для системной темы используем проверку
     isDark = getSystemTheme() === "dark";
   } else {
     isDark = theme === "dark";
   }
 
   if (isDark) {
-    // Тёмная тема
     return { r: 20, g: 10, b: 41, a: 255 };
   } else {
-    // Светлая тема
     return { r: 239, g: 231, b: 255, a: 255 };
   }
 }
 
-// Установить фон окна через invoke
 async function setWindowBackground(theme: string) {
   try {
     const colors = getWindowBackgroundColors(theme);
@@ -105,11 +100,9 @@ async function setWindowBackground(theme: string) {
   }
 }
 
-// Функция для применения темы
 export function applyTheme(theme: string, emit: boolean = true): void {
   if (!browser) return;
 
-  // Определяем тёмная ли тема
   let isDark: boolean;
 
   if (theme === "system") {
@@ -118,7 +111,6 @@ export function applyTheme(theme: string, emit: boolean = true): void {
     isDark = theme === "dark";
   }
 
-  // Добавляем/удаляем классы на html
   if (isDark) {
     document.documentElement.classList.remove("light");
     document.documentElement.classList.add("dark");
@@ -127,17 +119,14 @@ export function applyTheme(theme: string, emit: boolean = true): void {
     document.documentElement.classList.add("light");
   }
 
-  // Для Monaco Editor
   // @ts-ignore
   if (window.monaco?.editor) {
     // @ts-ignore
     monaco.editor.setTheme(isDark ? "vs-dark" : "vs");
   }
 
-  // Устанавливаем фон окна через invoke
   setWindowBackground(theme);
 
-  // Отправляем событие во все preview окна ТОЛЬКО если emit = true
   if (emit) {
     WebviewWindow.getAll()
       .then(windows => {
@@ -151,7 +140,6 @@ export function applyTheme(theme: string, emit: boolean = true): void {
   }
 }
 
-// Получить актуальную тему (с учетом system)
 export function getEffectiveTheme(settings: AppSettings): "light" | "dark" {
   if (settings.theme === "system") {
     return getSystemTheme();
@@ -159,7 +147,6 @@ export function getEffectiveTheme(settings: AppSettings): "light" | "dark" {
   return settings.theme as "light" | "dark";
 }
 
-// Следить за изменением системной темы
 export function watchSystemTheme(
   callback: (isDark: boolean) => void,
 ): () => void {
@@ -167,7 +154,6 @@ export function watchSystemTheme(
 
   const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
   const handler = (e: MediaQueryListEvent) => {
-    // Проверяем, что тема точно определилась
     const isDark = getSystemTheme() === "dark";
     console.log("🔄 System theme changed:", isDark ? "dark" : "light");
     callback(isDark);
@@ -185,4 +171,10 @@ export function watchSystemTheme(
     console.log("👋 Stopped watching system theme");
     mediaQuery.removeEventListener("change", handler);
   };
+}
+
+// Получить модели для синтеза речи
+export function getSynthesisModel(lang: string): string {
+  const settings = getSettings();
+  return settings.synthesis_model[lang] || settings.synthesis_model["en"];
 }

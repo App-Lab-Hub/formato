@@ -1,6 +1,7 @@
 // src-tauri/src/settings.rs
 use serde::{Deserialize, Serialize};
 use crate::paths::config_dir;
+use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppSettings {
@@ -20,13 +21,33 @@ pub struct AppSettings {
     pub enable_archive: bool,
     #[serde(default = "default_archive_format")]
     pub archive_format: String,
+    
+    // 🆕 Модели для синтеза и распознавания речи
+    #[serde(default = "default_synthesis_model")]
+    pub synthesis_model: HashMap<String, String>, // { "ru": "ru_RU-dmitri-medium", "en": "en_US-lessac-medium" }
+    #[serde(default = "default_recognition_model")]
+    pub recognition_model: String, // Модель для распознавания речи
 }
+
+// 🆕 Модели для синтеза речи (словарь)
+fn default_synthesis_model() -> HashMap<String, String> {
+    let mut map = HashMap::new();
+    map.insert("ru".to_string(), "ru_RU-dmitri-medium".to_string());
+    map.insert("en".to_string(), "en_US-lessac-medium".to_string());
+    map
+}
+
+
 
 fn default_theme() -> String { "system".into() }
 fn default_language() -> String { "ru".into() }
 fn default_archive_format() -> String { "zip".into() }
 fn default_true() -> bool { true }
 fn default_max_preview_size() -> f64 { 1.0 }
+
+fn default_recognition_model() -> String { 
+    "ggml-tiny-q5_1.bin".into() 
+}
 
 impl Default for AppSettings {
     fn default() -> Self {
@@ -39,6 +60,8 @@ impl Default for AppSettings {
             enable_cache: true,
             enable_archive: false,
             archive_format: default_archive_format(),
+            synthesis_model: default_synthesis_model(),
+            recognition_model: default_recognition_model(),
         }
     }
 }

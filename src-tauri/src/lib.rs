@@ -9,6 +9,7 @@ mod utils;
 mod settings;
 mod archive;
 mod files;
+mod models;
 
 use sea_orm::DatabaseConnection;
 use std::sync::Arc;
@@ -87,6 +88,10 @@ pub fn run() {
             // files
             files::get_files,
             files::delete_file,
+            // models
+            models::get_models_status,
+            models::download_synthesis_model,
+            models::download_recognition_model,
             
         ])
         
