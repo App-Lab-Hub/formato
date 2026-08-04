@@ -8,7 +8,8 @@
     FolderOpen, FileCheck, Shield, Archive, ShieldCheck, 
     Mic, Speaker, CheckCircle, XCircle, 
     Download, LoaderCircle, Globe, Flag, User, UserRound,
-    Sparkles, Zap, Cpu, HardDrive, Lock, ShieldAlert
+    Sparkles, Zap, Cpu, HardDrive, Lock, ShieldAlert,
+    Check, AlertTriangle
   } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { onMount } from 'svelte';
@@ -211,8 +212,8 @@
               {/each}
             </div>
             <p class="mt-3 text-xs dark:text-muted-foreground/60 light:text-purple-700/70">
-              {theme === 'system' ? '🔄 ' + m.settings_theme_system_desc() : 
-               theme === 'dark' ? '🌙 ' + m.settings_theme_dark() : '☀️ ' + m.settings_theme_light()}
+              {theme === 'system' ? 'Системная' : 
+               theme === 'dark' ? 'Тёмная' : 'Светлая'}
             </p>
           </div>
 
@@ -224,8 +225,8 @@
             </div>
             <div class="grid grid-cols-2 gap-3">
               {#each [
-                { id: 'ru', label: 'Русский' },
-                { id: 'en', label: 'English' }
+                { id: 'ru', label: '🇷🇺 Русский' },
+                { id: 'en', label: '🇬🇧 English' }
               ] as opt}
                 <button 
                   onclick={() => language = opt.id}
@@ -255,9 +256,15 @@
                 {:else if modelsStatus}
                   <p class="text-xs mt-1">
                     {#if modelsStatus.has_any_synthesis}
-                      <span class="text-emerald-400">✅ Модели скачаны</span>
+                      <span class="text-emerald-400 inline-flex items-center gap-1">
+                        <Check class="h-3.5 w-3.5" />
+                        Модели скачаны
+                      </span>
                     {:else}
-                      <span class="text-amber-400">⚠️ Модели не скачаны</span>
+                      <span class="text-amber-400 inline-flex items-center gap-1">
+                        <AlertTriangle class="h-3.5 w-3.5" />
+                        Модели не скачаны
+                      </span>
                     {/if}
                   </p>
                 {/if}
@@ -360,9 +367,15 @@
                 {:else if modelsStatus}
                   <p class="text-xs mt-1">
                     {#if modelsStatus.has_any_recognition}
-                      <span class="text-emerald-400">✅ Модели скачаны</span>
+                      <span class="text-emerald-400 inline-flex items-center gap-1">
+                        <Check class="h-3.5 w-3.5" />
+                        Модели скачаны
+                      </span>
                     {:else}
-                      <span class="text-amber-400">⚠️ Модели не скачаны</span>
+                      <span class="text-amber-400 inline-flex items-center gap-1">
+                        <AlertTriangle class="h-3.5 w-3.5" />
+                        Модели не скачаны
+                      </span>
                     {/if}
                   </p>
                 {/if}
