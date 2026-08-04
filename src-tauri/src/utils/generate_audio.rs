@@ -185,7 +185,7 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
     // Сохраняем все сэмплы в один WAV
     let spec = WavSpec {
         channels: 1,
-        sample_rate: sample_rate,
+        sample_rate,
         bits_per_sample: 16,
         sample_format: hound::SampleFormat::Int,
     };
