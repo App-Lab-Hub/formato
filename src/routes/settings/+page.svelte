@@ -3,7 +3,13 @@
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
   import { invalidateAll } from '$app/navigation';
-  import { Sun, Moon, Monitor, Languages, Palette, Eye, Database, FolderOpen, FileCheck, Shield, Archive, ShieldCheck, Mic, Speaker, CheckCircle, XCircle } from 'lucide-svelte';
+  import { 
+    Sun, Moon, Monitor, Languages, Palette, Eye, Database, 
+    FolderOpen, FileCheck, Shield, Archive, ShieldCheck, 
+    Mic, Speaker, CheckCircle, XCircle, 
+    Download, LoaderCircle, Globe, Flag, User, UserRound,
+    Sparkles, Zap, Cpu, HardDrive, Lock, ShieldAlert
+  } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { onMount } from 'svelte';
   import { getSettings, saveSettings, type AppSettings } from '$lib/data/settings';
@@ -11,7 +17,6 @@
   import { m } from '$lib/paraglide/messages';
   import BackButton from '$lib/components/BackButton.svelte';
   import { toast } from '$lib/utils/toast';
-  import { Download, LoaderCircle } from '@lucide/svelte';
   import { getModelsStatus, type ModelsStatus } from '$lib/data/models';
   import { invoke } from '@tauri-apps/api/core';
 
@@ -58,7 +63,6 @@
   async function reloadModelsStatus() {
     try {
       await invalidateAll();
-      // После invalidateAll page.data.modelsStatus обновится автоматически
       console.log('✅ Models status reloaded via invalidateAll');
     } catch (e) {
       console.error('❌ Failed to reload models status:', e);
@@ -168,9 +172,7 @@
   <div class="flex flex-col bg-background text-foreground min-h-full">
     <main class="flex flex-col items-center px-8 py-16">
       
-      <BackButton
-          onClick={goBack} 
-      />
+      <BackButton onClick={goBack} />
 
       <div class="w-full max-w-[1700px]">
         <div class="text-center mb-12">
@@ -222,8 +224,8 @@
             </div>
             <div class="grid grid-cols-2 gap-3">
               {#each [
-                { id: 'ru', label: '🇷🇺 Русский' },
-                { id: 'en', label: '🇬🇧 English' }
+                { id: 'ru', label: 'Русский' },
+                { id: 'en', label: 'English' }
               ] as opt}
                 <button 
                   onclick={() => language = opt.id}
@@ -264,7 +266,9 @@
             <div class="grid grid-cols-2 gap-4">
               <!-- Русские модели -->
               <div class="space-y-2">
-                <p class="text-xs font-medium text-purple-600 dark:text-purple-400">🇷🇺 Русский</p>
+                <p class="text-xs font-medium text-purple-600 dark:text-purple-400">
+                  <Globe class="h-3 w-3 inline mr-1" /> Русский
+                </p>
                 {#each synthesisModels.filter(m => m.id === 'ru') as opt}
                   <button 
                     onclick={() => synthesisModel = { ...synthesisModel, [opt.id]: opt.model }}
@@ -272,7 +276,14 @@
                   >
                     <div class="flex items-center justify-between">
                       <div>
-                        <span class="text-sm font-medium">{opt.label}</span>
+                        <span class="text-sm font-medium flex items-center gap-1">
+                          {#if opt.label.includes('мужской')}
+                            <User class="h-3.5 w-3.5" />
+                          {:else}
+                            <UserRound class="h-3.5 w-3.5" />
+                          {/if}
+                          {opt.label}
+                        </span>
                         <p class="text-xs dark:text-muted-foreground light:text-purple-700/60 mt-0.5 truncate">{opt.model}</p>
                       </div>
                       {#if !loadingModels}
@@ -288,7 +299,9 @@
               </div>
               <!-- Английские модели -->
               <div class="space-y-2">
-                <p class="text-xs font-medium text-purple-600 dark:text-purple-400">🇬🇧 English</p>
+                <p class="text-xs font-medium text-purple-600 dark:text-purple-400">
+                  <Globe class="h-3 w-3 inline mr-1" /> English
+                </p>
                 {#each synthesisModels.filter(m => m.id === 'en') as opt}
                   <button 
                     onclick={() => synthesisModel = { ...synthesisModel, [opt.id]: opt.model }}
@@ -296,7 +309,14 @@
                   >
                     <div class="flex items-center justify-between">
                       <div>
-                        <span class="text-sm font-medium">{opt.label}</span>
+                        <span class="text-sm font-medium flex items-center gap-1">
+                          {#if opt.label.includes('мужской')}
+                            <User class="h-3.5 w-3.5" />
+                          {:else}
+                            <UserRound class="h-3.5 w-3.5" />
+                          {/if}
+                          {opt.label}
+                        </span>
                         <p class="text-xs dark:text-muted-foreground light:text-purple-700/60 mt-0.5 truncate">{opt.model}</p>
                       </div>
                       {#if !loadingModels}
@@ -356,7 +376,10 @@
                 >
                   <div class="flex items-center justify-between">
                     <div>
-                      <span class="text-sm font-medium">{opt.label}</span>
+                      <span class="text-sm font-medium flex items-center gap-1">
+                        <Cpu class="h-3.5 w-3.5" />
+                        {opt.label}
+                      </span>
                       <p class="text-xs dark:text-muted-foreground light:text-purple-700/60 mt-1">{opt.desc}</p>
                     </div>
                     {#if !loadingModels}
@@ -370,19 +393,19 @@
                 </button>
               {/each}
             </div>
-          <button 
-            onclick={downloadRecognitionModel}
-            disabled={downloadingRecognition}
-            class="cursor-pointer mt-4 px-4 py-2 rounded-lg border-2 dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60 text-sm font-medium hover:shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {#if downloadingRecognition}
-              <LoaderCircle class="h-4 w-4 animate-spin" />
-              Загрузка...
-            {:else}
-              <Download class="h-4 w-4" />
-              Скачать выбранную модель
-            {/if}
-          </button>
+            <button 
+              onclick={downloadRecognitionModel}
+              disabled={downloadingRecognition}
+              class="cursor-pointer mt-4 px-4 py-2 rounded-lg border-2 dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60 text-sm font-medium hover:shadow-md flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {#if downloadingRecognition}
+                <LoaderCircle class="h-4 w-4 animate-spin" />
+                Загрузка...
+              {:else}
+                <Download class="h-4 w-4" />
+                Скачать выбранную модель
+              {/if}
+            </button>
           </div>
 
           <!-- Авто-превью -->

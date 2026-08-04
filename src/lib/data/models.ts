@@ -14,8 +14,8 @@ export interface ModelsStatus {
   recognition: {
     [key: string]: ModelStatus; // "ggml-tiny-q5_1.bin": { exists: true, ... }
   };
-  hasAnySynthesis: boolean;
-  hasAnyRecognition: boolean;
+  has_any_synthesis: boolean;
+  has_any_recognition: boolean;
 }
 
 export async function getModelsStatus(): Promise<ModelsStatus> {
