@@ -4,11 +4,9 @@
   import { Tooltip, TooltipContent, TooltipTrigger } from '$lib/components/ui/tooltip';
   import { FileText, ArrowRight, Eye, Download, Play, Zap, ListX, Trash2, LoaderCircle, FolderArchive } from 'lucide-svelte';
   
-  // Import store
-  import { 
-    appState,
-    type FileItem
-  } from '$lib/stores/app.svelte';
+  // Import stores
+  import { appState, type FileItem } from '$lib/stores/app.svelte';
+  import { loader } from '$lib/stores/loader.svelte';
 
   let {
     sourceFormatId,
@@ -21,8 +19,7 @@
     ondownload,
     onremove,
     ondownloadallarchive,
-    convertingFiles = new Set(),
-    convertedFiles = new Map(),
+    convertedFiles = new Map(), // Принимаем из родителя (из appState)
     settings,
   } = $props<{
     sourceFormatId: string;
@@ -35,13 +32,15 @@
     ondownload: (fileId: string) => void;
     onremove: (index: number) => void;
     ondownloadallarchive?: () => void;
-    convertingFiles?: Set<string>;
     convertedFiles?: Map<string, { path: string; format: string }>;
     settings?: { enable_archive: boolean; archive_format: string };
   }>();
   
   // Используем state из appState
   let files = $derived(appState.files);
+
+  // Берем состояние конвертации из loader
+  let convertingFiles = $derived(loader.convertingFiles);
 
   // Проверяем, все ли файлы сконвертированы
   const allConverted = $derived(
@@ -110,7 +109,7 @@
 
     <div class="flex flex-col gap-2">
       {#each files as file, i (file.id)}
-        {@const isConverting = convertingFiles.has(file.id)}
+        {@const isConverting = loader.isConverting(file.id)}
         {@const savedPath = convertedFiles.get(file.id)}
         
         <div

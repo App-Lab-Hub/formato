@@ -28,6 +28,7 @@
   import { openPath } from '@tauri-apps/plugin-opener';
   import { writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
   import { SvelteSet } from 'svelte/reactivity';
+  import { loader } from '$lib/stores/loader.svelte';
 
   let isAddToList = $state(false);
   
@@ -374,6 +375,7 @@
     toast.info(m.file_removed({ name: file.name }));
   }
 
+ // В clearAllWithConfirm используем loader
   async function clearAllWithConfirm() {
     if (files.length === 0) {
       toast.warning(m.no_files_to_clear());
@@ -387,7 +389,7 @@
     if (!confirmed) return;
     
     // Удаляем только файлы, которые НЕ конвертируются
-    const filesToRemove = files.filter(f => !convertingFileIds.has(f.id));
+    const filesToRemove = files.filter(f => !loader.isConverting(f.id)); // 👈 Используем loader
     
     if (filesToRemove.length === 0) {
       toast.warning(m.no_files_to_delete());
@@ -423,7 +425,6 @@
       toast.warning(m.files_skipped_converting());
     }
   }
-
   // ============================================================
   // ФУНКЦИИ ДЛЯ КОНВЕРТАЦИИ
   // ============================================================
@@ -431,14 +432,14 @@
   async function convertOne(index: number) {
     const file = files[index];
     if (!file) return;
-    if (convertingFileIds.has(file.id)) return;
+    if (loader.isConverting(file.id)) return; // 👈 Используем loader
     if (!selectedTarget) {
       toast.warning(m.select_target_format());
       return;
     }
 
     const startTime = Date.now();
-    convertingFileIds.add(file.id);
+    loader.startConverting(file.id); // 👈 Вместо convertingFileIds.add
     
     try {
       const result = await invoke<{ success: boolean; content: string; extension: string | null; error: string | null }>(
@@ -453,7 +454,6 @@
       );
       
       if (result.success) {
-        // Сохраняем в store (будет сохранено при перезагрузке)
         appState.addConvertedFile(sourceFormatId, file.id, {
           path: result.content,
           format: result.extension || selectedTarget.id
@@ -469,15 +469,17 @@
       const errorMsg = e instanceof Error ? e.message : m.backend_connection_error();
       toast.error(m.convert_error({ name: file.name, error: errorMsg }));
     } finally { 
-      // Минимальная задержка 0.5 секунды для лоадера
       const elapsed = Date.now() - startTime;
       const minDelay = 500;
       if (elapsed < minDelay) {
         await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
       }
-      convertingFileIds.delete(file.id); 
+      loader.stopConverting(file.id); // 👈 Вместо convertingFileIds.delete
     }
   }
+
+
+
 
   async function convertAll() {
     if (files.length === 0) {
@@ -785,21 +787,20 @@ async function downloadAllAsArchive() {
             {/if}
           </div>
 
-          <FileList
-            {sourceFormatId}
-            {selectedTarget}
-            showExtensions={settings?.show_extensions ?? true}
-            onconvertone={convertOne}
-            onconvertall={convertAll}
-            onclearall={clearAllWithConfirm}
-            onpreview={previewFileFn}
-            ondownload={downloadFile}
-            onremove={removeFileWithConfirm}
-            ondownloadallarchive={downloadAllAsArchive}
-            convertingFiles={convertingFileIds}
-            convertedFiles={convertedFiles}
-            settings={settings}
-          />
+<FileList
+  {sourceFormatId}
+  {selectedTarget}
+  showExtensions={settings?.show_extensions ?? true}
+  onconvertone={convertOne}
+  onconvertall={convertAll}
+  onclearall={clearAllWithConfirm}
+  onpreview={previewFileFn}
+  ondownload={downloadFile}
+  onremove={removeFileWithConfirm}
+  ondownloadallarchive={downloadAllAsArchive}
+  convertedFiles={convertedFiles}
+  settings={settings}
+/>
         </main>
       </div>
   {/if}
