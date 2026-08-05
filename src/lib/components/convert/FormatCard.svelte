@@ -23,13 +23,13 @@
   function getStatusInfo() {
     if (isAvailable) {
       return { 
-        label: 'Доступно', 
+        label: m.format_status_available(),
         color: 'text-green-400 border-green-400/30 bg-green-500/10',
         icon: Check,
       };
     } else {
       return { 
-        label: 'Недоступно', 
+        label: m.format_status_unavailable(),
         color: 'text-red-400 border-red-400/30 bg-red-500/10',
         icon: Lock,
       };
@@ -97,7 +97,7 @@
     <div class="absolute top-3 right-3 z-20">
       <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-extrabold tracking-wider uppercase border border-red-500/20 bg-red-500/5 dark:text-red-400 light:text-red-600">
         <Lock class="h-2.5 w-2.5" />
-        <span>Locked</span>
+        <span>{m.format_status_locked()}</span>
       </div>
     </div>
 
@@ -131,7 +131,7 @@
       <div class="flex items-center justify-center h-3.5 w-3.5 flex-shrink-0">
         <Lock class="h-full w-full stroke-[2.5]" />
       </div>
-      <span class="leading-none pt-[0.5px] antialiased subpixel-antialiased max-w-[calc(100%-16px)] overflow-hidden text-ellipsis">Формат недоступен</span>
+      <span class="leading-none pt-[0.5px] antialiased subpixel-antialiased max-w-[calc(100%-16px)] overflow-hidden text-ellipsis">{m.format_status_unavailable()}</span>
     </div>
   </div>
 {/if}

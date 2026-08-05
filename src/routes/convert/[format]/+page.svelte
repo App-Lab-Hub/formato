@@ -106,18 +106,18 @@
     
     // Проверяем синтез речи (если нет скачанных моделей ИЛИ не выбраны обе модели ИЛИ выбранные модели не скачаны)
     if (!hasSynthesisModel || !synthesisConfigured || !selectedSynthesisDownloaded()) {
-      missing.push('синтеза речи');
+      missing.push(m.ai_model_synthesis());
     }
     
     // Проверяем распознавание речи
     if (!hasRecognitionModel || !selectedRecognitionDownloaded()) {
-      missing.push('распознавания речи');
+      missing.push(m.ai_model_recognition());
     }
     
     if (missing.length === 0) return '';
     
-    const joined = missing.join(' и ');
-    return `Для полного функционала скачайте или выберите скачанную модель ${joined}`;
+    const joined = missing.join(` ${m.ai_model_and()} `);
+    return m.ai_model_banner_message({ models: joined });
   });
   
   // Показываем баннер если есть проблемы
@@ -741,7 +741,7 @@ async function downloadAllAsArchive() {
                 class="cursor-pointer px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
               >
                 <Settings class="h-4 w-4" />
-                Перейти в настройки
+                {m.settings_go_to()}
               </button>
             </div>
           {/if}

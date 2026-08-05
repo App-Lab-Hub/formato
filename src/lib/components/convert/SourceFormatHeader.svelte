@@ -22,7 +22,7 @@
       <h1 class="text-2xl sm:text-3xl font-black tracking-wide {format.textColor}">
         {format.name}
       </h1>
-      <p class="mt-2.5 text-sm font-medium leading-relaxed dark:text-muted-foreground light:text-neutral-500/90 max-w-md mx-auto">
+      <p class="mt-2.5 text-sm font-medium leading-relaxed dark:text-muted-foreground light:text-purple-700/60 max-w-md mx-auto">
         {(m as any)[`format_desc_${format.id}`]()}
       </p>
     </div>

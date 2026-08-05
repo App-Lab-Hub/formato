@@ -241,5 +241,51 @@
 
   "files_management_subtitle": "Manage your converted and temporary files",
 
-  "files_skipped_converting_en": "Some files skipped (conversion in progress)"
+  "files_skipped_converting_en": "Some files skipped (conversion in progress)",
+
+  "format_status_available": "Available",
+  "format_status_unavailable": "Unavailable",
+  "format_status_locked": "Locked",
+
+  "format_group_text": "Text",
+  "format_group_image": "Images",
+  "format_group_audio": "Audio",
+  "format_group_video": "Video",
+  "format_group_document": "Documents",
+
+  "ai_model_synthesis": "speech synthesis",
+  "ai_model_recognition": "speech recognition",
+  "ai_model_and": "and",
+  "ai_model_banner_message": "Download or select downloaded model for {models}",
+  "settings_go_to": "Go to Settings",
+
+  "synthesis_model_dmitri": "Dmitry (male)",
+  "synthesis_model_irina": "Irina (female)",
+  "synthesis_model_lessac": "Lessac (male)",
+  "synthesis_model_amy": "Amy (female)",
+  "recognition_model_tiny": "Tiny",
+  "recognition_model_tiny_desc": "Fastest",
+  "recognition_model_base": "Base",
+  "recognition_model_base_desc": "Fast",
+  "recognition_model_small": "Small",
+  "recognition_model_small_desc": "Medium",
+  "recognition_model_medium": "Medium",
+  "recognition_model_medium_desc": "High",
+  "recognition_model_large": "Large",
+  "recognition_model_large_desc": "Maximum",
+  "settings_synthesis_model": "Speech Synthesis Model",
+  "settings_recognition_model": "Speech Recognition Model",
+  "settings_current_model": "Current model",
+  "checking_models": "Checking models...",
+  "models_downloaded": "Models downloaded",
+  "models_not_downloaded": "Models not downloaded",
+  "downloading_model": "Downloading {lang} model...",
+  "synthesis_models_downloaded": "Speech synthesis models downloaded successfully!",
+  "recognition_model_downloaded": "Speech recognition model downloaded successfully!",
+  "model_download_error": "Error downloading model",
+  "downloading": "Downloading...",
+  "download_selected_models": "Download selected models",
+  "download_selected_model": "Download selected model",
+  "language_russian": "Russian",
+  "language_english": "English"
 }

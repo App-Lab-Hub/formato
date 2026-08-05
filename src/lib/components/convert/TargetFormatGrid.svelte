@@ -30,11 +30,11 @@
   const groupOrder = ['text', 'image', 'audio', 'video', 'document'];
   
   const groupConfig: Record<string, { label: string; icon: typeof FileText; color: string }> = {
-    text: { label: 'Текстовые', icon: FileText, color: 'text-blue-500 dark:text-blue-400' },
-    image: { label: 'Изображения', icon: Image, color: 'text-emerald-500 dark:text-emerald-400' },
-    audio: { label: 'Аудио', icon: Music, color: 'text-rose-500 dark:text-rose-400' },
-    video: { label: 'Видео', icon: Film, color: 'text-amber-500 dark:text-amber-400' },
-    document: { label: 'Документы', icon: File, color: 'text-violet-500 dark:text-violet-400' },
+    text: { label: m.format_group_text(), icon: FileText, color: 'text-blue-500 dark:text-blue-400' },
+    image: { label: m.format_group_image(), icon: Image, color: 'text-emerald-500 dark:text-emerald-400' },
+    audio: { label: m.format_group_audio(), icon: Music, color: 'text-rose-500 dark:text-rose-400' },
+    video: { label: m.format_group_video(), icon: Film, color: 'text-amber-500 dark:text-amber-400' },
+    document: { label: m.format_group_document(), icon: File, color: 'text-violet-500 dark:text-violet-400' },
   };
 
   function getStatusForFormat(format: Format): string {
@@ -45,12 +45,12 @@
 </script>
 
 <!-- Разделитель "Конвертировать в" -->
-<div class="flex items-center justify-center gap-3 w-full my-1 select-none opacity-40">
-  <div class="h-px w-12 dark:bg-border light:bg-neutral-300"></div>
-  <span class="text-[10px] font-bold uppercase tracking-widest dark:text-muted-foreground light:text-neutral-500">
+<div class="flex items-center justify-center gap-3 w-full my-1 select-none opacity-60">
+  <div class="h-px w-12 dark:bg-border light:bg-purple-400/60"></div>
+  <span class="text-[10px] font-bold uppercase tracking-widest dark:text-muted-foreground light:text-purple-700/80">
     {m.convert_to()}
   </span>
-  <div class="h-px w-12 dark:bg-border light:bg-neutral-300"></div>
+  <div class="h-px w-12 dark:bg-border light:bg-purple-400/60"></div>
 </div>
 
 <div class="flex flex-col gap-8 w-full max-w-7xl mx-auto px-4">

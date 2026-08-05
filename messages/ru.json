@@ -242,5 +242,51 @@
 
   "files_management_subtitle": "Управление конвертированными и временными файлами",
 
-  "files_skipped_converting": "Некоторые файлы пропущены (идет конвертация)"
+  "files_skipped_converting": "Некоторые файлы пропущены (идет конвертация)",
+
+  "format_status_available": "Доступно",
+  "format_status_unavailable": "Недоступно",
+  "format_status_locked": "Закрыто",
+
+  "format_group_text": "Текстовые",
+  "format_group_image": "Изображения",
+  "format_group_audio": "Аудио",
+  "format_group_video": "Видео",
+  "format_group_document": "Документы",
+
+  "ai_model_synthesis": "синтеза речи",
+  "ai_model_recognition": "распознавания речи",
+  "ai_model_and": "и",
+  "ai_model_banner_message": "Для полного функционала скачайте или выберите скачанную модель {models}",
+  "settings_go_to": "Перейти в настройки",
+
+  "synthesis_model_dmitri": "Дмитрий (мужской)",
+  "synthesis_model_irina": "Ирина (женский)",
+  "synthesis_model_lessac": "Lessac (мужской)",
+  "synthesis_model_amy": "Amy (женский)",
+  "recognition_model_tiny": "Tiny",
+  "recognition_model_tiny_desc": "Самая быстрая",
+  "recognition_model_base": "Base",
+  "recognition_model_base_desc": "Быстрая",
+  "recognition_model_small": "Small",
+  "recognition_model_small_desc": "Средняя",
+  "recognition_model_medium": "Medium",
+  "recognition_model_medium_desc": "Высокая",
+  "recognition_model_large": "Large",
+  "recognition_model_large_desc": "Максимальная",
+  "settings_synthesis_model": "Модель синтеза речи",
+  "settings_recognition_model": "Модель распознавания речи",
+  "settings_current_model": "Текущая модель",
+  "checking_models": "Проверка моделей...",
+  "models_downloaded": "Модели скачаны",
+  "models_not_downloaded": "Модели не скачаны",
+  "downloading_model": "Скачивание модели {lang}...",
+  "synthesis_models_downloaded": "Модели синтеза речи успешно скачаны!",
+  "recognition_model_downloaded": "Модель распознавания речи успешно скачана!",
+  "model_download_error": "Ошибка при скачивании модели",
+  "downloading": "Загрузка...",
+  "download_selected_models": "Скачать выбранные модели",
+  "download_selected_model": "Скачать выбранную модель",
+  "language_russian": "Русский",
+  "language_english": "English"
 }

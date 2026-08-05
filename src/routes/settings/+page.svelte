@@ -41,19 +41,19 @@
 
   // Список всех моделей синтеза
   const synthesisModels = [
-    { id: 'ru', label: 'Дмитрий (мужской)', model: 'ru_RU-dmitri-medium' },
-    { id: 'ru', label: 'Ирина (женский)', model: 'ru_RU-irina-medium' },
-    { id: 'en', label: 'Lessac (мужской)', model: 'en_US-lessac-medium' },
-    { id: 'en', label: 'Amy (женский)', model: 'en_US-amy-medium' }
+    { id: 'ru', label: m.synthesis_model_dmitri(), model: 'ru_RU-dmitri-medium' },
+    { id: 'ru', label: m.synthesis_model_irina(), model: 'ru_RU-irina-medium' },
+    { id: 'en', label: m.synthesis_model_lessac(), model: 'en_US-lessac-medium' },
+    { id: 'en', label: m.synthesis_model_amy(), model: 'en_US-amy-medium' }
   ];
 
   // Список моделей распознавания
   const recognitionModels = [
-    { id: 'ggml-tiny-q5_1.bin', label: 'Tiny', desc: 'Самая быстрая' },
-    { id: 'ggml-base-q5_1.bin', label: 'Base', desc: 'Быстрая' },
-    { id: 'ggml-small-q5_1.bin', label: 'Small', desc: 'Средняя' },
-    { id: 'ggml-medium-q5_0.bin', label: 'Medium', desc: 'Высокая' },
-    { id: 'ggml-large-v3-turbo-q5_0.bin', label: 'Large', desc: 'Максимальная' }
+    { id: 'ggml-tiny-q5_1.bin', label: m.recognition_model_tiny(), desc: m.recognition_model_tiny_desc() },
+    { id: 'ggml-base-q5_1.bin', label: m.recognition_model_base(), desc: m.recognition_model_base_desc() },
+    { id: 'ggml-small-q5_1.bin', label: m.recognition_model_small(), desc: m.recognition_model_small_desc() },
+    { id: 'ggml-medium-q5_0.bin', label: m.recognition_model_medium(), desc: m.recognition_model_medium_desc() },
+    { id: 'ggml-large-v3-turbo-q5_0.bin', label: m.recognition_model_large(), desc: m.recognition_model_large_desc() }
   ];
 
   // ✅ Обновляем статус после скачивания через invalidateAll
@@ -104,14 +104,14 @@
       ];
       
       for (const { lang, model } of modelsToDownload) {
-        toast.info(`Скачивание модели ${lang.toUpperCase()}...`);
+        toast.info(m.downloading_model({ lang: lang.toUpperCase() }));
         await invoke('download_synthesis_model', { modelName: model });
       }
       
-      toast.success('Модели синтеза речи успешно скачаны!');
+      toast.success(m.synthesis_models_downloaded());
       await reloadModelsStatus();
     } catch (e) {
-      toast.error('Ошибка при скачивании модели');
+      toast.error(m.model_download_error());
       console.error(e);
     } finally {
       const elapsed = Date.now() - startTime;
@@ -131,10 +131,10 @@
     
     try {
       await invoke('download_recognition_model', { modelName: recognitionModel });
-      toast.success('Модель распознавания речи успешно скачана!');
+      toast.success(m.recognition_model_downloaded());
       await reloadModelsStatus();
     } catch (e) {
-      toast.error('Ошибка при скачивании модели');
+      toast.error(m.model_download_error());
       console.error(e);
     } finally {
       const elapsed = Date.now() - startTime;
@@ -208,8 +208,8 @@
               {/each}
             </div>
             <p class="mt-3 text-xs dark:text-muted-foreground/60 light:text-purple-700/70">
-              {theme === 'system' ? 'Системная' : 
-               theme === 'dark' ? 'Тёмная' : 'Светлая'}
+              {theme === 'system' ? m.settings_theme_system_desc() : 
+               theme === 'dark' ? m.settings_theme_dark() : m.settings_theme_light()}
             </p>
           </div>
 
@@ -221,8 +221,8 @@
             </div>
             <div class="grid grid-cols-2 gap-3">
               {#each [
-                { id: 'ru', label: '🇷🇺 Русский' },
-                { id: 'en', label: '🇬🇧 English' }
+                { id: 'ru', label: '🇷🇺 ' + m.language_russian() },
+                { id: 'en', label: '🇬🇧 ' + m.language_english() }
               ] as opt}
                 <button 
                   onclick={() => language = opt.id}
@@ -239,27 +239,27 @@
             <div class="flex items-center gap-3 mb-4">
               <Speaker class="h-5 w-5 text-purple-600 dark:text-purple-400" />
               <div>
-                <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">Модель синтеза речи</h2>
+                <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">{m.settings_synthesis_model()}</h2>
                 <p class="text-sm dark:text-muted-foreground light:text-purple-700/70">
-                  Текущая модель: <span class="font-mono text-purple-600 dark:text-purple-400">
+                  {m.settings_current_model()}: <span class="font-mono text-purple-600 dark:text-purple-400">
                     {synthesisModel.ru}
                   </span> (RU) / <span class="font-mono text-purple-600 dark:text-purple-400">
                     {synthesisModel.en}
                   </span> (EN)
                 </p>
                 {#if loadingModels}
-                  <p class="text-xs text-muted-foreground mt-1">Проверка моделей...</p>
+                  <p class="text-xs text-muted-foreground mt-1">{m.checking_models()}</p>
                 {:else if modelsStatus}
                   <p class="text-xs mt-1">
                     {#if modelsStatus.has_any_synthesis}
                       <span class="text-emerald-400 inline-flex items-center gap-1">
                         <Check class="h-3.5 w-3.5" />
-                        Модели скачаны
+                        {m.models_downloaded()}
                       </span>
                     {:else}
                       <span class="text-amber-400 inline-flex items-center gap-1">
                         <AlertTriangle class="h-3.5 w-3.5" />
-                        Модели не скачаны
+                        {m.models_not_downloaded()}
                       </span>
                     {/if}
                   </p>
@@ -270,7 +270,7 @@
               <!-- Русские модели -->
               <div class="space-y-2">
                 <p class="text-xs font-medium text-purple-600 dark:text-purple-400">
-                  <Globe class="h-3 w-3 inline mr-1" /> Русский
+                  <Globe class="h-3 w-3 inline mr-1" /> {m.language_russian()}
                 </p>
                 {#each synthesisModels.filter(m => m.id === 'ru') as opt}
                   <button 
@@ -280,7 +280,7 @@
                     <div class="flex items-center justify-between">
                       <div>
                         <span class="text-sm font-medium flex items-center gap-1">
-                          {#if opt.label.includes('мужской')}
+                          {#if opt.label.includes('мужской') || opt.label.includes('male')}
                             <User class="h-3.5 w-3.5" />
                           {:else}
                             <UserRound class="h-3.5 w-3.5" />
@@ -303,7 +303,7 @@
               <!-- Английские модели -->
               <div class="space-y-2">
                 <p class="text-xs font-medium text-purple-600 dark:text-purple-400">
-                  <Globe class="h-3 w-3 inline mr-1" /> English
+                  <Globe class="h-3 w-3 inline mr-1" /> {m.language_english()}
                 </p>
                 {#each synthesisModels.filter(m => m.id === 'en') as opt}
                   <button 
@@ -313,7 +313,7 @@
                     <div class="flex items-center justify-between">
                       <div>
                         <span class="text-sm font-medium flex items-center gap-1">
-                          {#if opt.label.includes('мужской')}
+                          {#if opt.label.includes('мужской') || opt.label.includes('male')}
                             <User class="h-3.5 w-3.5" />
                           {:else}
                             <UserRound class="h-3.5 w-3.5" />
@@ -341,10 +341,10 @@
             >
               {#if loader.downloadingSynthesis}
                 <LoaderCircle class="h-4 w-4 animate-spin" />
-                Загрузка...
+                {m.downloading()}
               {:else}
                 <Download class="h-4 w-4" />
-                Скачать выбранные модели
+                {m.download_selected_models()}
               {/if}
             </button>
           </div>
@@ -354,23 +354,23 @@
             <div class="flex items-center gap-3 mb-4">
               <Mic class="h-5 w-5 text-purple-600 dark:text-purple-400" />
               <div>
-                <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">Модель распознавания речи</h2>
+                <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">{m.settings_recognition_model()}</h2>
                 <p class="text-sm dark:text-muted-foreground light:text-purple-700/70">
-                  Текущая модель: <span class="font-mono text-purple-600 dark:text-purple-400">{recognitionModel}</span>
+                  {m.settings_current_model()}: <span class="font-mono text-purple-600 dark:text-purple-400">{recognitionModel}</span>
                 </p>
                 {#if loadingModels}
-                  <p class="text-xs text-muted-foreground mt-1">Проверка моделей...</p>
+                  <p class="text-xs text-muted-foreground mt-1">{m.checking_models()}</p>
                 {:else if modelsStatus}
                   <p class="text-xs mt-1">
                     {#if modelsStatus.has_any_recognition}
                       <span class="text-emerald-400 inline-flex items-center gap-1">
                         <Check class="h-3.5 w-3.5" />
-                        Модели скачаны
+                        {m.models_downloaded()}
                       </span>
                     {:else}
                       <span class="text-amber-400 inline-flex items-center gap-1">
                         <AlertTriangle class="h-3.5 w-3.5" />
-                        Модели не скачаны
+                        {m.models_not_downloaded()}
                       </span>
                     {/if}
                   </p>
@@ -409,10 +409,10 @@
             >
               {#if loader.downloadingRecognition}
                 <LoaderCircle class="h-4 w-4 animate-spin" />
-                Загрузка...
+                {m.downloading()}
               {:else}
                 <Download class="h-4 w-4" />
-                Скачать выбранную модель
+                {m.download_selected_model()}
               {/if}
             </button>
           </div>
