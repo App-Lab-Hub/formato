@@ -1,7 +1,7 @@
 // src-tauri/src/models.rs
 use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
-use crate::paths::app_root;
+use crate::paths;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct ModelStatus {
@@ -19,15 +19,18 @@ pub struct ModelsStatus {
 }
 
 fn get_model_path(model_type: &str, model_name: &str) -> PathBuf {
-    let models_dir = app_root().join("models").join(model_type);
+    let models_dir = match model_type {
+        "piper" => paths::piper_models_dir(),
+        "whisper" => paths::whisper_models_dir(),
+        _ => paths::models_dir().join(model_type),
+    };
     models_dir.join(model_name)
 }
 
 fn check_model_exists(model_path: &PathBuf) -> ModelStatus {
     if model_path.exists() {
         let size = std::fs::metadata(model_path)
-            .ok()
-            .and_then(|m| Some(m.len()));
+            .ok().map(|m| m.len());
         ModelStatus {
             exists: true,
             path: Some(model_path.to_string_lossy().to_string()),
@@ -95,11 +98,7 @@ pub async fn get_models_status() -> ModelsStatus {
 
 #[tauri::command]
 pub async fn download_synthesis_model(model_name: String) -> Result<(), String> {
-    let model_dir = app_root().join("models/piper");
-    if !model_dir.exists() {
-        std::fs::create_dir_all(&model_dir)
-            .map_err(|e| format!("Cannot create model dir: {}", e))?;
-    }
+    let model_dir = paths::piper_models_dir();
     
     // ✅ Добавляем .onnx к имени файла
     let model_path = model_dir.join(format!("{}.onnx", model_name));
@@ -147,11 +146,7 @@ pub async fn download_synthesis_model(model_name: String) -> Result<(), String> 
 
 #[tauri::command]
 pub async fn download_recognition_model(model_name: String) -> Result<(), String> {
-    let model_dir = app_root().join("models/whisper");
-    if !model_dir.exists() {
-        std::fs::create_dir_all(&model_dir)
-            .map_err(|e| format!("Cannot create model dir: {}", e))?;
-    }
+    let model_dir = paths::whisper_models_dir();
     
     let model_path = model_dir.join(&model_name);
     if model_path.exists() {

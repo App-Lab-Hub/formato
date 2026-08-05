@@ -1,19 +1,15 @@
 // src-tauri/src/utils/generate_audio.rs
-
-use std::path::Path;
 use tempfile::Builder;
 use crate::paths;
 use piper_rs::Piper;
-use std::fs::File;
-use std::io::Write;
 use hound::{WavSpec, WavWriter};
 use crate::settings::get_settings;
-use std::path::PathBuf;
+use std::panic::AssertUnwindSafe;
 
 /// Разбивает текст на части по предложениям
 fn split_text_into_chunks(text: &str, max_chars: usize) -> Vec<String> {
     let sentences: Vec<&str> = text
-        .split_inclusive(|c: char| c == '.' || c == '!' || c == '?' || c == '\n')
+        .split_inclusive(['.', '!', '?', '\n'])
         .collect();
     
     let mut chunks = Vec::new();
@@ -78,23 +74,6 @@ fn get_model_for_language(lang: &str) -> String {
     }
 }
 
-/// Получить путь к модели (без скачивания)
-fn get_model_path(model_name: &str) -> Result<PathBuf, String> {
-    let model_dir = paths::app_root().join("models/piper");
-    if !model_dir.exists() {
-        return Err(format!("Models directory does not exist: {:?}", model_dir));
-    }
-    
-    let onnx_path = model_dir.join(format!("{}.onnx", model_name));
-    if !onnx_path.exists() {
-        return Err(format!("Model file not found: {:?}", onnx_path));
-    }
-    
-    Ok(onnx_path)
-}
-
-
-use std::panic::AssertUnwindSafe;
 
 /// Генерация речи через Piper с чанкингом, склейкой аудио и автоопределением языка
 pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
@@ -109,11 +88,7 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
     println!("🌐 Определён язык: {} (модель: {})", lang, model_name);
     
     // Путь к моделям в app_dir
-    let model_dir = paths::app_root().join("models/piper");
-    
-    if !model_dir.exists() {
-        return Err(format!("Models directory does not exist: {:?}", model_dir));
-    }
+    let model_dir = paths::piper_models_dir();
     
     let onnx_path = model_dir.join(format!("{}.onnx", model_name));
     let config_path = model_dir.join(format!("{}.onnx.json", model_name));
@@ -238,14 +213,14 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
                 samples_i16.len()
             ));
         }
-        let  samples_i116_len = samples_i16.len();
+        let samples_i16_len = samples_i16.len();
         all_samples.extend(samples_i16);
         
         // Принудительно очищаем память после каждого чанка
         std::mem::drop(samples);
         
         println!("✅ [{}/{}] Готово ({} сэмплов, всего: {})", 
-            i + 1, total_chunks, samples_i116_len, all_samples.len());
+            i + 1, total_chunks, samples_i16_len, all_samples.len());
     }
     
     // Если ничего не сгенерировалось

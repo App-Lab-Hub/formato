@@ -1,6 +1,6 @@
 // src-tauri/src/convert/audio_to_text.rs
 
-use transcribe_rs::whisper_cpp::{WhisperEngine, WhisperInferenceParams};
+use transcribe_rs::whisper_cpp::{WhisperEngine};
 use transcribe_rs::audio::read_wav_samples;
 use transcribe_rs::transcriber::{VadChunked, VadChunkedConfig, Transcriber};
 use transcribe_rs::vad::EnergyVad;
@@ -11,9 +11,10 @@ use std::path::{Path, PathBuf};
 use ffmpeg_sidecar::command::FfmpegCommand;
 use sea_orm::DatabaseConnection;
 use crate::settings::get_settings;
+use crate::paths::{whisper_models_dir};
 
 pub async fn convert_audio_to_text(
-    db: &DatabaseConnection,
+    _db: &DatabaseConnection,
     path: &str, 
     from: &str, 
     to: &str
@@ -97,10 +98,10 @@ fn convert_to_16khz_wav(input_path: &str, output_path: &Path) -> Result<(), Stri
 
     let mut cmd = FfmpegCommand::new();
     cmd.input(input_path);
-    cmd.args(&["-ar", "16000"]);
-    cmd.args(&["-ac", "1"]);
-    cmd.args(&["-c:a", "pcm_s16le"]);
-    cmd.args(&["-y"]);
+    cmd.args(["-ar", "16000"]);
+    cmd.args(["-ac", "1"]);
+    cmd.args(["-c:a", "pcm_s16le"]);
+    cmd.args(["-y"]);
     cmd.output(output_str);
     
     let mut child = cmd.spawn().map_err(|e| format!("FFmpeg spawn failed: {}", e))?;
@@ -128,12 +129,9 @@ fn get_safe_temp_wav_path() -> PathBuf {
     std::env::temp_dir().join(format!("whisper_input_{}.wav", timestamp))
 }
 
-/// Получить путь к модели (без скачивания)
+/// Получить путь к модели Whisper (без скачивания)
 fn get_model_path(model_name: &str) -> Result<std::path::PathBuf, String> {
-    let model_dir = crate::paths::app_root().join("models/whisper");
-    if !model_dir.exists() {
-        return Err(format!("Models directory does not exist: {:?}", model_dir));
-    }
+    let model_dir = whisper_models_dir();
     
     let model_path = model_dir.join(model_name);
     if !model_path.exists() {
