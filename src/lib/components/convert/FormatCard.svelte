@@ -71,7 +71,7 @@
   class="cursor-pointer group relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 p-5 w-full aspect-[4/5] transition-all duration-500 overflow-hidden text-center select-none backdrop-blur-sm
          {isSelected 
            ? 'border-primary bg-primary/5 scale-[1.04]' 
-           : 'dark:border-border light:border-neutral-200 dark:bg-card light:bg-neutral-50/40 hover:scale-[1.01]'}
+           : 'dark:border-border light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 hover:scale-[1.01]'}
          {isSelected ? format.glow : ''} 
          {format.borderHover}"
 >
@@ -89,18 +89,18 @@
     </div>
   </div>
 
-  <!-- Блок текстов (Защищен от "выжигания" глаз в светлой теме) -->
+  <!-- Блок текстов -->
   <div class="flex flex-col items-center gap-1.5 z-10 px-2 w-full mt-1">
-    <span class="text-base font-extrabold tracking-wide dark:text-foreground light:text-neutral-800 transition-colors duration-300">
+    <span class="text-base font-extrabold tracking-wide dark:text-foreground light:text-purple-800 transition-colors duration-300">
       {format.name}
     </span>
-    <span class="text-xs font-medium leading-relaxed dark:text-muted-foreground light:text-neutral-500/90 line-clamp-3 max-w-[160px]">
+    <span class="text-xs font-medium leading-relaxed dark:text-muted-foreground light:text-purple-700/60 line-clamp-3 max-w-[160px]">
       {(m as any)[`format_desc_${format.id}`]()}
     </span>
   </div>
 
   <!-- Мягкий нейтральный градиентный наплыв внизу для объема -->
-  <div class="absolute bottom-0 left-0 right-0 h-1/4 pointer-events-none rounded-b-2xl bg-gradient-to-t dark:from-neutral-950/20 light:from-neutral-200/20 to-transparent z-10"></div>
+  <div class="absolute bottom-0 left-0 right-0 h-1/4 pointer-events-none rounded-b-2xl bg-gradient-to-t dark:from-neutral-950/20 light:from-purple-200/40 to-transparent z-10"></div>
 </button>
 
 
@@ -109,7 +109,7 @@
 {#if isAvailableWithAI}
   <div
     class="group relative flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-2xl border-2 p-4 xs:p-5 w-full aspect-[4/5] overflow-hidden text-center select-none transition-all duration-500
-           dark:border-border/60 light:border-neutral-200/80 dark:bg-card/40 light:bg-neutral-50/40 cursor-default"
+           dark:border-border/60 light:border-purple-300/40 dark:bg-card/40 light:bg-purple-200/40 cursor-default"
   >
     <!-- Бейдж статуса в углу (Минималистичный AI с пульсацией) -->
     <div class="absolute top-2.5 right-2.5 xs:top-3 xs:right-3 z-20">
@@ -120,28 +120,28 @@
     </div>
 
     <!-- Центрированная приглушенная иконка -->
-    <div class="relative rounded-2xl bg-gradient-to-br from-neutral-200/50 via-neutral-100/40 to-neutral-200/20 dark:from-neutral-900/60 dark:to-neutral-950/40 p-3.5 xs:p-5 grayscale opacity-40 border dark:border-neutral-800/50 light:border-neutral-200/40">
+    <div class="relative rounded-2xl bg-gradient-to-br from-neutral-200/50 via-neutral-100/40 to-neutral-200/20 dark:from-neutral-900/60 dark:to-neutral-950/40 p-3.5 xs:p-5 grayscale opacity-40 border dark:border-neutral-800/50 light:border-purple-300/30">
       <!-- Размытое фоновое облако (Blur) под иконкой (использует цвет формата из БД) -->
       <div class="absolute inset-0 rounded-2xl bg-gradient-to-br opacity-20 blur-xl {format.color}"></div>
       
       <div class="flex-shrink-0 h-9 w-9 xs:h-11 xs:w-11 relative z-10 flex items-center justify-center">
-        <format.icon class="w-full h-full dark:text-neutral-500 light:text-neutral-400" />
+        <format.icon class="w-full h-full dark:text-neutral-500 light:text-purple-400" />
       </div>
     </div>
 
     <!-- Блок текстов с мягким пастельным fade-out эффектом маски -->
     <div class="flex flex-col items-center gap-1 xs:gap-1.5 z-10 px-1 xs:px-2 w-full mt-0.5 xs:mt-1
                 [mask-image:linear-gradient(to_bottom,rgba(0,0,0,1)_50%,rgba(0,0,0,0.6)_75%,rgba(0,0,0,0)_100%)]">
-      <span class="text-sm xs:text-base font-extrabold tracking-wide dark:text-neutral-500 light:text-neutral-400">
+      <span class="text-sm xs:text-base font-extrabold tracking-wide dark:text-neutral-500 light:text-purple-700/60">
         {format.name}
       </span>
-      <span class="text-[11px] xs:text-xs font-medium leading-relaxed dark:text-neutral-600 light:text-neutral-400/80 line-clamp-3 max-w-[140px] xs:max-w-[160px]">
+      <span class="text-[11px] xs:text-xs font-medium leading-relaxed dark:text-neutral-600 light:text-purple-600/50 line-clamp-3 max-w-[140px] xs:max-w-[160px]">
         {(m as any)[`format_desc_${format.id}`]()}
       </span>
     </div>
 
     <!-- Матовое глухое перекрытие поверх нижней части (один в один как в оригинале) -->
-    <div class="absolute bottom-0 left-0 right-0 h-1/3 pointer-events-none rounded-b-2xl bg-gradient-to-t dark:from-neutral-950/80 dark:via-neutral-950/30 light:from-neutral-100/80 light:via-neutral-100/20 to-transparent z-10"></div>
+    <div class="absolute bottom-0 left-0 right-0 h-1/3 pointer-events-none rounded-b-2xl bg-gradient-to-t dark:from-neutral-950/80 dark:via-neutral-950/30 light:from-purple-200/60 light:via-purple-200/20 to-transparent z-10"></div>
     
     <!-- Интерактивная кнопка "Скачать AI" по центру в самом низу -->
     <div 
@@ -181,11 +181,11 @@
 
 
 
-<!-- КАРТОЧКА НЕДОСТУПНО - ПРЕМИАЛЬНАЯ РУБИНОВАЯ ТЕМА -->
+<!-- КАРТОЧКА НЕДОСТУПНО -->
 {#if isNotAvailable}
   <div
     class="group relative flex flex-col items-center justify-center gap-3 sm:gap-4 rounded-2xl border-2 p-4 xs:p-5 w-full aspect-[4/5] overflow-hidden text-center select-none
-           dark:border-red-950/40 light:border-red-100 dark:bg-neutral-950/40 light:bg-neutral-50/20 
+           dark:border-red-950/40 light:border-red-200/60 dark:bg-neutral-950/40 light:bg-red-50/30 
            cursor-not-allowed transition-all duration-500"
   >
     <!-- Тонкое рубиновое свечение по контуру карточки в темной теме -->
@@ -200,7 +200,7 @@
     </div>
 
     <!-- Центрированная приглушенная иконка -->
-    <div class="relative rounded-2xl bg-gradient-to-br from-neutral-200/50 via-neutral-100/40 to-neutral-200/20 dark:from-neutral-900/60 dark:to-neutral-950/40 p-3.5 xs:p-5 grayscale opacity-40 border dark:border-neutral-800/50 light:border-neutral-200/40">
+    <div class="relative rounded-2xl bg-gradient-to-br from-neutral-200/50 via-neutral-100/40 to-neutral-200/20 dark:from-neutral-900/60 dark:to-neutral-950/40 p-3.5 xs:p-5 grayscale opacity-40 border dark:border-neutral-800/50 light:border-red-200/30">
       <!-- Едва заметное багровое облако (Blur) глубоко под иконкой -->
       <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-500/10 to-transparent opacity-20 blur-xl"></div>
       
@@ -222,11 +222,11 @@
     </div>
 
     <!-- Матовое глухое перекрытие поверх нижней части (вместо уродливого черного слоя по центру) -->
-    <div class="absolute bottom-0 left-0 right-0 h-1/3 pointer-events-none rounded-b-2xl bg-gradient-to-t dark:from-neutral-950/80 dark:via-neutral-950/30 light:from-neutral-100/80 light:via-neutral-100/20 to-transparent z-10"></div>
+    <div class="absolute bottom-0 left-0 right-0 h-1/3 pointer-events-none rounded-b-2xl bg-gradient-to-t dark:from-neutral-950/80 dark:via-neutral-950/30 light:from-red-100/60 light:via-red-100/20 to-transparent z-10"></div>
     
-    <!-- Деликатная плашка по центру в самом низу — Стили ОДИН В ОДИН как у кнопки AI выше -->
+    <!-- Деликатная плашка по центру в самом низу -->
     <div class="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1.5 px-3.5 xs:px-4 py-1.5 xs:py-2 rounded-xl border text-[9px] xs:text-[10px] font-black tracking-widest uppercase whitespace-nowrap max-w-[calc(100%-32px)]
-                dark:border-red-950 dark:bg-red-950/30 light:border-red-100 light:bg-red-50/60 dark:text-red-400/80 light:text-red-600/80">
+                dark:border-red-950 dark:bg-red-950/30 light:border-red-200 light:bg-red-100/50 dark:text-red-400/80 light:text-red-600/80">
       <div class="flex items-center justify-center h-3.5 w-3.5 flex-shrink-0">
         <Lock class="h-full w-full stroke-[2.5]" />
       </div>
