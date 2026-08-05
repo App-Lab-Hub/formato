@@ -17,7 +17,6 @@
     onselect: (format: Format) => void;
   } = $props();
 
-  // Исправлено для Svelte 5 и TS: убрана стрелочная функция из $derived, чтобы возвращался чистый объект, а не функция
   const groupedFormats = $derived.by(() => {
     const groups: Record<string, Format[]> = {};
     for (const format of formats) {
@@ -56,7 +55,6 @@
 
 <div class="flex flex-col gap-8 w-full max-w-7xl mx-auto px-4">
   {#each groupOrder as groupType}
-    <!-- Исправлено: теперь обращаемся как к объекту groupedFormats[groupType] без вызова функции () -->
     {@const groupItems = groupedFormats[groupType]}
     {@const config = groupConfig[groupType]}
     {#if groupItems && groupItems.length > 0}
@@ -74,8 +72,8 @@
           </span>
         </div>
         
-        <!-- Сетка карточек -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 mt-1">
+        <!-- Сетка карточек с более ранним переключением на 2 колонки -->
+        <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 mt-1">
           {#each groupItems as target}
             {@const status = getStatusForFormat(target)}
             <FormatCard
