@@ -1,5 +1,3 @@
-// src-tauri/src/convert/audio_to_text.rs
-
 use transcribe_rs::whisper_cpp::{WhisperEngine};
 use transcribe_rs::audio::read_wav_samples;
 use transcribe_rs::transcriber::{VadChunked, VadChunkedConfig, Transcriber};
@@ -12,6 +10,7 @@ use ffmpeg_sidecar::command::FfmpegCommand;
 use sea_orm::DatabaseConnection;
 use crate::settings::get_settings;
 use crate::paths::{whisper_models_dir};
+use std::time::{SystemTime, UNIX_EPOCH}; // Для генерации уникального имени
 
 pub async fn convert_audio_to_text(
     _db: &DatabaseConnection,
@@ -30,37 +29,42 @@ pub async fn convert_audio_to_text(
     let mut engine = WhisperEngine::load(&model_path)
         .map_err(|e| format!("Failed to load Whisper model: {}", e))?;
     
-    let temp_path = get_safe_temp_wav_path();
+    // 🛠 Генерируем уникальный путь в системной временной папке
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_millis();
+    let temp_path = std::env::temp_dir().join(format!("whisper_input_{}.wav", timestamp));
+    
+    // Передаем путь во FFmpeg. Файла еще нет на диске, FFmpeg создаст его сам
     convert_to_16khz_wav(&audio_path, &temp_path)?;
     
+    // ✅ Читаем сэмплы в оперативную память
     let samples = read_wav_samples(&temp_path)
         .map_err(|e| format!("Failed to load WAV: {}", e))?;
     
+    // ✅ Вручную удаляем временный файл сразу после чтения
     let _ = std::fs::remove_file(&temp_path);
     
     // Создаем VAD с настройками для 16kHz
-    // frame_size = 512 samples = 32ms при 16kHz
     let vad = EnergyVad::new(512, 0.01);
     
     let config = VadChunkedConfig {
-        min_chunk_secs: 2.0,        // минимальный чанк 2 сек
-        max_chunk_secs: 30.0,       // максимальный чанк 30 сек
-        padding_secs: 0.5,          // 0.5 сек контекста с каждой стороны
-        smart_split_search_secs: Some(3.0), // искать тишину за 3 сек до максимума
-        merge_separator: " ".to_string(),   // разделитель между чанками
+        min_chunk_secs: 2.0,
+        max_chunk_secs: 30.0,
+        padding_secs: 0.5,
+        smart_split_search_secs: Some(3.0),
+        merge_separator: " ".to_string(),
     };
     
-    // Создаем опции транскрипции
     let transcribe_options = TranscribeOptions {
         language: None,
         translate: false,
         ..Default::default()
     };
     
-    // Создаем VAD чанкер
     let mut transcriber = VadChunked::new(Box::new(vad), config, transcribe_options);
     
-    // Транскрибируем через VAD
     let result = transcriber.transcribe(&mut engine, &samples)
         .map_err(|e| format!("Transcription failed: {}", e))?;
     
@@ -70,7 +74,7 @@ pub async fn convert_audio_to_text(
     if to == "txt" || to == "text" {
         let hash = calculate_conversion_hash(path, from, to)
             .map_err(|e| format!("Hash error convert_audio_to_text: {}", e))?;
-        let output_path = get_app_dir_path_with_hash(path, to, &hash,true)?;
+        let output_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
         
         if let Some(parent) = Path::new(&output_path).parent() {
             if !parent.exists() {
@@ -85,7 +89,6 @@ pub async fn convert_audio_to_text(
         return Ok(output_path);
     }
     
-    // Для других форматов - парсим текст в JSON и конвертируем
     let parsed = parse(&full_text, "txt")?;
     let output_path = stringify(&parsed, to, path, from)?;
     
@@ -98,10 +101,12 @@ fn convert_to_16khz_wav(input_path: &str, output_path: &Path) -> Result<(), Stri
 
     let mut cmd = FfmpegCommand::new();
     cmd.input(input_path);
-    cmd.args(["-ar", "16000"]);
-    cmd.args(["-ac", "1"]);
-    cmd.args(["-c:a", "pcm_s16le"]);
-    cmd.args(["-y"]);
+    
+    // Атомарные аргументы для стабильности FFmpeg
+    cmd.arg("-ar").arg("16000");
+    cmd.arg("-ac").arg("1");
+    cmd.arg("-c:a").arg("pcm_s16le");
+    cmd.arg("-y"); 
     cmd.output(output_str);
     
     let mut child = cmd.spawn().map_err(|e| format!("FFmpeg spawn failed: {}", e))?;
@@ -118,25 +123,12 @@ fn convert_to_16khz_wav(input_path: &str, output_path: &Path) -> Result<(), Stri
     Ok(())
 }
 
-/// Генерирует уникальный путь в системной папке /tmp
-fn get_safe_temp_wav_path() -> PathBuf {
-    use std::time::{SystemTime, UNIX_EPOCH};
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_millis();
-        
-    std::env::temp_dir().join(format!("whisper_input_{}.wav", timestamp))
-}
-
 /// Получить путь к модели Whisper (без скачивания)
 fn get_model_path(model_name: &str) -> Result<std::path::PathBuf, String> {
     let model_dir = whisper_models_dir();
-    
     let model_path = model_dir.join(model_name);
     if !model_path.exists() {
         return Err(format!("Model file not found: {:?}", model_path));
     }
-    
     Ok(model_path)
 }
