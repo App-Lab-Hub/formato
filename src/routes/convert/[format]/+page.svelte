@@ -1,4 +1,3 @@
-
 <!-- +page.svelte -->
 <script lang="ts">
   import { page } from '$app/state';
@@ -22,6 +21,7 @@
   import FileList from '$lib/components/convert/FileList.svelte';
   import ModeTabs from '$lib/components/convert/ModeTabs.svelte';
   import BackButton from '$lib/components/BackButton.svelte';
+  import { AlertTriangle, Settings } from 'lucide-svelte';
   
   // Import store
   import { appState, type FileItem } from '$lib/stores/app.svelte';
@@ -59,6 +59,75 @@
     availability?.enable_text_mode ? 'file' : 'file'
   );
   let containerEl: HTMLDivElement | undefined = $state();
+
+  // ============================================================
+  // AI МОДЕЛИ — УМНЫЙ БАННЕР
+  // ============================================================
+  
+  let modelsStatus = $derived(page.data.modelsStatus);
+  let appSettings = $derived(settings);
+  
+  // Проверяем наличие скачанных моделей синтеза
+  let hasSynthesisModel = $derived(
+    modelsStatus !== null && modelsStatus.has_any_synthesis === true
+  );
+  
+  // Проверяем, выбраны ли модели синтеза для ru и en
+  let synthesisConfigured = $derived(
+    appSettings?.synthesis_model && 
+    appSettings.synthesis_model.ru && 
+    appSettings.synthesis_model.en
+  );
+  
+  // Проверяем, скачаны ли выбранные модели синтеза (обе)
+  let selectedSynthesisDownloaded = $derived(() => {
+    if (!modelsStatus || !synthesisConfigured) return false;
+    const ruModel = appSettings.synthesis_model.ru;
+    const enModel = appSettings.synthesis_model.en;
+    return modelsStatus.synthesis[ruModel]?.exists && modelsStatus.synthesis[enModel]?.exists;
+  });
+  
+  // Проверяем, скачана ли выбранная модель распознавания
+  let selectedRecognitionDownloaded = $derived(() => {
+    if (!modelsStatus || !appSettings?.recognition_model) return false;
+    const modelName = appSettings.recognition_model as string;
+    return modelsStatus.recognition[modelName]?.exists === true;
+  });
+  
+  // Проверяем наличие скачанных моделей распознавания
+  let hasRecognitionModel = $derived(
+    modelsStatus !== null && modelsStatus.has_any_recognition === true
+  );
+  
+  // Формируем короткое сообщение
+  let bannerMessage = $derived(() => {
+    const missing: string[] = [];
+    
+    // Проверяем синтез речи (если нет скачанных моделей ИЛИ не выбраны обе модели ИЛИ выбранные модели не скачаны)
+    if (!hasSynthesisModel || !synthesisConfigured || !selectedSynthesisDownloaded()) {
+      missing.push('синтеза речи');
+    }
+    
+    // Проверяем распознавание речи
+    if (!hasRecognitionModel || !selectedRecognitionDownloaded()) {
+      missing.push('распознавания речи');
+    }
+    
+    if (missing.length === 0) return '';
+    
+    const joined = missing.join(' и ');
+    return `Для полного функционала скачайте или выберите скачанную модель ${joined}`;
+  });
+  
+  // Показываем баннер если есть проблемы
+  let showAIBanner = $derived(
+    modelsStatus !== null && bannerMessage() !== ''
+  );
+
+  // Перейти в настройки
+  function goToSettings() {
+    goto('/settings');
+  }
 
   // ============================================================
   // ФУНКЦИИ ДЛЯ АНИМАЦИЙ
@@ -175,7 +244,6 @@
             sourceFormat = f;
             targetFormats = getFormats().filter(f => f.id !== sourceFormatId);
             
-            // Восстанавливаем выбранный target из store
             const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
             if (savedTargetId && targetFormats.length > 0) {
               const found = targetFormats.find(f => f.id === savedTargetId);
@@ -656,6 +724,26 @@ async function downloadAllAsArchive() {
   {:else if sourceFormat}
       <div class="flex flex-col bg-background text-foreground min-h-screen">
         <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
+          
+          <!-- AI Banner -->
+          {#if showAIBanner}
+            <div class="w-full max-w-4xl px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-4">
+              <div class="flex items-center gap-3">
+                <AlertTriangle class="h-5 w-5 text-amber-400 flex-shrink-0" />
+                <p class="text-sm text-amber-400">
+                  {bannerMessage()}
+                </p>
+              </div>
+              <button
+                onclick={goToSettings}
+                class="cursor-pointer px-3 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 text-sm font-medium transition-colors flex items-center gap-2 whitespace-nowrap"
+              >
+                <Settings class="h-4 w-4" />
+                Перейти в настройки
+              </button>
+            </div>
+          {/if}
+
           <BackButton
             onClick={goBack} 
             opacity={1}
