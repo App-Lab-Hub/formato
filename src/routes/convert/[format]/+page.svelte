@@ -727,7 +727,6 @@ async function downloadAllAsArchive() {
       <div class="flex flex-col bg-background text-foreground min-h-screen">
         <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
           
-          <!-- AI Banner -->
           {#if showAIBanner}
             <div class="w-full max-w-4xl px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-center justify-between gap-4">
               <div class="flex items-center gap-3">

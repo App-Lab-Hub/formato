@@ -70,24 +70,57 @@ const iconMap: Record<string, any> = {
   FileOdt: MdDescription, // ODT
 
   // ============================================
-  // === ИЗОБРАЖЕНИЯ (svelte-icons) ===
+  // === ИЗОБРАЖЕНИЯ (svelte-icons + Lucide) ===
   // ============================================
   FileJpg: MdImage, // JPG
   FilePng: FaFileImage, // PNG
   FileWebp: Icons.Image, // WEBP
   FileAvif: FaFileImage, // AVIF
+  FileGif: MdImage, // GIF 🆕
+  FileBmp: FaFileImage, // BMP 🆕
+  FileTiff: FaFileImage, // TIFF 🆕
+  FileIco: FaFileImage, // ICO 🆕
+  FileQoi: FaFileImage, // QOI 🆕
+  FileTga: FaFileImage, // TGA 🆕
+  FileExr: FaFileImage, // EXR 🆕
+  FileHdr: FaFileImage, // HDR 🆕
+  FileDds: FaFileImage, // DDS 🆕
+  FilePnm: FaFileImage, // PNM 🆕
+  FilePcx: FaFileImage, // PCX 🆕
+  FileFarbfeld: FaFileImage, // Farbfeld 🆕
+  FileImage: MdImage, // Общая иконка для изображений
 
   // ============================================
   // === АУДИО (svelte-icons) ===
   // ============================================
   FileMp3: MdAudiotrack, // MP3
   FileWav: FaFileAudio, // WAV
+  FileAac: MdAudiotrack, // AAC 🆕
+  FileFlac: MdAudiotrack, // FLAC 🆕
+  FileOgg: MdAudiotrack, // OGG 🆕
+  FileOpus: MdAudiotrack, // OPUS 🆕
+  FileWma: MdAudiotrack, // WMA 🆕
+  FileM4a: MdAudiotrack, // M4A 🆕
+  FileAiff: MdAudiotrack, // AIFF 🆕
+  FileAc3: MdAudiotrack, // AC3 🆕
+  FileAudio: MdAudiotrack, // Общая иконка для аудио
 
   // ============================================
   // === ВИДЕО (svelte-icons) ===
   // ============================================
   FileMp4: MdVideocam, // MP4
   FileMov: FaFileVideo, // MOV
+  FileAvi: MdVideocam, // AVI 🆕
+  FileMkv: MdVideocam, // MKV 🆕
+  FileWebm: MdVideocam, // WEBM 🆕
+  FileWmv: MdVideocam, // WMV 🆕
+  FileFlv: MdVideocam, // FLV 🆕
+  File3gp: MdVideocam, // 3GP 🆕
+  FileM4v: MdVideocam, // M4V 🆕
+  FileTs: MdVideocam, // MPEG-TS 🆕
+  FileVob: MdVideocam, // VOB 🆕
+  FileMpeg: MdVideocam, // MPEG 🆕
+  FileVideo: MdVideocam, // Общая иконка для видео
 
   // === ЗАПАСНАЯ ===
   default: Icons.File,
@@ -134,7 +167,7 @@ export async function loadFormatsData(): Promise<void> {
         glow: f.glow,
         textColor: f.text_color,
         borderHover: f.border_hover,
-        formatType: f.format_type, // 👈 ДОБАВЛЯЕМ
+        formatType: f.format_type,
       }));
 
       _loaded = true;

@@ -91,6 +91,9 @@
 </script>
 
 <ScrollContainer>
+  <div>
+  hallow
+  </div>
   <div class="min-h-full flex flex-col bg-background text-foreground">
     <Header />
   
@@ -122,6 +125,7 @@
             }}
           >
             {#each formats as format, index}
+            {console.log(format.id)}
               {@const Icon = format.icon}
               <SplideSlide>
                 <div

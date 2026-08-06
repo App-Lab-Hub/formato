@@ -453,7 +453,6 @@ pub async fn convert_document_to_document(
 /// Image → Image
 use image::{ImageFormat, ImageReader};
 
-
 /// Конвертация изображений между поддерживаемыми форматами
 async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, String> {
     // Открываем и декодируем изображение
@@ -462,16 +461,32 @@ async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<Stri
         .decode()
         .map_err(|e| format!("Cannot decode image: {}", e))?;
     
-    // Определяем формат
+    // Определяем формат (поддерживаются все 16 форматов из image crate)
     let format = match to.to_lowercase().as_str() {
+        // Основные форматы
         "jpg" | "jpeg" => ImageFormat::Jpeg,
         "png" => ImageFormat::Png,
+        "gif" => ImageFormat::Gif,
         "webp" => ImageFormat::WebP,
         "avif" => ImageFormat::Avif,
-        "gif" => ImageFormat::Gif,
+        
+        // Растровые форматы
         "bmp" => ImageFormat::Bmp,
-        "tiff" | "tif" => ImageFormat::Tiff,
         "ico" => ImageFormat::Ico,
+        
+        // Профессиональные форматы
+        "tiff" | "tif" => ImageFormat::Tiff,
+        "tga" => ImageFormat::Tga,
+        "exr" => ImageFormat::OpenExr,
+        "hdr" => ImageFormat::Hdr,
+        
+        // Специализированные форматы
+        "dds" => ImageFormat::Dds,
+        "pnm" | "pgm" | "ppm" => ImageFormat::Pnm,
+        "qoi" => ImageFormat::Qoi,
+        "pcx" => ImageFormat::Pcx,
+        "ff" => ImageFormat::Farbfeld,
+        
         _ => return Err(format!("Unsupported output format: {}", to)),
     };
     
