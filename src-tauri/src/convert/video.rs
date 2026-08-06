@@ -22,6 +22,13 @@ pub fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String
 
     let mut cmd = FfmpegCommand::new();
     cmd.input(path);
+    
+    // 🔧 Исправление ошибки FFmpeg 234: принудительные параметры цвета
+    cmd.args(["-colorspace", "bt709"]);
+    cmd.args(["-color_primaries", "bt709"]);
+    cmd.args(["-color_trc", "bt709"]);
+    cmd.args(["-color_range", "pc"]);
+    
     cmd.args(&["-c:v", video_codec]);
     cmd.args(&["-c:a", audio_codec]);
     
@@ -43,10 +50,10 @@ pub fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String
     cmd.args(&["-y"]);
     cmd.output(&output_path);
 
-    let mut child = cmd.spawn()
+    let mut output = cmd.spawn()
         .map_err(|e| format!("Failed to spawn ffmpeg: {}", e))?;
-
-    let status = child.wait()
+    
+    let status = output.wait()
         .map_err(|e| format!("Failed to wait for ffmpeg: {}", e))?;
 
     if !status.success() {
@@ -103,10 +110,10 @@ fn extract_audio_to_wav(path: &str) -> Result<String, String> {
     cmd.args(&["-y"]);
     cmd.output(&temp_path);
     
-    let mut child = cmd.spawn()
+    let mut output = cmd.spawn()
         .map_err(|e| format!("Failed to spawn ffmpeg: {}", e))?;
     
-    let status = child.wait()
+    let status = output.wait()
         .map_err(|e| format!("Failed to wait for ffmpeg: {}", e))?;
     
     if !status.success() {

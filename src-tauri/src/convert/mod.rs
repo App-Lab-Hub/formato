@@ -450,57 +450,101 @@ pub async fn convert_document_to_document(
 
 
 
-/// Image → Image
-use image::{ImageFormat, ImageReader};
+use image::{ImageFormat, ImageReader, ImageEncoder, ExtendedColorType, EncodableLayout};
+use image::codecs::{
+    ico::IcoEncoder,
+    openexr::OpenExrEncoder,
+    hdr::HdrEncoder,
+    farbfeld::FarbfeldEncoder,
+};
+use std::io::BufWriter;
 
 /// Конвертация изображений между поддерживаемыми форматами
 async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, String> {
-    // Открываем и декодируем изображение
+    // 1. Декодируем исходное изображение в пиксельную матрицу
     let img = ImageReader::open(path)
         .map_err(|e| format!("Cannot open image: {}", e))?
         .decode()
         .map_err(|e| format!("Cannot decode image: {}", e))?;
     
-    // Определяем формат (поддерживаются все 16 форматов из image crate)
-    let format = match to.to_lowercase().as_str() {
-        // Основные форматы
-        "jpg" | "jpeg" => ImageFormat::Jpeg,
-        "png" => ImageFormat::Png,
-        "gif" => ImageFormat::Gif,
-        "webp" => ImageFormat::WebP,
-        "avif" => ImageFormat::Avif,
-        
-        // Растровые форматы
-        "bmp" => ImageFormat::Bmp,
-        "ico" => ImageFormat::Ico,
-        
-        // Профессиональные форматы
-        "tiff" | "tif" => ImageFormat::Tiff,
-        "tga" => ImageFormat::Tga,
-        "exr" => ImageFormat::OpenExr,
-        "hdr" => ImageFormat::Hdr,
-        
-        // Специализированные форматы
-        "dds" => ImageFormat::Dds,
-        "pnm" | "pgm" | "ppm" => ImageFormat::Pnm,
-        "qoi" => ImageFormat::Qoi,
-        "pcx" => ImageFormat::Pcx,
-        "ff" => ImageFormat::Farbfeld,
-        
-        _ => return Err(format!("Unsupported output format: {}", to)),
-    };
-    
-    // Получаем хеш и путь
+    // 2. Генерируем путь для сохранения результата
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error convert_image_to_image: {}", e))?;
-    let out_path = get_app_dir_path_with_hash(path, &to, &hash, true)?;
+    let out_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
     
-    // Сохраняем
-    img.save_with_format(&out_path, format)
-        .map_err(|e| format!("Cannot save image: {}", e))?;
+    let to_lower = to.to_lowercase();
     
-    Ok(out_path)
+    // 3. Выбираем правильный энкодер
+    match to_lower.as_str() {
+        // ICO: требует strict-размер (макс 256x256) и квадратные пропорции
+        "ico" => {
+            let file = std::fs::File::create(&out_path).map_err(|e| format!("Cannot create file: {}", e))?;
+            let mut writer = BufWriter::new(file);
+            let thumb = img.thumbnail(256, 256).to_rgba8();
+            let encoder = IcoEncoder::new(&mut writer);
+            encoder.write_image(thumb.as_bytes(), thumb.width(), thumb.height(), ExtendedColorType::Rgba8)
+                .map_err(|e| format!("Cannot save ICO: {}", e))?;
+            Ok(out_path)
+        }
+        
+        // EXR: требует 32-битный float формат (Rgb32F)
+        "exr" | "openexr" => {
+            let file = std::fs::File::create(&out_path).map_err(|e| format!("Cannot create file: {}", e))?;
+            let mut writer = BufWriter::new(file);
+            let rgb_f32 = img.to_rgb32f();
+            let encoder = OpenExrEncoder::new(&mut writer);
+            encoder.write_image(rgb_f32.as_bytes(), rgb_f32.width(), rgb_f32.height(), ExtendedColorType::Rgb32F)
+                .map_err(|e| format!("Cannot save EXR: {}", e))?;
+            Ok(out_path)
+        }
+        
+        // HDR: требует перевод в Rgb32F
+        "hdr" => {
+            let file = std::fs::File::create(&out_path).map_err(|e| format!("Cannot create file: {}", e))?;
+            let mut writer = BufWriter::new(file);
+            let rgb_f32 = img.to_rgb32f();
+            let encoder = HdrEncoder::new(&mut writer);
+            encoder.write_image(rgb_f32.as_bytes(), rgb_f32.width(), rgb_f32.height(), ExtendedColorType::Rgb32F)
+                .map_err(|e| format!("Cannot save HDR: {}", e))?;
+            Ok(out_path)
+        }
+        
+        // Farbfeld (ff): Полностью поддерживается! Переводим в 16 бит согласно спецификации
+        "ff" | "farbfeld" => {
+            let file = std::fs::File::create(&out_path).map_err(|e| format!("Cannot create file: {}", e))?;
+            let mut writer = BufWriter::new(file);
+            let rgba16 = img.to_rgba16(); 
+            let encoder = FarbfeldEncoder::new(&mut writer);
+            encoder.write_image(rgba16.as_bytes(), rgba16.width(), rgba16.height(), ExtendedColorType::Rgba16)
+                .map_err(|e| format!("Cannot save Farbfeld: {}", e))?;
+            Ok(out_path)
+        }
+        
+        // Все остальные стандартные форматы доверяем встроенному методу `.save_with_format()`
+        _ => {
+            let format = match to_lower.as_str() {
+                "jpg" | "jpeg" => ImageFormat::Jpeg,
+                "png" => ImageFormat::Png,
+                "gif" => ImageFormat::Gif,
+                "webp" => ImageFormat::WebP,
+                "avif" => ImageFormat::Avif,
+                "bmp" => ImageFormat::Bmp,
+                "tiff" | "tif" => ImageFormat::Tiff,
+                "tga" => ImageFormat::Tga,
+                "pnm" | "pgm" | "ppm" => ImageFormat::Pnm,
+                "qoi" => ImageFormat::Qoi,
+                _ => return Err(format!("Unsupported output format: {}", to)),
+            };
+            
+            img.save_with_format(&out_path, format)
+                .map_err(|e| format!("Cannot save image to {}: {}", to, e))?;
+            
+            Ok(out_path)
+        }
+    }
 }
+
+
 
 async fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
     audio::convert_audio_to_audio(path, from, to)

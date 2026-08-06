@@ -17,16 +17,22 @@ pub fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String
     let mut cmd = FfmpegCommand::new();
     cmd.input(path);
     
+    // 🔧 Исправление ошибки FFmpeg 234: принудительные параметры цвета
+    cmd.args(["-colorspace", "bt709"]);
+    cmd.args(["-color_primaries", "bt709"]);
+    cmd.args(["-color_trc", "bt709"]);
+    cmd.args(["-color_range", "pc"]);
+    
     // Фильтр: мягкое ограничение пиков (-0.5dB) + дизеринг
-    // Это предотвращает клиппинг на мощных битах
     cmd.args(&["-af", "volume=-0.2dB,aresample=dither_method=triangular"]);
     cmd.args(&["-c:a", audio_codec]);
     cmd.args(&["-y"]);
     cmd.output(&output_path);
 
-    let mut child = cmd.spawn()
+    let mut output = cmd.spawn()
         .map_err(|e| format!("Failed to spawn ffmpeg: {}", e))?;
-    let status = child.wait()
+    
+    let status = output.wait()
         .map_err(|e| format!("Failed to wait for ffmpeg: {}", e))?;
 
     if !status.success() {

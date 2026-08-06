@@ -267,28 +267,12 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:hover:border-amber-500/60 light:hover:border-amber-600/50",
         "image"),
 
-        ("dds", "DDS", json!(["dds"]),
-        "FileImage", 
-        "dark:from-teal-500/30 light:from-teal-600/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
-        "dark:shadow-teal-500/20 light:shadow-teal-600/30",
-        "dark:text-teal-400 light:text-teal-700", 
-        "dark:hover:border-teal-500/60 light:hover:border-teal-600/50",
-        "image"),
-
         ("pnm", "PNM", json!(["pnm", "pgm", "ppm"]),
         "FileImage", 
         "dark:from-lime-500/30 light:from-lime-600/40 dark:to-green-500/15 light:to-green-600/25", 
         "dark:shadow-lime-500/20 light:shadow-lime-600/30",
         "dark:text-lime-400 light:text-lime-700", 
         "dark:hover:border-lime-500/60 light:hover:border-lime-600/50",
-        "image"),
-
-        ("pcx", "PCX", json!(["pcx"]),
-        "FileImage", 
-        "dark:from-fuchsia-500/30 light:from-fuchsia-600/40 dark:to-pink-500/15 light:to-pink-600/25", 
-        "dark:shadow-fuchsia-500/20 light:shadow-fuchsia-600/30",
-        "dark:text-fuchsia-400 light:text-fuchsia-700", 
-        "dark:hover:border-fuchsia-500/60 light:hover:border-fuchsia-600/50",
         "image"),
 
         ("ff", "Farbfeld", json!(["ff"]),

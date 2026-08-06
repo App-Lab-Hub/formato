@@ -17,6 +17,7 @@ pub fn get_audio_codec(format: &str) -> &'static str {
         "flv" => "aac",         // ✅ AAC гораздо совместимее в FLV, чем MP3
         "avi" => "libmp3lame",  // ✅ AVI плохо дружит с AAC, MP3 — стандарт
         "vob" => "ac3",         // ✅ VOB (DVD) требует AC3 или MP2, но не AAC
+        "mpg" | "mpeg" => "mp2", // ✅ Для MPEG-1/2 используем нативный кодек MP2
         // Контейнеры, где AAC является основным стандартом
         "mp4" | "mov" | "mkv" | "3gp" | "m4v" | "ts" => "aac",
         _ => "aac",             // Безопасный дефолт
@@ -27,7 +28,6 @@ pub fn get_audio_codec(format: &str) -> &'static str {
 pub fn get_video_codec(format: &str) -> &'static str {
     match format {
         // ✅ VP9 — баланс скорости и сжатия для WebM
-        // Если критически важен AV1, замените на "libsvtav1", но учтите нагрузку на CPU
         "webm" => "libvpx-vp9",  
         // Популярные контейнеры с отличной поддержкой H.264
         "mp4" | "mov" | "mkv" | "avi" | "flv" | "3gp" | "m4v" | "ts" => "libx264",
