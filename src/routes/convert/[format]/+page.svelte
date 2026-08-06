@@ -752,12 +752,13 @@ async function downloadAllAsArchive() {
           />
 
           <SourceFormatHeader format={sourceFormat} />
-          <TargetFormatGrid 
-            formats={targetFormats} 
-            {selectedTarget} 
-            availability={availability}
-            onselect={selectTarget} 
-          />
+        <TargetFormatGrid 
+          formats={targetFormats} 
+          {selectedTarget} 
+          availability={availability}
+          onselect={selectTarget}
+          sourceFormatId={sourceFormatId}  // 👈 Передаем ID исходного формата
+        />
           
           {#if availability?.enable_text_mode}
             <div class="w-full max-w-4xl">

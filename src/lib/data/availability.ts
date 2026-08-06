@@ -8,7 +8,8 @@ export interface AvailabilityResponse {
   audio: string;
   video: string;
   document: string;
-  enable_text_mode: boolean; // true только для Text
+  enable_text_mode: boolean;
+  exceptions: Record<string, string[]>; // 🚫 Исключения конвертации
 }
 
 export async function getAvailability(
@@ -27,6 +28,7 @@ export async function getAvailability(
       video: "not_available",
       document: "not_available",
       enable_text_mode: false,
+      exceptions: {},
     };
   }
 }
@@ -46,4 +48,23 @@ export function getAvailabilityStatus(status: string): {
     default:
       return { label: "Неизвестно", color: "text-gray-400", icon: "❓" };
   }
+}
+
+// Получить исключения для конкретного формата
+export function getExceptionsForFormat(
+  availability: AvailabilityResponse | null,
+  formatId: string,
+): string[] {
+  if (!availability || !availability.exceptions) return [];
+  return availability.exceptions[formatId] || [];
+}
+
+// Проверить, исключен ли формат для конвертации
+export function isFormatExcluded(
+  availability: AvailabilityResponse | null,
+  sourceFormatId: string,
+  targetFormatType: string,
+): boolean {
+  const exceptions = getExceptionsForFormat(availability, sourceFormatId);
+  return exceptions.includes(targetFormatType);
 }

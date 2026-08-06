@@ -61,7 +61,7 @@ pub async fn get_format_by_id(
         "glow": format.glow,
         "text_color": format.text_color,
         "border_hover": format.border_hover,
-        "format_type": format.format_type, // 👈 ДОБАВЛЯЕМ
+        "format_type": format.format_type,
     }))
 }
 
@@ -86,7 +86,7 @@ pub async fn get_formats(state: tauri::State<'_, AppState>) -> Result<Vec<serde_
                 "glow": f.glow,
                 "text_color": f.text_color,
                 "border_hover": f.border_hover,
-                "format_type": f.format_type, // 👈 ДОБАВЛЯЕМ
+                "format_type": f.format_type,
             })
         })
         .collect())
@@ -126,6 +126,7 @@ pub fn create_temp_file(content: String, extension: String, name: String) -> Res
 // src/utils/mod.rs
 
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 
 // ============================================================
 // ТИПЫ
@@ -160,7 +161,8 @@ pub struct AvailabilityResponse {
     pub audio: String,
     pub video: String,
     pub document: String,
-    pub enable_text_mode: bool, // true только для Text
+    pub enable_text_mode: bool,
+    pub exceptions: HashMap<String, Vec<String>>, // 🚫 Исключения конвертации
 }
 
 // ============================================================
@@ -170,46 +172,63 @@ pub struct AvailabilityResponse {
 pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
     let from: ContentType = from_type.to_string().into();
     
+    // 🚫 ИСКЛЮЧЕНИЯ КОНВЕРТАЦИИ
+    // Ключ: ID формата (из БД), Значение: список групп для исключения
+    let mut exceptions = HashMap::new();
+    
+    // PDF → нельзя конвертировать в документы
+    exceptions.insert("pdf".to_string(), vec!["document".to_string()]);
+    
+    // Можно добавить другие исключения:
+    // exceptions.insert("txt".to_string(), vec!["document".to_string()]);
+    // exceptions.insert("html".to_string(), vec!["document".to_string()]);
+    // exceptions.insert("json".to_string(), vec!["document".to_string()]);
+    
     match from {
         ContentType::Text => AvailabilityResponse {
-            text: "available".to_string(), // ready n
-            image: "not_available".to_string(), // ready n
-            audio: "available".to_string(), // ready n
-            video: "not_available".to_string(), // ready n
-            document: "available".to_string(), // ready n
-            enable_text_mode: true, // только для Text доступен ввод текста
+            text: "available".to_string(),
+            image: "not_available".to_string(),
+            audio: "available".to_string(),
+            video: "not_available".to_string(),
+            document: "available".to_string(),
+            enable_text_mode: true,
+            exceptions: exceptions.clone(),
         },
         ContentType::Image => AvailabilityResponse {
-            text: "available".to_string(), // ready n
-            image: "available".to_string(), // ready n
-            audio: "not_available".to_string(), // ready n
-            video: "not_available".to_string(), // ready n
-            document: "available".to_string(), // ready n
+            text: "available".to_string(),
+            image: "available".to_string(),
+            audio: "not_available".to_string(),
+            video: "not_available".to_string(),
+            document: "available".to_string(),
             enable_text_mode: false,
+            exceptions: exceptions.clone(),
         },
         ContentType::Audio => AvailabilityResponse {
-            text: "available".to_string(), // ready n
-            image: "not_available".to_string(), // ready n
-            audio: "available".to_string(), // ready n
-            video: "not_available".to_string(), // ready n
-            document: "available".to_string(), // ready n
+            text: "available".to_string(),
+            image: "not_available".to_string(),
+            audio: "available".to_string(),
+            video: "not_available".to_string(),
+            document: "available".to_string(),
             enable_text_mode: false,
+            exceptions: exceptions.clone(),
         },
         ContentType::Video => AvailabilityResponse {
-            text: "available".to_string(), // ready n
-            image: "not_available".to_string(), // ready n
-            audio: "available".to_string(), // ready n
-            video: "available".to_string(), // ready n
-            document: "available".to_string(), // ready n
+            text: "available".to_string(),
+            image: "not_available".to_string(),
+            audio: "available".to_string(),
+            video: "available".to_string(),
+            document: "available".to_string(),
             enable_text_mode: false,
+            exceptions: exceptions.clone(),
         },
         ContentType::Document => AvailabilityResponse {
-            text: "available".to_string(), // ready n
-            image: "not_available".to_string(), // ready n
-            audio: "available".to_string(), // ready n
-            video: "not_available".to_string(), // ready n
-            document: "available".to_string(), // ready n
+            text: "available".to_string(),
+            image: "not_available".to_string(),
+            audio: "available".to_string(),
+            video: "not_available".to_string(),
+            document: "available".to_string(),
             enable_text_mode: false,
+            exceptions: exceptions.clone(),
         },
     }
 }

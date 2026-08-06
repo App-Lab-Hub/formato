@@ -1,6 +1,7 @@
 <!-- src/lib/components/convert/TargetFormatGrid.svelte -->
 <script lang="ts">
   import type { Format } from '$lib/types/format';
+  import type { AvailabilityResponse } from '$lib/data/availability';
   import { m } from '$lib/paraglide/messages';
   import { FileText, Image, Music, Film, File } from 'lucide-svelte';
   import FormatCard from './FormatCard.svelte';
@@ -10,12 +11,22 @@
     selectedTarget,
     availability,
     onselect,
+    sourceFormatId,
   }: {
     formats: Format[];
     selectedTarget: Format | null;
-    availability: Record<string, string> | null;
+    availability: AvailabilityResponse | null;
     onselect: (format: Format) => void;
+    sourceFormatId?: string;
   } = $props();
+
+  // Получаем исключения из availability
+  const excludedGroups = $derived(() => {
+    if (!availability || !availability.exceptions || !sourceFormatId) {
+      return [];
+    }
+    return availability.exceptions[sourceFormatId] || [];
+  });
 
   const groupedFormats = $derived.by(() => {
     const groups: Record<string, Format[]> = {};
@@ -40,7 +51,15 @@
   function getStatusForFormat(format: Format): string {
     if (!availability) return 'unknown';
     const type = format.formatType || 'text';
-    return availability[type] || 'unknown';
+    
+    // Проверяем, исключен ли этот формат
+    const excluded = excludedGroups();
+    if (excluded.includes(type)) {
+      return 'not_available'; // 👈 Помечаем как недоступный
+    }
+    
+    const key = type as keyof AvailabilityResponse;
+    return availability[key] as string || 'unknown';
   }
 </script>
 
@@ -72,7 +91,7 @@
           </span>
         </div>
         
-        <!-- Сетка карточек с более ранним переключением на 2 колонки -->
+        <!-- Сетка карточек -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 mt-1">
           {#each groupItems as target}
             {@const status = getStatusForFormat(target)}
