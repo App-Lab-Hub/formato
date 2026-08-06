@@ -1,4 +1,5 @@
 // src-tauri/src/utils/generate_audio.rs
+
 use tempfile::Builder;
 use crate::paths;
 use piper_rs::Piper;
@@ -74,26 +75,22 @@ fn get_model_for_language(lang: &str) -> String {
     }
 }
 
-
-/// Генерация речи через Piper с чанкингом, склейкой аудио и автоопределением языка
+/// Генерация речи через Piper с поточной записью на диск (без ограничений по длине)
 pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
     if text.trim().is_empty() {
         return Err("Text is empty for TTS generation".to_string());
     }
 
-    // Определяем язык текста по соотношению символов (>=51% кириллицы = ru)
     let lang = detect_language(text);
     let model_name = get_model_for_language(&lang);
     
     println!("🌐 Определён язык: {} (модель: {})", lang, model_name);
     
-    // Путь к моделям в app_dir
     let model_dir = paths::piper_models_dir();
     
     let onnx_path = model_dir.join(format!("{}.onnx", model_name));
     let config_path = model_dir.join(format!("{}.onnx.json", model_name));
     
-    // Проверяем наличие модели
     if !onnx_path.exists() {
         return Err(format!("Model file not found: {:?}. Please download it in settings.", onnx_path));
     }
@@ -104,8 +101,6 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
     
     println!("🔄 Загружаем модель Piper ({})...", model_name);
     
-    // Загружаем модель с обработкой ошибок памяти
-    // Используем AssertUnwindSafe для обхода ограничений UnwindSafe
     let piper_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
         Piper::new(&onnx_path, &config_path)
     }));
@@ -124,14 +119,12 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
         }
     };
     
-    // Разбиваем текст на чанки (по 1000 символов для уменьшения нагрузки на память)
-    let max_chars = 1000;
+    let max_chars = 800;
     let chunks = split_text_into_chunks(text, max_chars);
     let total_chunks = chunks.len();
     
     println!("📝 Текст разбит на {} частей (макс. {} символов)", total_chunks, max_chars);
     
-    // Создаем временный файл для результата
     let temp_file = match Builder::new()
         .suffix(".wav")
         .prefix("piper_")
@@ -145,33 +138,19 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
         None => return Err("Invalid temp path".to_string())
     };
     
-    // Первый чанк определяет sample_rate
     let mut sample_rate = 22050;
-    let mut all_samples: Vec<i16> = Vec::new();
-    
-    // Ограничиваем общее количество сэмплов для предотвращения переполнения памяти
-    const MAX_TOTAL_SAMPLES: usize = 10_000_000; // ~7.5 минут при 22kHz
+    let mut writer_opt: Option<WavWriter<std::io::BufWriter<std::fs::File>>> = None;
+    let mut total_samples = 0;
     
     for (i, chunk) in chunks.iter().enumerate() {
         println!("🔄 [{}/{}] Синтез части ({} символов)...", i + 1, total_chunks, chunk.len());
         
-        // Проверяем, не превышен ли лимит памяти
-        if all_samples.len() > MAX_TOTAL_SAMPLES {
-            return Err(format!(
-                "Generated audio is too long ({} samples). Maximum allowed is {} samples (~7.5 minutes).",
-                all_samples.len(),
-                MAX_TOTAL_SAMPLES
-            ));
-        }
-        
-        // Синтезируем с обработкой ошибок памяти
-        // Используем AssertUnwindSafe для обхода ограничений UnwindSafe
         let synthesis_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
             piper.create(
                 chunk,
                 false,
-                None,                    // speaker_id (None = используем дефолтный)
-                Some(1.5),              // length_scale - 1.5 = медленнее и плавнее
+                None,
+                Some(1.5),
                 None,
                 None,
             )
@@ -193,9 +172,19 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
         
         if i == 0 {
             sample_rate = rate;
+            let spec = WavSpec {
+                channels: 1,
+                sample_rate,
+                bits_per_sample: 16,
+                sample_format: hound::SampleFormat::Int,
+            };
+            
+            match WavWriter::create(&temp_path, spec) {
+                Ok(writer) => writer_opt = Some(writer),
+                Err(e) => return Err(format!("Failed to create WAV file: {}", e))
+            }
         }
         
-        // Конвертируем f32 в i16 с проверкой на переполнение
         let samples_i16: Vec<i16> = samples
             .iter()
             .map(|&s| {
@@ -204,77 +193,33 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
             })
             .collect();
         
-        // Проверяем, не приведет ли добавление к переполнению памяти
-        if all_samples.len() + samples_i16.len() > MAX_TOTAL_SAMPLES {
-            return Err(format!(
-                "Generated audio would exceed maximum length ({} samples). Current: {}, new: {}",
-                MAX_TOTAL_SAMPLES,
-                all_samples.len(),
-                samples_i16.len()
-            ));
-        }
-        let samples_i16_len = samples_i16.len();
-        all_samples.extend(samples_i16);
-        
-        // Принудительно очищаем память после каждого чанка
-        std::mem::drop(samples);
-        
-        println!("✅ [{}/{}] Готово ({} сэмплов, всего: {})", 
-            i + 1, total_chunks, samples_i16_len, all_samples.len());
-    }
-    
-    // Если ничего не сгенерировалось
-    if all_samples.is_empty() {
-        return Err("No audio samples generated. Text might be empty or unsupported.".to_string());
-    }
-    
-    println!("🔄 Сохраняем объединенное аудио ({} сэмплов)...", all_samples.len());
-    
-    // Сохраняем все сэмплы в один WAV с обработкой ошибок
-    let save_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
-        let spec = WavSpec {
-            channels: 1,
-            sample_rate,
-            bits_per_sample: 16,
-            sample_format: hound::SampleFormat::Int,
-        };
-        
-        // Создаем writer с явной обработкой ошибок
-        let mut writer = match WavWriter::create(&temp_path, spec) {
-            Ok(w) => w,
-            Err(e) => return Err(format!("Failed to create WAV file: {}", e))
-        };
-        
-        // Записываем сэмплы с явной обработкой ошибок
-        for sample in all_samples.iter() {
-            if let Err(e) = writer.write_sample(*sample) {
-                return Err(format!("Failed to write sample: {}", e));
+        if let Some(writer) = writer_opt.as_mut() {
+            for sample in samples_i16.iter() {
+                if let Err(e) = writer.write_sample(*sample) {
+                    return Err(format!("Failed to write sample: {}", e));
+                }
             }
         }
         
-        // Финализируем с явной обработкой ошибок
+        total_samples += samples_i16.len();
+        std::mem::drop(samples);
+        
+        println!("✅ [{}/{}] Готово ({} сэмплов, всего: {})", 
+            i + 1, total_chunks, samples_i16.len(), total_samples);
+    }
+    
+    // ✅ Берем владение из Option и финализируем
+    if let Some(writer) = writer_opt.take() {
         if let Err(e) = writer.finalize() {
             return Err(format!("Failed to finalize WAV: {}", e));
         }
-        
-        Ok::<_, String>(())
-    }));
-    
-    match save_result {
-        Ok(Ok(())) => {
-            // Успешно сохранено
-        }
-        Ok(Err(e)) => {
-            return Err(format!("Failed to save WAV file: {}", e));
-        }
-        Err(_) => {
-            return Err("Fatal error while saving WAV file (possible memory corruption)".to_string());
-        }
+    } else {
+        return Err("No audio data generated".to_string());
     }
     
     let _ = temp_file.keep();
     
-    let duration_sec = all_samples.len() as f32 / sample_rate as f32;
+    let duration_sec = total_samples as f32 / sample_rate as f32;
     println!("✅ Speech generated: {} ({} сек)", temp_path, duration_sec);
     
     Ok(temp_path)

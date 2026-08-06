@@ -24,7 +24,7 @@ pub fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String
     cmd.args(["-color_range", "pc"]);
     
     // Фильтр: мягкое ограничение пиков (-0.5dB) + дизеринг
-    cmd.args(&["-af", "volume=-0.2dB,aresample=dither_method=triangular"]);
+    cmd.args(&["-af", "aresample=dither_method=triangular"]);
     cmd.args(&["-c:a", audio_codec]);
     cmd.args(&["-y"]);
     cmd.output(&output_path);
