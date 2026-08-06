@@ -20,12 +20,13 @@
     sourceFormatId?: string;
   } = $props();
 
-  // Получаем исключения из availability
-  const excludedGroups = $derived(() => {
+  // Получаем список исключенных форматов (по ID форматов)
+  const excludedFormats = $derived(() => {
     if (!availability || !availability.exceptions || !sourceFormatId) {
-      return [];
+      return new Set<string>();
     }
-    return availability.exceptions[sourceFormatId] || [];
+    const ex = availability.exceptions[sourceFormatId] || [];
+    return new Set(ex);
   });
 
   const groupedFormats = $derived.by(() => {
@@ -52,9 +53,9 @@
     if (!availability) return 'unknown';
     const type = format.formatType || 'text';
     
-    // Проверяем, исключен ли этот формат
-    const excluded = excludedGroups();
-    if (excluded.includes(type)) {
+    // Проверяем, исключен ли этот конкретный формат
+    const excluded = excludedFormats();
+    if (excluded.has(format.id)) {
       return 'not_available'; // 👈 Помечаем как недоступный
     }
     
@@ -62,6 +63,7 @@
     return availability[key] as string || 'unknown';
   }
 </script>
+
 
 <!-- Разделитель "Конвертировать в" -->
 <div class="flex items-center justify-center gap-3 w-full my-1 select-none opacity-60">

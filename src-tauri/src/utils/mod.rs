@@ -168,21 +168,28 @@ pub struct AvailabilityResponse {
 // ============================================================
 // ЛОГИКА ДОСТУПНОСТИ
 // ============================================================
-
 pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
     let from: ContentType = from_type.to_string().into();
     
     // 🚫 ИСКЛЮЧЕНИЯ КОНВЕРТАЦИИ
-    // Ключ: ID формата (из БД), Значение: список групп для исключения
+    // Ключ: ID исходного формата (из БД)
+    // Значение: список ID целевых форматов, которые нужно сделать недоступными
     let mut exceptions = HashMap::new();
     
-    // PDF → нельзя конвертировать в документы
-    exceptions.insert("pdf".to_string(), vec!["document".to_string()]);
+    // PDF → нельзя конвертировать в документы (по конкретным форматам)
+    exceptions.insert(
+        "pdf".to_string(), 
+        vec![
+            "docx".to_string(),
+            "odt".to_string(),
+            "xlsx".to_string(),
+        ]
+    );
     
-    // Можно добавить другие исключения:
-    // exceptions.insert("txt".to_string(), vec!["document".to_string()]);
-    // exceptions.insert("html".to_string(), vec!["document".to_string()]);
-    // exceptions.insert("json".to_string(), vec!["document".to_string()]);
+    // Можно добавить другие исключения по конкретным форматам:
+    // exceptions.insert("txt".to_string(), vec!["docx".to_string(), "odt".to_string()]);
+    // exceptions.insert("html".to_string(), vec!["docx".to_string()]);
+    // exceptions.insert("json".to_string(), vec!["xlsx".to_string()]);
     
     match from {
         ContentType::Text => AvailabilityResponse {
