@@ -76,18 +76,18 @@ const iconMap: Record<string, any> = {
   FilePng: FaFileImage, // PNG
   FileWebp: Icons.Image, // WEBP
   FileAvif: FaFileImage, // AVIF
-  FileGif: MdImage, // GIF 🆕
-  FileBmp: FaFileImage, // BMP 🆕
-  FileTiff: FaFileImage, // TIFF 🆕
-  FileIco: FaFileImage, // ICO 🆕
-  FileQoi: FaFileImage, // QOI 🆕
-  FileTga: FaFileImage, // TGA 🆕
-  FileExr: FaFileImage, // EXR 🆕
-  FileHdr: FaFileImage, // HDR 🆕
-  FileDds: FaFileImage, // DDS 🆕
-  FilePnm: FaFileImage, // PNM 🆕
-  FilePcx: FaFileImage, // PCX 🆕
-  FileFarbfeld: FaFileImage, // Farbfeld 🆕
+  FileGif: MdImage, // GIF
+  FileBmp: FaFileImage, // BMP
+  FileTiff: FaFileImage, // TIFF
+  FileIco: FaFileImage, // ICO
+  FileQoi: FaFileImage, // QOI
+  FileTga: FaFileImage, // TGA
+  FileExr: FaFileImage, // EXR
+  FileHdr: FaFileImage, // HDR
+  FileDds: FaFileImage, // DDS
+  FilePnm: FaFileImage, // PNM
+  FilePcx: FaFileImage, // PCX
+  FileFarbfeld: FaFileImage, // Farbfeld
   FileImage: MdImage, // Общая иконка для изображений
 
   // ============================================
@@ -95,14 +95,23 @@ const iconMap: Record<string, any> = {
   // ============================================
   FileMp3: MdAudiotrack, // MP3
   FileWav: FaFileAudio, // WAV
-  FileAac: MdAudiotrack, // AAC 🆕
-  FileFlac: MdAudiotrack, // FLAC 🆕
-  FileOgg: MdAudiotrack, // OGG 🆕
-  FileOpus: MdAudiotrack, // OPUS 🆕
-  FileWma: MdAudiotrack, // WMA 🆕
-  FileM4a: MdAudiotrack, // M4A 🆕
-  FileAiff: MdAudiotrack, // AIFF 🆕
-  FileAc3: MdAudiotrack, // AC3 🆕
+  FileAac: MdAudiotrack, // AAC
+  FileFlac: MdAudiotrack, // FLAC
+  FileOgg: MdAudiotrack, // OGG
+  FileOpus: MdAudiotrack, // OPUS
+  FileWma: MdAudiotrack, // WMA
+  FileM4a: MdAudiotrack, // M4A
+  FileAiff: MdAudiotrack, // AIFF
+  FileAc3: MdAudiotrack, // AC3
+  FileVoc: MdAudiotrack, // Creative Voice
+  FileApe: MdAudiotrack, // Monkey's Audio
+  FileWv: MdAudiotrack, // WavPack
+  FileMpc: MdAudiotrack, // Musepack
+  FileTta: MdAudiotrack, // True Audio
+  FileWve: MdAudiotrack, // EA Audio
+  FileAud: MdAudiotrack, // Westwood AUD
+  FileApc: MdAudiotrack, // CRYO APC
+  FileCin: MdAudiotrack, // Delphine CIN
   FileAudio: MdAudiotrack, // Общая иконка для аудио
 
   // ============================================
@@ -110,16 +119,30 @@ const iconMap: Record<string, any> = {
   // ============================================
   FileMp4: MdVideocam, // MP4
   FileMov: FaFileVideo, // MOV
-  FileAvi: MdVideocam, // AVI 🆕
-  FileMkv: MdVideocam, // MKV 🆕
-  FileWebm: MdVideocam, // WEBM 🆕
-  FileWmv: MdVideocam, // WMV 🆕
-  FileFlv: MdVideocam, // FLV 🆕
-  File3gp: MdVideocam, // 3GP 🆕
-  FileM4v: MdVideocam, // M4V 🆕
-  FileTs: MdVideocam, // MPEG-TS 🆕
-  FileVob: MdVideocam, // VOB 🆕
-  FileMpeg: MdVideocam, // MPEG 🆕
+  FileAvi: MdVideocam, // AVI
+  FileMkv: MdVideocam, // MKV
+  FileWebm: MdVideocam, // WEBM
+  FileWmv: MdVideocam, // WMV
+  FileFlv: MdVideocam, // FLV
+  File3gp: MdVideocam, // 3GP
+  FileM4v: MdVideocam, // M4V
+  FileTs: MdVideocam, // MPEG-TS
+  FileVob: MdVideocam, // VOB
+  FileMpeg: MdVideocam, // MPEG
+  FileRoq: MdVideocam, // RoQ
+  FileSmk: MdVideocam, // Smacker
+  FileBik: MdVideocam, // Bink
+  FileVqa: MdVideocam, // VQA
+  FileVmd: MdVideocam, // Sierra VMD
+  FileMve: MdVideocam, // Interplay MVE
+  FileVid: MdVideocam, // Bethesda VID
+  File4xm: MdVideocam, // 4XM
+  FileStr: MdVideocam, // PlayStation STR
+  FileCpk: MdVideocam, // Sega FILM
+  FileMxf: MdVideocam, // MXF
+  FileGxf: MdVideocam, // GXF
+  FileProres: MdVideocam, // ProRes
+  FileDnxhd: MdVideocam, // DNxHD
   FileVideo: MdVideocam, // Общая иконка для видео
 
   // === ЗАПАСНАЯ ===

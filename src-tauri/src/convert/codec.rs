@@ -1,39 +1,60 @@
 // src-tauri/src/convert/codec.rs
 
-/// Получение кодека для аудио по формату контейнера
+/// Получение кодека для аудио по формату контейнера (Только форматы с полной поддержкой записи/чтения)
 pub fn get_audio_codec(format: &str) -> &'static str {
     match format {
+        // Стандартные форматы
         "mp3" => "libmp3lame",
-        "wav" => "pcm_s16le",   // 16-bit PCM (Little-Endian)
-        "aac" => "aac",         // Родной энкодер FFmpeg
+        "wav" => "pcm_s16le",
+        "aac" => "aac",
         "flac" => "flac",
         "ogg" => "libvorbis",
         "m4a" => "aac",
-        "opus" => "libopus",
-        "wma" => "wmav2",       // Windows Media Audio 2
-        "aiff" => "pcm_s16be",  // AIFF использует Big-Endian PCM
-        "ac3" => "ac3",         // Dolby Digital
-        "webm" => "libopus",    // Стандарт для WebM
-        "flv" => "aac",         // ✅ AAC гораздо совместимее в FLV, чем MP3
-        "avi" => "libmp3lame",  // ✅ AVI плохо дружит с AAC, MP3 — стандарт
-        "vob" => "ac3",         // ✅ VOB (DVD) требует AC3 или MP2, но не AAC
-        "mpg" | "mpeg" => "mp2", // ✅ Для MPEG-1/2 используем нативный кодек MP2
-        // Контейнеры, где AAC является основным стандартом
+        "opus" => "libopus",     // ИСПРАВЛЕНО: Для кодирования FFmpeg требует libopus
+        "wma" => "wmav2",
+        "aiff" => "pcm_s16be",
+        "ac3" => "ac3",
+        "webm" => "libopus",     // ИСПРАВЛЕНО: Для WebM также используем libopus
+        "flv" => "aac",
+        "avi" => "libmp3lame",   // Классическая аудио-дорожка для AVI
+        "vob" => "ac3",
+        "mpg" | "mpeg" => "mp2",
         "mp4" | "mov" | "mkv" | "3gp" | "m4v" | "ts" => "aac",
-        _ => "aac",             // Безопасный дефолт
+
+        // Новые форматы с полной поддержкой двусторонней конвертации
+        "voc" => "pcm_s16le",     // Creative Voice полностью поддерживается на запись и чтение
+        "wv" => "wavpack",       // WavPack имеет нативный рабочий энкодер
+        "roq" => "roq_dpcm",     // id Software RoQ аудио можно свободно кодировать в FFmpeg
+
+        // Профессиональные монтажные форматы
+        "mxf" => "pcm_s16le",     
+        "gxf" => "pcm_s16le",     
+        "prores" => "pcm_s16le",  
+        "dnxhd" => "pcm_s16le",   
+
+        _ => "aac",
     }
 }
 
-/// Получение кодека для видео по формату контейнера
+/// Получение кодека для видео по формату контейнера (Только форматы с полной поддержкой записи/чтения)
 pub fn get_video_codec(format: &str) -> &'static str {
     match format {
-        // ✅ VP9 — баланс скорости и сжатия для WebM
-        "webm" => "libvpx-vp9",  
-        // Популярные контейнеры с отличной поддержкой H.264
-        "mp4" | "mov" | "mkv" | "avi" | "flv" | "3gp" | "m4v" | "ts" => "libx264",
-        // Специфичные старые форматы
-        "mpeg" | "mpg" | "vob" => "mpeg2video", // MPEG-2 для DVD/VOB
+        // Стандартные форматы
+        "webm" => "libvpx-vp9",
+        "avi" => "mpeg4",        // Вынесено отдельно: H.264 в AVI ломает структуру файла. mpeg4 — стандарт.
+        "mp4" | "mov" | "mkv" | "flv" | "3gp" | "m4v" | "ts" => "libx264",
+        "mpeg" | "mpg" | "vob" => "mpeg2video",
         "wmv" => "wmv2",
-        _ => "libx264",          // Безопасный дефолт
+
+        // Новые форматы с полной поддержкой двусторонней конвертации
+        "roq" => "roqvideo",     // Исправлено: имя энкодера в FFmpeg — roqvideo
+
+        // Профессиональные монтажные форматы
+        "mxf" => "mpeg2video",   
+        "gxf" => "mpeg2video",   
+        "prores" => "prores_ks", // prores_ks — отличный нативный энкодер ProRes в FFmpeg
+        "dnxhd" => "dnxhd",      // Родной энкодер для Avid DNxHD
+
+        _ => "libx264",
     }
 }

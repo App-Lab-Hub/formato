@@ -291,7 +291,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-rose-400 light:text-rose-700", 
         "dark:hover:border-rose-500/60 light:hover:border-rose-600/50",
         "audio"),
-        
+
         ("wav", "WAV", json!(["wav"]),
         "FileWav", 
         "dark:from-teal-500/30 light:from-teal-600/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
@@ -299,7 +299,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-teal-400 light:text-teal-700", 
         "dark:hover:border-teal-500/60 light:hover:border-teal-600/50",
         "audio"),
-        
+
         ("aac", "AAC", json!(["aac"]),
         "FileAudio", 
         "dark:from-purple-500/30 light:from-purple-600/40 dark:to-pink-500/15 light:to-pink-600/25", 
@@ -307,7 +307,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-purple-400 light:text-purple-700", 
         "dark:hover:border-purple-500/60 light:hover:border-purple-600/50",
         "audio"),
-        
+
         ("flac", "FLAC", json!(["flac"]),
         "FileAudio", 
         "dark:from-emerald-500/30 light:from-emerald-600/40 dark:to-teal-500/15 light:to-teal-600/25", 
@@ -315,7 +315,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-emerald-400 light:text-emerald-700", 
         "dark:hover:border-emerald-500/60 light:hover:border-emerald-600/50",
         "audio"),
-        
+
         ("ogg", "OGG", json!(["ogg"]),
         "FileAudio", 
         "dark:from-orange-500/30 light:from-orange-600/40 dark:to-red-500/15 light:to-red-600/25", 
@@ -323,7 +323,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-orange-400 light:text-orange-700", 
         "dark:hover:border-orange-500/60 light:hover:border-orange-600/50",
         "audio"),
-        
+
         ("opus", "OPUS", json!(["opus"]),
         "FileAudio", 
         "dark:from-green-500/30 light:from-green-600/40 dark:to-emerald-500/15 light:to-emerald-600/25", 
@@ -331,7 +331,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-green-400 light:text-green-700", 
         "dark:hover:border-green-500/60 light:hover:border-green-600/50",
         "audio"),
-        
+
         ("wma", "WMA", json!(["wma"]),
         "FileAudio", 
         "dark:from-blue-500/30 light:from-blue-600/40 dark:to-indigo-500/15 light:to-indigo-600/25", 
@@ -339,7 +339,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-blue-400 light:text-blue-700", 
         "dark:hover:border-blue-500/60 light:hover:border-blue-600/50",
         "audio"),
-        
+
         ("m4a", "M4A", json!(["m4a"]),
         "FileAudio", 
         "dark:from-cyan-500/30 light:from-cyan-600/40 dark:to-teal-500/15 light:to-teal-600/25", 
@@ -347,7 +347,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-cyan-400 light:text-cyan-700", 
         "dark:hover:border-cyan-500/60 light:hover:border-cyan-600/50",
         "audio"),
-        
+
         ("aiff", "AIFF", json!(["aiff", "aif", "aifc"]),
         "FileAudio", 
         "dark:from-pink-500/30 light:from-pink-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
@@ -355,7 +355,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-pink-400 light:text-pink-700", 
         "dark:hover:border-pink-500/60 light:hover:border-pink-600/50",
         "audio"),
-        
+
         ("ac3", "AC3", json!(["ac3"]),
         "FileAudio", 
         "dark:from-indigo-500/30 light:from-indigo-600/40 dark:to-blue-500/15 light:to-blue-600/25", 
@@ -364,6 +364,22 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:hover:border-indigo-500/60 light:hover:border-indigo-600/50",
         "audio"),
 
+        // ============ НОВЫЕ АУДИО ФОРМАТЫ ============
+        ("voc", "Creative Voice", json!(["voc"]),
+        "FileAudio", 
+        "dark:from-amber-500/30 light:from-amber-600/40 dark:to-orange-500/15 light:to-orange-600/25", 
+        "dark:shadow-amber-500/20 light:shadow-amber-600/30",
+        "dark:text-amber-400 light:text-amber-700", 
+        "dark:hover:border-amber-500/60 light:hover:border-amber-600/50",
+        "audio"),
+
+        ("wv", "WavPack", json!(["wv"]),
+        "FileAudio", 
+        "dark:from-cyan-500/30 light:from-cyan-600/40 dark:to-teal-500/15 light:to-teal-600/25", 
+        "dark:shadow-cyan-500/20 light:shadow-cyan-600/30",
+        "dark:text-cyan-400 light:text-cyan-700", 
+        "dark:hover:border-cyan-500/60 light:hover:border-cyan-600/50",
+        "audio"),
         // ============ ВИДЕО ============
         ("mp4", "MP4", json!(["mp4"]),
         "FileMp4", 
@@ -372,7 +388,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-red-400 light:text-red-700", 
         "dark:hover:border-red-500/60 light:hover:border-red-600/50",
         "video"),
-        
+
         ("mov", "MOV", json!(["mov"]),
         "FileMov", 
         "dark:from-pink-500/30 light:from-pink-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
@@ -380,7 +396,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-pink-400 light:text-pink-700", 
         "dark:hover:border-pink-500/60 light:hover:border-pink-600/50",
         "video"),
-        
+
         ("avi", "AVI", json!(["avi"]),
         "FileVideo", 
         "dark:from-blue-600/30 light:from-blue-700/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
@@ -388,7 +404,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-blue-400 light:text-blue-700", 
         "dark:hover:border-blue-500/60 light:hover:border-blue-600/50",
         "video"),
-        
+
         ("mkv", "MKV", json!(["mkv"]),
         "FileVideo", 
         "dark:from-purple-600/30 light:from-purple-700/40 dark:to-violet-500/15 light:to-violet-600/25", 
@@ -396,7 +412,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-purple-400 light:text-purple-700", 
         "dark:hover:border-purple-500/60 light:hover:border-purple-600/50",
         "video"),
-        
+
         ("webm", "WEBM", json!(["webm"]),
         "FileVideo", 
         "dark:from-cyan-600/30 light:from-cyan-700/40 dark:to-teal-500/15 light:to-teal-600/25", 
@@ -404,7 +420,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-cyan-400 light:text-cyan-700", 
         "dark:hover:border-cyan-500/60 light:hover:border-cyan-600/50",
         "video"),
-        
+
         ("wmv", "WMV", json!(["wmv"]),
         "FileVideo", 
         "dark:from-indigo-600/30 light:from-indigo-700/40 dark:to-blue-500/15 light:to-blue-600/25", 
@@ -412,7 +428,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-indigo-400 light:text-indigo-700", 
         "dark:hover:border-indigo-500/60 light:hover:border-indigo-600/50",
         "video"),
-        
+
         ("flv", "FLV", json!(["flv"]),
         "FileVideo", 
         "dark:from-orange-600/30 light:from-orange-700/40 dark:to-red-500/15 light:to-red-600/25", 
@@ -420,7 +436,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-orange-400 light:text-orange-700", 
         "dark:hover:border-orange-500/60 light:hover:border-orange-600/50",
         "video"),
-        
+
         ("3gp", "3GP", json!(["3gp"]),
         "FileVideo", 
         "dark:from-green-600/30 light:from-green-700/40 dark:to-teal-500/15 light:to-teal-600/25", 
@@ -428,7 +444,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-green-400 light:text-green-700", 
         "dark:hover:border-green-500/60 light:hover:border-green-600/50",
         "video"),
-        
+
         ("m4v", "M4V", json!(["m4v"]),
         "FileVideo", 
         "dark:from-rose-600/30 light:from-rose-700/40 dark:to-pink-500/15 light:to-pink-600/25", 
@@ -436,7 +452,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-rose-400 light:text-rose-700", 
         "dark:hover:border-rose-500/60 light:hover:border-rose-600/50",
         "video"),
-        
+
         ("ts", "MPEG-TS", json!(["ts", "m2ts"]),
         "FileVideo", 
         "dark:from-teal-600/30 light:from-teal-700/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
@@ -444,7 +460,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-teal-400 light:text-teal-700", 
         "dark:hover:border-teal-500/60 light:hover:border-teal-600/50",
         "video"),
-        
+
         ("vob", "VOB", json!(["vob"]),
         "FileVideo", 
         "dark:from-amber-600/30 light:from-amber-700/40 dark:to-orange-500/15 light:to-orange-600/25", 
@@ -452,7 +468,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-amber-400 light:text-amber-700", 
         "dark:hover:border-amber-500/60 light:hover:border-amber-600/50",
         "video"),
-        
+
         ("mpg", "MPEG", json!(["mpg", "mpeg"]),
         "FileVideo", 
         "dark:from-red-500/30 light:from-red-600/40 dark:to-orange-500/15 light:to-orange-600/25", 
@@ -460,6 +476,41 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:text-red-400 light:text-red-700", 
         "dark:hover:border-red-500/60 light:hover:border-red-600/50",
         "video"),
+
+        // ============ НОВЫЕ ВИДЕО ФОРМАТЫ ============
+        ("roq", "RoQ", json!(["roq"]),
+        "FileVideo", 
+        "dark:from-red-500/30 light:from-red-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
+        "dark:shadow-red-500/20 light:shadow-red-600/30",
+        "dark:text-red-400 light:text-red-700", 
+        "dark:hover:border-red-500/60 light:hover:border-red-600/50",
+        "video"),
+
+        ("mxf", "MXF", json!(["mxf"]),
+        "FileVideo", 
+        "dark:from-slate-500/30 light:from-slate-600/40 dark:to-gray-500/15 light:to-gray-600/25", 
+        "dark:shadow-slate-500/20 light:shadow-slate-600/30",
+        "dark:text-slate-400 light:text-slate-700", 
+        "dark:hover:border-slate-500/60 light:hover:border-slate-600/50",
+        "video"),
+
+        ("prores", "ProRes", json!(["prores"]),
+        "FileVideo", 
+        "dark:from-teal-500/30 light:from-teal-600/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
+        "dark:shadow-teal-500/20 light:shadow-teal-600/30",
+        "dark:text-teal-400 light:text-teal-700", 
+        "dark:hover:border-teal-500/60 light:hover:border-teal-600/50",
+        "video"),
+
+        ("dnxhd", "DNxHD", json!(["dnxhd"]),
+        "FileVideo", 
+        "dark:from-indigo-500/30 light:from-indigo-600/40 dark:to-blue-500/15 light:to-blue-600/25", 
+        "dark:shadow-indigo-500/20 light:shadow-indigo-600/30",
+        "dark:text-indigo-400 light:text-indigo-700", 
+        "dark:hover:border-indigo-500/60 light:hover:border-indigo-600/50",
+        "video"),
+
+
     ];
 
     for (format_id, name, extensions, icon, color, glow, text_color, border_hover, format_type) in formats {
