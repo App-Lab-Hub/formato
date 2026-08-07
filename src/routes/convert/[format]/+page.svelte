@@ -432,21 +432,25 @@
   async function convertOne(index: number) {
     const file = files[index];
     if (!file) return;
-    if (loader.isConverting(file.id)) return; // 👈 Используем loader
+    if (loader.isConverting(file.id)) return;
     if (!selectedTarget) {
       toast.warning(m.select_target_format());
       return;
     }
 
+    // ✅ Сохраняем имя целевого формата в момент начала конвертации
+    const targetName = selectedTarget.name;
+    const targetId = selectedTarget.id;
+
     const startTime = Date.now();
-    loader.startConverting(file.id); // 👈 Вместо convertingFileIds.add
+    loader.startConverting(file.id);
     
     try {
       const result = await invoke<{ success: boolean; content: string; extension: string | null; error: string | null }>(
         'convert_file', { 
           path: file.path, 
           from: sourceFormatId, 
-          to: selectedTarget.id,
+          to: targetId,
           fromType: sourceFormat?.formatType || 'text',
           toType: selectedTarget?.formatType || 'text',
           enableCache: settings?.enable_cache ?? true
@@ -456,10 +460,11 @@
       if (result.success) {
         appState.addConvertedFile(sourceFormatId, file.id, {
           path: result.content,
-          format: result.extension || selectedTarget.id
+          format: result.extension || targetId
         });
 
-        toast.success(m.convert_success({ from: file.name, to: selectedTarget.name }));
+        // ✅ Используем сохраненное имя, а не текущий selectedTarget
+        toast.success(m.convert_success({ from: file.name, to: targetName }));
       } else {
         const errorMsg = result.error || m.unknown_error();
         toast.error(m.convert_error({ name: file.name, error: errorMsg }));
@@ -474,7 +479,7 @@
       if (elapsed < minDelay) {
         await new Promise(resolve => setTimeout(resolve, minDelay - elapsed));
       }
-      loader.stopConverting(file.id); // 👈 Вместо convertingFileIds.delete
+      loader.stopConverting(file.id);
     }
   }
 
