@@ -55,6 +55,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
     
     let now = chrono::Utc::now();
 
+
     let formats = vec![
         // ============ ТЕКСТОВЫЕ И КОНФИГУРАЦИОННЫЕ ============
         ("json", "JSON", json!(["json", "hjson"]), 
@@ -204,7 +205,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "image"),
 
         ("gif", "GIF", json!(["gif"]),
-        "FileImage", 
+        "FileGif", 
         "dark:from-pink-500/30 light:from-pink-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
         "dark:shadow-pink-500/20 light:shadow-pink-600/30",
         "dark:text-pink-400 light:text-pink-700", 
@@ -212,7 +213,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "image"),
 
         ("bmp", "BMP", json!(["bmp"]),
-        "FileImage", 
+        "FileBmp", 
         "dark:from-gray-500/30 light:from-gray-600/40 dark:to-slate-500/15 light:to-slate-600/25", 
         "dark:shadow-gray-500/20 light:shadow-gray-600/30",
         "dark:text-gray-400 light:text-gray-700", 
@@ -220,7 +221,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "image"),
 
         ("tiff", "TIFF", json!(["tiff", "tif"]),
-        "FileImage", 
+        "FileTiff", 
         "dark:from-indigo-500/30 light:from-indigo-600/40 dark:to-blue-500/15 light:to-blue-600/25", 
         "dark:shadow-indigo-500/20 light:shadow-indigo-600/30",
         "dark:text-indigo-400 light:text-indigo-700", 
@@ -228,7 +229,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "image"),
 
         ("ico", "ICO", json!(["ico"]),
-        "FileImage", 
+        "FileIco", 
         "dark:from-yellow-500/30 light:from-yellow-600/40 dark:to-orange-500/15 light:to-orange-600/25", 
         "dark:shadow-yellow-500/20 light:shadow-yellow-600/30",
         "dark:text-yellow-400 light:text-yellow-700", 
@@ -236,7 +237,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "image"),
 
         ("qoi", "QOI", json!(["qoi"]),
-        "FileImage", 
+        "FileQoi", 
         "dark:from-emerald-500/30 light:from-emerald-600/40 dark:to-teal-500/15 light:to-teal-600/25", 
         "dark:shadow-emerald-500/20 light:shadow-emerald-600/30",
         "dark:text-emerald-400 light:text-emerald-700", 
@@ -244,7 +245,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "image"),
 
         ("tga", "TGA", json!(["tga"]),
-        "FileImage", 
+        "FileTga", 
         "dark:from-rose-500/30 light:from-rose-600/40 dark:to-pink-500/15 light:to-pink-600/25", 
         "dark:shadow-rose-500/20 light:shadow-rose-600/30",
         "dark:text-rose-400 light:text-rose-700", 
@@ -252,7 +253,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "image"),
 
         ("exr", "EXR", json!(["exr"]),
-        "FileImage", 
+        "FileExr", 
         "dark:from-red-500/30 light:from-red-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
         "dark:shadow-red-500/20 light:shadow-red-600/30",
         "dark:text-red-400 light:text-red-700", 
@@ -260,15 +261,23 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "image"),
 
         ("hdr", "HDR", json!(["hdr"]),
-        "FileImage", 
+        "FileHdr", 
         "dark:from-amber-500/30 light:from-amber-600/40 dark:to-orange-500/15 light:to-orange-600/25", 
         "dark:shadow-amber-500/20 light:shadow-amber-600/30",
         "dark:text-amber-400 light:text-amber-700", 
         "dark:hover:border-amber-500/60 light:hover:border-amber-600/50",
         "image"),
 
+        ("dds", "DDS", json!(["dds"]),
+        "FileDds", 
+        "dark:from-cyan-500/30 light:from-cyan-600/40 dark:to-teal-500/15 light:to-teal-600/25", 
+        "dark:shadow-cyan-500/20 light:shadow-cyan-600/30",
+        "dark:text-cyan-400 light:text-cyan-700", 
+        "dark:hover:border-cyan-500/60 light:hover:border-cyan-600/50",
+        "image"),
+
         ("pnm", "PNM", json!(["pnm", "pgm", "ppm"]),
-        "FileImage", 
+        "FilePnm", 
         "dark:from-lime-500/30 light:from-lime-600/40 dark:to-green-500/15 light:to-green-600/25", 
         "dark:shadow-lime-500/20 light:shadow-lime-600/30",
         "dark:text-lime-400 light:text-lime-700", 
@@ -276,13 +285,13 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "image"),
 
         ("ff", "Farbfeld", json!(["ff"]),
-        "FileImage", 
+        "FileFarbfeld", 
         "dark:from-violet-500/30 light:from-violet-600/40 dark:to-purple-500/15 light:to-purple-600/25", 
         "dark:shadow-violet-500/20 light:shadow-violet-600/30",
         "dark:text-violet-400 light:text-violet-700", 
         "dark:hover:border-violet-500/60 light:hover:border-violet-600/50",
         "image"),
-    
+
         // ============ АУДИО ============
         ("mp3", "MP3", json!(["mp3"]),
         "FileMp3", 
@@ -301,7 +310,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("aac", "AAC", json!(["aac"]),
-        "FileAudio", 
+        "FileAac", 
         "dark:from-purple-500/30 light:from-purple-600/40 dark:to-pink-500/15 light:to-pink-600/25", 
         "dark:shadow-purple-500/20 light:shadow-purple-600/30",
         "dark:text-purple-400 light:text-purple-700", 
@@ -309,7 +318,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("flac", "FLAC", json!(["flac"]),
-        "FileAudio", 
+        "FileFlac", 
         "dark:from-emerald-500/30 light:from-emerald-600/40 dark:to-teal-500/15 light:to-teal-600/25", 
         "dark:shadow-emerald-500/20 light:shadow-emerald-600/30",
         "dark:text-emerald-400 light:text-emerald-700", 
@@ -317,7 +326,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("ogg", "OGG", json!(["ogg"]),
-        "FileAudio", 
+        "FileOgg", 
         "dark:from-orange-500/30 light:from-orange-600/40 dark:to-red-500/15 light:to-red-600/25", 
         "dark:shadow-orange-500/20 light:shadow-orange-600/30",
         "dark:text-orange-400 light:text-orange-700", 
@@ -325,7 +334,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("opus", "OPUS", json!(["opus"]),
-        "FileAudio", 
+        "FileOpus", 
         "dark:from-green-500/30 light:from-green-600/40 dark:to-emerald-500/15 light:to-emerald-600/25", 
         "dark:shadow-green-500/20 light:shadow-green-600/30",
         "dark:text-green-400 light:text-green-700", 
@@ -333,7 +342,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("wma", "WMA", json!(["wma"]),
-        "FileAudio", 
+        "FileWma", 
         "dark:from-blue-500/30 light:from-blue-600/40 dark:to-indigo-500/15 light:to-indigo-600/25", 
         "dark:shadow-blue-500/20 light:shadow-blue-600/30",
         "dark:text-blue-400 light:text-blue-700", 
@@ -341,7 +350,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("m4a", "M4A", json!(["m4a"]),
-        "FileAudio", 
+        "FileM4a", 
         "dark:from-cyan-500/30 light:from-cyan-600/40 dark:to-teal-500/15 light:to-teal-600/25", 
         "dark:shadow-cyan-500/20 light:shadow-cyan-600/30",
         "dark:text-cyan-400 light:text-cyan-700", 
@@ -349,7 +358,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("aiff", "AIFF", json!(["aiff", "aif", "aifc"]),
-        "FileAudio", 
+        "FileAiff", 
         "dark:from-pink-500/30 light:from-pink-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
         "dark:shadow-pink-500/20 light:shadow-pink-600/30",
         "dark:text-pink-400 light:text-pink-700", 
@@ -357,7 +366,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("ac3", "AC3", json!(["ac3"]),
-        "FileAudio", 
+        "FileAc3", 
         "dark:from-indigo-500/30 light:from-indigo-600/40 dark:to-blue-500/15 light:to-blue-600/25", 
         "dark:shadow-indigo-500/20 light:shadow-indigo-600/30",
         "dark:text-indigo-400 light:text-indigo-700", 
@@ -365,7 +374,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("eac3", "E-AC-3", json!(["eac3"]),
-        "FileAudio", 
+        "FileEac3", 
         "dark:from-violet-500/30 light:from-violet-600/40 dark:to-purple-500/15 light:to-purple-600/25", 
         "dark:shadow-violet-500/20 light:shadow-violet-600/30",
         "dark:text-violet-400 light:text-violet-700", 
@@ -373,7 +382,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("dts", "DTS", json!(["dts"]),
-        "FileAudio", 
+        "FileDts", 
         "dark:from-red-500/30 light:from-red-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
         "dark:shadow-red-500/20 light:shadow-red-600/30",
         "dark:text-red-400 light:text-red-700", 
@@ -381,7 +390,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("tta", "True Audio", json!(["tta"]),
-        "FileAudio", 
+        "FileTta", 
         "dark:from-emerald-500/30 light:from-emerald-600/40 dark:to-teal-500/15 light:to-teal-600/25", 
         "dark:shadow-emerald-500/20 light:shadow-emerald-600/30",
         "dark:text-emerald-400 light:text-emerald-700", 
@@ -389,7 +398,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("wv", "WavPack", json!(["wv"]),
-        "FileAudio", 
+        "FileWv", 
         "dark:from-cyan-500/30 light:from-cyan-600/40 dark:to-teal-500/15 light:to-teal-600/25", 
         "dark:shadow-cyan-500/20 light:shadow-cyan-600/30",
         "dark:text-cyan-400 light:text-cyan-700", 
@@ -397,7 +406,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("voc", "Creative Voice", json!(["voc"]),
-        "FileAudio", 
+        "FileVoc", 
         "dark:from-amber-500/30 light:from-amber-600/40 dark:to-orange-500/15 light:to-orange-600/25", 
         "dark:shadow-amber-500/20 light:shadow-amber-600/30",
         "dark:text-amber-400 light:text-amber-700", 
@@ -405,7 +414,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("adx", "ADX", json!(["adx"]),
-        "FileAudio", 
+        "FileAdx", 
         "dark:from-fuchsia-500/30 light:from-fuchsia-600/40 dark:to-pink-500/15 light:to-pink-600/25", 
         "dark:shadow-fuchsia-500/20 light:shadow-fuchsia-600/30",
         "dark:text-fuchsia-400 light:text-fuchsia-700", 
@@ -413,7 +422,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("aptx", "aptX", json!(["aptx"]),
-        "FileAudio", 
+        "FileAptx", 
         "dark:from-blue-500/30 light:from-blue-600/40 dark:to-indigo-500/15 light:to-indigo-600/25", 
         "dark:shadow-blue-500/20 light:shadow-blue-600/30",
         "dark:text-blue-400 light:text-blue-700", 
@@ -421,7 +430,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("sbc", "SBC", json!(["sbc"]),
-        "FileAudio", 
+        "FileSbc", 
         "dark:from-gray-500/30 light:from-gray-600/40 dark:to-slate-500/15 light:to-slate-600/25", 
         "dark:shadow-gray-500/20 light:shadow-gray-600/30",
         "dark:text-gray-400 light:text-gray-700", 
@@ -429,7 +438,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("mlp", "MLP", json!(["mlp"]),
-        "FileAudio", 
+        "FileMlp", 
         "dark:from-rose-500/30 light:from-rose-600/40 dark:to-pink-500/15 light:to-pink-600/25", 
         "dark:shadow-rose-500/20 light:shadow-rose-600/30",
         "dark:text-rose-400 light:text-rose-700", 
@@ -437,7 +446,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("caf", "CAF", json!(["caf"]),
-        "FileAudio", 
+        "FileCaf", 
         "dark:from-teal-500/30 light:from-teal-600/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
         "dark:shadow-teal-500/20 light:shadow-teal-600/30",
         "dark:text-teal-400 light:text-teal-700", 
@@ -445,7 +454,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "audio"),
 
         ("w64", "W64", json!(["w64"]),
-        "FileAudio", 
+        "FileW64", 
         "dark:from-indigo-500/30 light:from-indigo-600/40 dark:to-blue-500/15 light:to-blue-600/25", 
         "dark:shadow-indigo-500/20 light:shadow-indigo-600/30",
         "dark:text-indigo-400 light:text-indigo-700", 
@@ -470,7 +479,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("avi", "AVI", json!(["avi"]),
-        "FileVideo", 
+        "FileAvi", 
         "dark:from-blue-600/30 light:from-blue-700/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
         "dark:shadow-blue-600/20 light:shadow-blue-700/30",
         "dark:text-blue-400 light:text-blue-700", 
@@ -478,7 +487,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("mkv", "MKV", json!(["mkv"]),
-        "FileVideo", 
+        "FileMkv", 
         "dark:from-purple-600/30 light:from-purple-700/40 dark:to-violet-500/15 light:to-violet-600/25", 
         "dark:shadow-purple-600/20 light:shadow-purple-700/30",
         "dark:text-purple-400 light:text-purple-700", 
@@ -486,7 +495,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("webm", "WEBM", json!(["webm"]),
-        "FileVideo", 
+        "FileWebm", 
         "dark:from-cyan-600/30 light:from-cyan-700/40 dark:to-teal-500/15 light:to-teal-600/25", 
         "dark:shadow-cyan-600/20 light:shadow-cyan-700/30",
         "dark:text-cyan-400 light:text-cyan-700", 
@@ -494,7 +503,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("wmv", "WMV", json!(["wmv"]),
-        "FileVideo", 
+        "FileWmv", 
         "dark:from-indigo-600/30 light:from-indigo-700/40 dark:to-blue-500/15 light:to-blue-600/25", 
         "dark:shadow-indigo-600/20 light:shadow-indigo-700/30",
         "dark:text-indigo-400 light:text-indigo-700", 
@@ -502,7 +511,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("flv", "FLV", json!(["flv"]),
-        "FileVideo", 
+        "FileFlv", 
         "dark:from-orange-600/30 light:from-orange-700/40 dark:to-red-500/15 light:to-red-600/25", 
         "dark:shadow-orange-600/20 light:shadow-orange-700/30",
         "dark:text-orange-400 light:text-orange-700", 
@@ -510,7 +519,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("3gp", "3GP", json!(["3gp"]),
-        "FileVideo", 
+        "File3gp", 
         "dark:from-green-600/30 light:from-green-700/40 dark:to-teal-500/15 light:to-teal-600/25", 
         "dark:shadow-green-600/20 light:shadow-green-700/30",
         "dark:text-green-400 light:text-green-700", 
@@ -518,7 +527,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("m4v", "M4V", json!(["m4v"]),
-        "FileVideo", 
+        "FileM4v", 
         "dark:from-rose-600/30 light:from-rose-700/40 dark:to-pink-500/15 light:to-pink-600/25", 
         "dark:shadow-rose-600/20 light:shadow-rose-700/30",
         "dark:text-rose-400 light:text-rose-700", 
@@ -526,7 +535,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("ts", "MPEG-TS", json!(["ts", "m2ts"]),
-        "FileVideo", 
+        "FileTs", 
         "dark:from-teal-600/30 light:from-teal-700/40 dark:to-cyan-500/15 light:to-cyan-600/25", 
         "dark:shadow-teal-600/20 light:shadow-teal-700/30",
         "dark:text-teal-400 light:text-teal-700", 
@@ -534,7 +543,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("vob", "VOB", json!(["vob"]),
-        "FileVideo", 
+        "FileVob", 
         "dark:from-amber-600/30 light:from-amber-700/40 dark:to-orange-500/15 light:to-orange-600/25", 
         "dark:shadow-amber-600/20 light:shadow-amber-700/30",
         "dark:text-amber-400 light:text-amber-700", 
@@ -542,7 +551,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("mpg", "MPEG", json!(["mpg", "mpeg"]),
-        "FileVideo", 
+        "FileMpg", 
         "dark:from-red-500/30 light:from-red-600/40 dark:to-orange-500/15 light:to-orange-600/25", 
         "dark:shadow-red-500/20 light:shadow-red-600/30",
         "dark:text-red-400 light:text-red-700", 
@@ -550,7 +559,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("hevc", "HEVC", json!(["hevc"]),
-        "FileVideo", 
+        "FileHevc", 
         "dark:from-purple-500/30 light:from-purple-600/40 dark:to-violet-500/15 light:to-violet-600/25", 
         "dark:shadow-purple-500/20 light:shadow-purple-600/30",
         "dark:text-purple-400 light:text-purple-700", 
@@ -558,7 +567,7 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("mjpeg", "MJPEG", json!(["mjpeg"]),
-        "FileVideo", 
+        "FileMjpeg", 
         "dark:from-orange-500/30 light:from-orange-600/40 dark:to-amber-500/15 light:to-amber-600/25", 
         "dark:shadow-orange-500/20 light:shadow-orange-600/30",
         "dark:text-orange-400 light:text-orange-700", 
@@ -566,13 +575,12 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "video"),
 
         ("nut", "NUT", json!(["nut"]),
-        "FileVideo", 
+        "FileNut", 
         "dark:from-gray-500/30 light:from-gray-600/40 dark:to-slate-500/15 light:to-slate-600/25", 
         "dark:shadow-gray-500/20 light:shadow-gray-600/30",
         "dark:text-gray-400 light:text-gray-700", 
         "dark:hover:border-gray-500/60 light:hover:border-gray-600/50",
         "video"),
-
     ];
 
     for (format_id, name, extensions, icon, color, glow, text_color, border_hover, format_type) in formats {

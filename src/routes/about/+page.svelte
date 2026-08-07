@@ -96,7 +96,6 @@
               <span class="px-4 py-2 dark:bg-blue-500/10 light:bg-blue-200/50 rounded-full text-sm dark:text-blue-400 light:text-blue-700 border dark:border-blue-400/20 light:border-blue-300/50">TypeScript</span>
               <span class="px-4 py-2 dark:bg-purple-500/10 light:bg-purple-300/50 rounded-full text-sm dark:text-purple-400 light:text-purple-700 border dark:border-purple-400/20 light:border-purple-300/50">Tailwind CSS</span>
               <span class="px-4 py-2 dark:bg-pink-500/10 light:bg-pink-200/50 rounded-full text-sm dark:text-pink-400 light:text-pink-700 border dark:border-pink-400/20 light:border-pink-300/50">OverlayScrollbars</span>
-              <span class="px-4 py-2 dark:bg-orange-500/10 light:bg-orange-200/50 rounded-full text-sm dark:text-orange-400 light:text-orange-700 border dark:border-orange-400/20 light:border-orange-300/50">Monaco Editor</span>
               <span class="px-4 py-2 dark:bg-green-500/10 light:bg-green-200/50 rounded-full text-sm dark:text-green-400 light:text-green-700 border dark:border-green-400/20 light:border-green-300/50">Lucide Icons</span>
               <span class="px-4 py-2 dark:bg-red-500/10 light:bg-red-200/50 rounded-full text-sm dark:text-red-400 light:text-red-700 border dark:border-red-400/20 light:border-red-300/50">Splide</span>
             </div>

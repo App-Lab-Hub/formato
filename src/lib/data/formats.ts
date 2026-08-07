@@ -48,87 +48,91 @@ import {
 
 const iconMap: Record<string, any> = {
   // ============================================
-  // === ТЕКСТОВЫЕ И КОНФИГУРАЦИОННЫЕ (Lucide) ===
+  // === ТЕКСТОВЫЕ И КОНФИГУРАЦИОННЫЕ ===
   // ============================================
-  FileBraces: Icons.FileBraces, // JSON
+  FileBraces: Icons.Braces, // JSON
   FileText: Icons.FileText, // YAML
-  FileSpreadsheet: Icons.FileSpreadsheet, // CSV
-  FileCode: Icons.FileCode, // XML
-  AlignLeft: Icons.TextAlignStart, // TOML
+  FileSpreadsheet: Icons.Table, // CSV
+  FileCode: Icons.CodeXml, // XML
+  AlignLeft: Icons.AlignLeft, // TOML
   ListOrdered: Icons.ListOrdered, // INI
-  Braces: Icons.Braces, // Markdown
+  Braces: Icons.Brackets, // Markdown
   Globe: Icons.Globe, // HTML
+  FileAlt: FaFileAlt, // TXT
+  FileRtf: Icons.Type, // RTF
 
   // ============================================
-  // === ДОКУМЕНТЫ (svelte-icons) ===
+  // === ДОКУМЕНТЫ ===
   // ============================================
   FilePdf: FaFilePdf, // PDF
   FileWord: FaFileWord, // DOCX
   FileExcel: FaFileExcel, // XLSX
-  FileAlt: FaFileAlt, // TXT
-  FileRtf: MdTextFields, // RTF
   FileOdt: MdDescription, // ODT
 
   // ============================================
-  // === ИЗОБРАЖЕНИЯ (svelte-icons + Lucide) ===
+  // === ИЗОБРАЖЕНИЯ ===
   // ============================================
-  FileJpg: MdImage, // JPG
-  FilePng: FaFileImage, // PNG
-  FileWebp: Icons.Image, // WEBP
-  FileAvif: FaFileImage, // AVIF
-  FileGif: MdImage, // GIF
-  FileBmp: FaFileImage, // BMP
-  FileTiff: FaFileImage, // TIFF
-  FileIco: FaFileImage, // ICO
-  FileQoi: FaFileImage, // QOI
-  FileTga: FaFileImage, // TGA
-  FileExr: FaFileImage, // EXR
-  FileHdr: FaFileImage, // HDR
-  FileDds: FaFileImage, // DDS
-  FilePnm: FaFileImage, // PNM
-  FilePcx: FaFileImage, // PCX
-  FileFarbfeld: FaFileImage, // Farbfeld
+  FileJpg: Icons.Image, // JPG
+  FilePng: Icons.ImageDown, // PNG
+  FileWebp: Icons.ImageUp, // WEBP
+  FileAvif: Icons.ImageOff, // AVIF
+  FileGif: Icons.ImagePlay, // GIF
+  FileBmp: Icons.ImageMinus, // BMP
+  FileTiff: Icons.ImagePlus, // TIFF
+  FileIco: Icons.Square, // ICO
+  FileQoi: Icons.Circle, // QOI
+  FileTga: Icons.Diamond, // TGA
+  FileExr: Icons.Hexagon, // EXR
+  FileHdr: Icons.Octagon, // HDR
+  FileDds: Icons.Pentagon, // DDS
+  FilePnm: Icons.Triangle, // PNM
+  FileFarbfeld: Icons.Circle, // Farbfeld
   FileImage: MdImage, // Общая иконка для изображений
 
   // ============================================
-  // === АУДИО (svelte-icons) ===
+  // === АУДИО ===
   // ============================================
-  FileMp3: MdAudiotrack, // MP3
-  FileWav: FaFileAudio, // WAV
-  FileAac: MdAudiotrack, // AAC
-  FileFlac: MdAudiotrack, // FLAC
-  FileOgg: MdAudiotrack, // OGG
-  FileOpus: MdAudiotrack, // OPUS
-  FileWma: MdAudiotrack, // WMA
-  FileM4a: MdAudiotrack, // M4A
-  FileAiff: MdAudiotrack, // AIFF
-  FileAc3: MdAudiotrack, // AC3
-  FileVoc: MdAudiotrack, // Creative Voice
-  FileWv: MdAudiotrack, // WavPack
-  FileAdx: MdAudiotrack, // ADX
-  FileDts: MdAudiotrack, // DTS
-  FileEac3: MdAudiotrack, // E-AC-3
-  FileTta: MdAudiotrack, // True Audio
+  FileMp3: Icons.Music, // MP3
+  FileWav: Icons.Waves, // WAV
+  FileAac: Icons.Music2, // AAC
+  FileFlac: Icons.Music3, // FLAC
+  FileOgg: Icons.Music4, // OGG
+  FileOpus: Icons.Speaker, // OPUS
+  FileWma: Icons.Volume2, // WMA
+  FileM4a: Icons.Headphones, // M4A
+  FileAiff: Icons.Mic, // AIFF
+  FileAc3: Icons.Volume, // AC3
+  FileVoc: Icons.MicVocal, // Creative Voice
+  FileWv: Icons.Volume1, // WavPack
+  FileAdx: Icons.Mic, // ADX
+  FileDts: Icons.VolumeX, // DTS
+  FileEac3: Icons.Volume, // E-AC-3
+  FileTta: Icons.Mic, // True Audio
+  FileAptx: Icons.Bluetooth, // aptX
+  FileSbc: Icons.BluetoothConnected, // SBC
+  FileMlp: Icons.Album, // MLP
+  FileCaf: Icons.Headphones, // CAF
+  FileW64: Icons.Volume, // W64
   FileAudio: MdAudiotrack, // Общая иконка для аудио
 
   // ============================================
-  // === ВИДЕО (svelte-icons) ===
+  // === ВИДЕО ===
   // ============================================
-  FileMp4: MdVideocam, // MP4
-  FileMov: FaFileVideo, // MOV
-  FileAvi: MdVideocam, // AVI
-  FileMkv: MdVideocam, // MKV
-  FileWebm: MdVideocam, // WEBM
-  FileWmv: MdVideocam, // WMV
-  FileFlv: MdVideocam, // FLV
-  File3gp: MdVideocam, // 3GP
-  FileM4v: MdVideocam, // M4V
-  FileTs: MdVideocam, // MPEG-TS
-  FileVob: MdVideocam, // VOB
-  FileMpeg: MdVideocam, // MPEG
-  FileHevc: MdVideocam, // HEVC
-  FileMjpeg: MdVideocam, // MJPEG
-  FileNut: MdVideocam, // NUT
+  FileMp4: Icons.Video, // MP4
+  FileMov: Icons.Film, // MOV
+  FileAvi: Icons.Clapperboard, // AVI
+  FileMkv: Icons.Play, // MKV
+  FileWebm: Icons.Monitor, // WEBM
+  FileWmv: Icons.Tv, // WMV
+  FileFlv: Icons.Cast, // FLV
+  File3gp: Icons.Smartphone, // 3GP
+  FileM4v: Icons.Tablet, // M4V
+  FileTs: Icons.Monitor, // MPEG-TS
+  FileVob: Icons.Disc, // VOB
+  FileMpg: Icons.Disc2, // MPEG
+  FileHevc: Icons.Disc3, // HEVC
+  FileMjpeg: Icons.Camera, // MJPEG
+  FileNut: Icons.CameraOff, // NUT
   FileVideo: MdVideocam, // Общая иконка для видео
 
   // === ЗАПАСНАЯ ===
