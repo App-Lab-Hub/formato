@@ -104,14 +104,11 @@ const iconMap: Record<string, any> = {
   FileAiff: MdAudiotrack, // AIFF
   FileAc3: MdAudiotrack, // AC3
   FileVoc: MdAudiotrack, // Creative Voice
-  FileApe: MdAudiotrack, // Monkey's Audio
   FileWv: MdAudiotrack, // WavPack
-  FileMpc: MdAudiotrack, // Musepack
+  FileAdx: MdAudiotrack, // ADX
+  FileDts: MdAudiotrack, // DTS
+  FileEac3: MdAudiotrack, // E-AC-3
   FileTta: MdAudiotrack, // True Audio
-  FileWve: MdAudiotrack, // EA Audio
-  FileAud: MdAudiotrack, // Westwood AUD
-  FileApc: MdAudiotrack, // CRYO APC
-  FileCin: MdAudiotrack, // Delphine CIN
   FileAudio: MdAudiotrack, // Общая иконка для аудио
 
   // ============================================
@@ -129,20 +126,9 @@ const iconMap: Record<string, any> = {
   FileTs: MdVideocam, // MPEG-TS
   FileVob: MdVideocam, // VOB
   FileMpeg: MdVideocam, // MPEG
-  FileRoq: MdVideocam, // RoQ
-  FileSmk: MdVideocam, // Smacker
-  FileBik: MdVideocam, // Bink
-  FileVqa: MdVideocam, // VQA
-  FileVmd: MdVideocam, // Sierra VMD
-  FileMve: MdVideocam, // Interplay MVE
-  FileVid: MdVideocam, // Bethesda VID
-  File4xm: MdVideocam, // 4XM
-  FileStr: MdVideocam, // PlayStation STR
-  FileCpk: MdVideocam, // Sega FILM
-  FileMxf: MdVideocam, // MXF
-  FileGxf: MdVideocam, // GXF
-  FileProres: MdVideocam, // ProRes
-  FileDnxhd: MdVideocam, // DNxHD
+  FileHevc: MdVideocam, // HEVC
+  FileMjpeg: MdVideocam, // MJPEG
+  FileNut: MdVideocam, // NUT
   FileVideo: MdVideocam, // Общая иконка для видео
 
   // === ЗАПАСНАЯ ===

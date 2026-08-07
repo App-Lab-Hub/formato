@@ -17,15 +17,29 @@ pub fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String
     let mut cmd = FfmpegCommand::new();
     cmd.input(path);
     
-    // 🔧 Исправление ошибки FFmpeg 234: принудительные параметры цвета
-    cmd.args(["-colorspace", "bt709"]);
-    cmd.args(["-color_primaries", "bt709"]);
-    cmd.args(["-color_trc", "bt709"]);
-    cmd.args(["-color_range", "pc"]);
+    // Отсекаем треки обложек в аудиофайлах
+    cmd.args(&["-vn"]); 
     
-    // Фильтр: мягкое ограничение пиков (-0.5dB) + дизеринг
-    cmd.args(&["-af", "aresample=dither_method=triangular"]);
-    cmd.args(&["-c:a", audio_codec]);
+    // 🧠 Умный ресемплинг
+    if to != "wav" {
+        cmd.args(&["-ar", "44100"]);
+        cmd.args(&["-ac", "2"]);
+    }
+
+    // 🎵 Специальная обработка для Opus (исправление ошибки 234)
+    if to == "opus" {
+        cmd.args(&["-c:a", "libopus"]);
+        cmd.args(&["-b:a", "128k"]);       // Ограничиваем битрейт (макс для Opus - 256k)
+        cmd.args(&["-ac", "2"]);           // Принудительно стерео (решает проблему 5.1)
+        cmd.args(&["-ar", "48000"]);       // Стандартная частота для Opus
+        cmd.args(&["-application", "audio"]); // Оптимально для музыки
+        cmd.args(&["-frame_duration", "20"]); // 20ms фреймы (стандарт)
+    } else {
+        // Фильтр: мягкое ограничение пиков + дизеринг для всех остальных
+        cmd.args(&["-af", "aresample=dither_method=triangular"]);
+        cmd.args(&["-c:a", audio_codec]);
+    }
+    
     cmd.args(&["-y"]);
     cmd.output(&output_path);
 

@@ -30,7 +30,16 @@ pub fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String
     cmd.args(["-color_range", "pc"]);
     
     cmd.args(&["-c:v", video_codec]);
-    cmd.args(&["-c:a", audio_codec]);
+    
+    // 🎵 Специальная обработка для Opus в видео
+    if to == "webm" || to == "opus" {
+        cmd.args(&["-c:a", "libopus"]);
+        cmd.args(&["-b:a", "128k"]);
+        cmd.args(&["-ac", "2"]);
+        cmd.args(&["-ar", "48000"]);
+    } else {
+        cmd.args(&["-c:a", audio_codec]);
+    }
     
     if to == "mp4" || to == "mov" || to == "mkv" {
         cmd.args(&["-crf", "23"]);
@@ -88,7 +97,7 @@ pub fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String
     Ok(final_path)
 }
 
-/// Извлечение аудио дорожки из видео в WAV
+/// Извлечение аудио дорожки из видео в WAV для Whisper
 fn extract_audio_to_wav(path: &str) -> Result<String, String> {
     let temp_file = Builder::new()
         .suffix(".wav")
@@ -105,8 +114,11 @@ fn extract_audio_to_wav(path: &str) -> Result<String, String> {
     cmd.input(path);
     cmd.args(&["-vn"]);
     cmd.args(&["-acodec", "pcm_s16le"]);
-    cmd.args(&["-ar", "22050"]);
+    
+    // 🎯 Ровно 16 000 Гц и Моно специально под требования Whisper
+    cmd.args(&["-ar", "16000"]);
     cmd.args(&["-ac", "1"]);
+    
     cmd.args(&["-y"]);
     cmd.output(&temp_path);
     
