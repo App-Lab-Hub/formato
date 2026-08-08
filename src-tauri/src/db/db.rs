@@ -268,14 +268,6 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:hover:border-amber-500/60 light:hover:border-amber-600/50",
         "image"),
 
-        ("dds", "DDS", json!(["dds"]),
-        "FileDds", 
-        "dark:from-cyan-500/30 light:from-cyan-600/40 dark:to-teal-500/15 light:to-teal-600/25", 
-        "dark:shadow-cyan-500/20 light:shadow-cyan-600/30",
-        "dark:text-cyan-400 light:text-cyan-700", 
-        "dark:hover:border-cyan-500/60 light:hover:border-cyan-600/50",
-        "image"),
-
         ("pnm", "PNM", json!(["pnm", "pgm", "ppm"]),
         "FilePnm", 
         "dark:from-lime-500/30 light:from-lime-600/40 dark:to-green-500/15 light:to-green-600/25", 

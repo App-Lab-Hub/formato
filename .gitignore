@@ -13,3 +13,4 @@ static/Cargo.toml
 # Paraglide
 src/lib/paraglide
 project.inlang/cache/
+fixtures

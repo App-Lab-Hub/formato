@@ -448,8 +448,6 @@ pub async fn convert_document_to_document(
 // ========================================================================================================================
 // ========================================================================================================================
 
-
-
 use image::{ImageFormat, ImageReader, ImageEncoder, ExtendedColorType, EncodableLayout};
 use image::codecs::{
     ico::IcoEncoder,
@@ -520,10 +518,17 @@ async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<Stri
             Ok(out_path)
         }
         
-        // Все остальные стандартные форматы доверяем встроенному методу `.save_with_format()`
+        // JPEG: требует RGB8 (не поддерживает альфа-канал)
+        "jpg" | "jpeg" => {
+            let rgb = img.to_rgb8();
+            rgb.save_with_format(&out_path, ImageFormat::Jpeg)
+                .map_err(|e| format!("Cannot save image to JPEG: {}", e))?;
+            Ok(out_path)
+        }
+        
+        // Все остальные стандартные форматы
         _ => {
             let format = match to_lower.as_str() {
-                "jpg" | "jpeg" => ImageFormat::Jpeg,
                 "png" => ImageFormat::Png,
                 "gif" => ImageFormat::Gif,
                 "webp" => ImageFormat::WebP,
@@ -533,9 +538,12 @@ async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<Stri
                 "tga" => ImageFormat::Tga,
                 "pnm" | "pgm" | "ppm" => ImageFormat::Pnm,
                 "qoi" => ImageFormat::Qoi,
+                // DDS не поддерживает кодирование!
+                // "dds" => return Err("DDS encoding is not supported".to_string()),
                 _ => return Err(format!("Unsupported output format: {}", to)),
             };
             
+            // Для PNG и других форматов, которые поддерживают альфа-канал
             img.save_with_format(&out_path, format)
                 .map_err(|e| format!("Cannot save image to {}: {}", to, e))?;
             
