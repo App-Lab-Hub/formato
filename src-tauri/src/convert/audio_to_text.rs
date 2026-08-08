@@ -10,7 +10,8 @@ use ffmpeg_sidecar::command::FfmpegCommand;
 use sea_orm::DatabaseConnection;
 use crate::settings::get_settings;
 use crate::paths::{whisper_models_dir};
-use std::time::{SystemTime, UNIX_EPOCH}; // Для генерации уникального имени
+use std::time::{SystemTime, UNIX_EPOCH};
+use std::panic::AssertUnwindSafe;
 
 pub async fn convert_audio_to_text(
     _db: &DatabaseConnection,
@@ -26,8 +27,24 @@ pub async fn convert_audio_to_text(
     let model_name = settings.recognition_model;
     let model_path = get_model_path(&model_name)?;
     
-    let mut engine = WhisperEngine::load(&model_path)
-        .map_err(|e| format!("Failed to load Whisper model: {}", e))?;
+    // Загружаем модель с обработкой ошибок памяти
+    let engine_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        WhisperEngine::load(&model_path)
+    }));
+    
+    let mut engine = match engine_result {
+        Ok(Ok(engine)) => engine,
+        Ok(Err(e)) => {
+            let err_msg = format!("Failed to load Whisper model: {}", e);
+            if err_msg.contains("memory") || err_msg.contains("alloc") || err_msg.contains("out of memory") {
+                return Err("Not enough memory to load Whisper model. Please close other applications and try again.".to_string());
+            }
+            return Err(err_msg);
+        }
+        Err(_) => {
+            return Err("Fatal error while loading Whisper model (possible memory corruption)".to_string());
+        }
+    };
     
     // 🛠 Генерируем уникальный путь в системной временной папке
     let timestamp = SystemTime::now()
@@ -39,9 +56,24 @@ pub async fn convert_audio_to_text(
     // Передаем путь во FFmpeg. Файла еще нет на диске, FFmpeg создаст его сам
     convert_to_16khz_wav(&audio_path, &temp_path)?;
     
-    // ✅ Читаем сэмплы в оперативную память
-    let samples = read_wav_samples(&temp_path)
-        .map_err(|e| format!("Failed to load WAV: {}", e))?;
+    // ✅ Читаем сэмплы в оперативную память с обработкой ошибок
+    let samples_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        read_wav_samples(&temp_path)
+    }));
+    
+    let samples = match samples_result {
+        Ok(Ok(samples)) => samples,
+        Ok(Err(e)) => {
+            let err_msg = format!("Failed to load WAV: {}", e);
+            if err_msg.contains("memory") || err_msg.contains("alloc") || err_msg.contains("out of memory") {
+                return Err("Not enough memory to load audio samples. Please close other applications and try again.".to_string());
+            }
+            return Err(err_msg);
+        }
+        Err(_) => {
+            return Err("Fatal error while loading audio samples (possible memory corruption)".to_string());
+        }
+    };
     
     // ✅ Вручную удаляем временный файл сразу после чтения
     let _ = std::fs::remove_file(&temp_path);
@@ -65,8 +97,24 @@ pub async fn convert_audio_to_text(
     
     let mut transcriber = VadChunked::new(Box::new(vad), config, transcribe_options);
     
-    let result = transcriber.transcribe(&mut engine, &samples)
-        .map_err(|e| format!("Transcription failed: {}", e))?;
+    // Транскрибируем с обработкой ошибок памяти
+    let result_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        transcriber.transcribe(&mut engine, &samples)
+    }));
+    
+    let result = match result_result {
+        Ok(Ok(result)) => result,
+        Ok(Err(e)) => {
+            let err_msg = format!("Transcription failed: {}", e);
+            if err_msg.contains("memory") || err_msg.contains("alloc") || err_msg.contains("out of memory") {
+                return Err("Not enough memory to transcribe audio. Please reduce audio length or close other applications.".to_string());
+            }
+            return Err(err_msg);
+        }
+        Err(_) => {
+            return Err("Fatal error during transcription (possible memory corruption)".to_string());
+        }
+    };
     
     let full_text = result.text;
     
@@ -109,8 +157,22 @@ fn convert_to_16khz_wav(input_path: &str, output_path: &Path) -> Result<(), Stri
     cmd.arg("-y"); 
     cmd.output(output_str);
     
-    let mut child = cmd.spawn().map_err(|e| format!("FFmpeg spawn failed: {}", e))?;
-    let status = child.wait().map_err(|e| format!("FFmpeg wait failed: {}", e))?;
+    // Оборачиваем cmd в AssertUnwindSafe
+    let ffmpeg_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
+        let mut child = cmd.spawn().map_err(|e| format!("FFmpeg spawn failed: {}", e))?;
+        let status = child.wait().map_err(|e| format!("FFmpeg wait failed: {}", e))?;
+        Ok::<_, String>(status)
+    }));
+    
+    let status = match ffmpeg_result {
+        Ok(Ok(status)) => status,
+        Ok(Err(e)) => {
+            return Err(e);
+        }
+        Err(_) => {
+            return Err("Fatal error during FFmpeg execution (possible memory corruption)".to_string());
+        }
+    };
     
     if !status.success() {
         return Err(format!("FFmpeg conversion failed with status: {}", status));
