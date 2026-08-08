@@ -389,7 +389,7 @@
     if (!confirmed) return;
     
     // Удаляем только файлы, которые НЕ конвертируются
-    const filesToRemove = files.filter(f => !loader.isConverting(f.id)); // 👈 Используем loader
+    const filesToRemove = files.filter(f => !loader.isConverting(f.id));
     
     if (filesToRemove.length === 0) {
       toast.warning(m.no_files_to_delete());
@@ -425,22 +425,25 @@
       toast.warning(m.files_skipped_converting());
     }
   }
+
   // ============================================================
   // ФУНКЦИИ ДЛЯ КОНВЕРТАЦИИ
   // ============================================================
   
-  async function convertOne(index: number) {
+  // Внутренняя функция для конвертации одного файла с явным указанием цели
+  async function convertOneWithTarget(index: number, target: Format) {
     const file = files[index];
     if (!file) return;
     if (loader.isConverting(file.id)) return;
-    if (!selectedTarget) {
+    if (!target) {
       toast.warning(m.select_target_format());
       return;
     }
 
-    // ✅ Сохраняем имя целевого формата в момент начала конвертации
-    const targetName = selectedTarget.name;
-    const targetId = selectedTarget.id;
+    // ✅ Сохраняем данные целевого формата в момент начала конвертации
+    const targetName = target.name;
+    const targetId = target.id;
+    const targetType = target.formatType || 'text';
 
     const startTime = Date.now();
     loader.startConverting(file.id);
@@ -452,7 +455,7 @@
           from: sourceFormatId, 
           to: targetId,
           fromType: sourceFormat?.formatType || 'text',
-          toType: selectedTarget?.formatType || 'text',
+          toType: targetType,
           enableCache: settings?.enable_cache ?? true
         }
       );
@@ -463,7 +466,6 @@
           format: result.extension || targetId
         });
 
-        // ✅ Используем сохраненное имя, а не текущий selectedTarget
         toast.success(m.convert_success({ from: file.name, to: targetName }));
       } else {
         const errorMsg = result.error || m.unknown_error();
@@ -483,9 +485,16 @@
     }
   }
 
+  // Конвертация одного файла с текущим выбранным таргетом
+  async function convertOne(index: number) {
+    if (!selectedTarget) {
+      toast.warning(m.select_target_format());
+      return;
+    }
+    await convertOneWithTarget(index, selectedTarget);
+  }
 
-
-
+  // Конвертация всех файлов — запоминаем таргет в момент нажатия
   async function convertAll() {
     if (files.length === 0) {
       toast.warning(m.no_files_to_convert());
@@ -497,8 +506,14 @@
       return;
     }
     
+    // ✅ ЗАПОМИНАЕМ ТАРГЕТ В МОМЕНТ НАЖАТИЯ
+    const targetSnapshot = selectedTarget;
+    
     for (let i = 0; i < files.length; i++) {
-      await convertOne(i);
+      // ✅ Пропускаем уже конвертирующиеся файлы
+      if (loader.isConverting(files[i].id)) continue;
+      // ✅ Используем сохраненный таргет
+      await convertOneWithTarget(i, targetSnapshot);
     }
   }
 
@@ -586,7 +601,7 @@ async function downloadFile(fileId: string) {
         sourcePath: converted.path, 
         outputPath: filePath, 
         format: settings.archive_format,
-        nameInArchive: nameInsideArchive,  // ← новое имя внутри архива
+        nameInArchive: nameInsideArchive,
       });
     } else {
       const bytes = await invoke<number[]>('read_file_bytes', { path: converted.path });
@@ -682,7 +697,6 @@ async function downloadAllAsArchive() {
       return;
     }
 
-    // Для ZIP используем archive_multiple_files_with_names
     await invoke('archive_multiple_files', {
       files: filesData,
       outputPath: filePath,
@@ -757,13 +771,13 @@ async function downloadAllAsArchive() {
           />
 
           <SourceFormatHeader format={sourceFormat} />
-        <TargetFormatGrid 
-          formats={targetFormats} 
-          {selectedTarget} 
-          availability={availability}
-          onselect={selectTarget}
-          sourceFormatId={sourceFormatId}  // 👈 Передаем ID исходного формата
-        />
+          <TargetFormatGrid 
+            formats={targetFormats} 
+            {selectedTarget} 
+            availability={availability}
+            onselect={selectTarget}
+            sourceFormatId={sourceFormatId}
+          />
           
           {#if availability?.enable_text_mode}
             <div class="w-full max-w-4xl">
@@ -792,20 +806,20 @@ async function downloadAllAsArchive() {
             {/if}
           </div>
 
-<FileList
-  {sourceFormatId}
-  {selectedTarget}
-  showExtensions={settings?.show_extensions ?? true}
-  onconvertone={convertOne}
-  onconvertall={convertAll}
-  onclearall={clearAllWithConfirm}
-  onpreview={previewFileFn}
-  ondownload={downloadFile}
-  onremove={removeFileWithConfirm}
-  ondownloadallarchive={downloadAllAsArchive}
-  convertedFiles={convertedFiles}
-  settings={settings}
-/>
+          <FileList
+            {sourceFormatId}
+            {selectedTarget}
+            showExtensions={settings?.show_extensions ?? true}
+            onconvertone={convertOne}
+            onconvertall={convertAll}
+            onclearall={clearAllWithConfirm}
+            onpreview={previewFileFn}
+            ondownload={downloadFile}
+            onremove={removeFileWithConfirm}
+            ondownloadallarchive={downloadAllAsArchive}
+            convertedFiles={convertedFiles}
+            settings={settings}
+          />
         </main>
       </div>
   {/if}
