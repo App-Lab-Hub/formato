@@ -448,7 +448,8 @@ pub async fn convert_document_to_document(
 // ========================================================================================================================
 // ========================================================================================================================
 
-use image::{ImageFormat, ImageReader, ImageEncoder, ExtendedColorType, EncodableLayout};
+
+use image::{ImageFormat, ImageReader, ImageEncoder, ExtendedColorType, EncodableLayout, DynamicImage};
 use image::codecs::{
     ico::IcoEncoder,
     openexr::OpenExrEncoder,
@@ -460,10 +461,39 @@ use std::io::BufWriter;
 /// Конвертация изображений между поддерживаемыми форматами
 async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<String, String> {
     // 1. Декодируем исходное изображение в пиксельную матрицу
-    let img = ImageReader::open(path)
-        .map_err(|e| format!("Cannot open image: {}", e))?
-        .decode()
-        .map_err(|e| format!("Cannot decode image: {}", e))?;
+    let img = match ImageReader::open(path) {
+        Ok(reader) => {
+            if from == "pnm" || path.to_lowercase().ends_with(".pnm") {
+                match reader.with_guessed_format() {
+                    Ok(r) => {
+                        match r.decode() {
+                            Ok(img) => img,
+                            Err(e) => {
+                                match ImageReader::open(path) {
+                                    Ok(r2) => {
+                                        match r2.decode() {
+                                            Ok(img) => img,
+                                            Err(_) => return Err(format!("Cannot decode PNM/PAM file: {}", e))
+                                        }
+                                    }
+                                    Err(e2) => return Err(format!("Cannot open PNM file: {}", e2))
+                                }
+                            }
+                        }
+                    }
+                    Err(_) => {
+                        match ImageReader::open(path) {
+                            Ok(r) => r.decode().map_err(|e| format!("Cannot decode image: {}", e))?,
+                            Err(e) => return Err(format!("Cannot open image: {}", e)),
+                        }
+                    }
+                }
+            } else {
+                reader.decode().map_err(|e| format!("Cannot decode image: {}", e))?
+            }
+        }
+        Err(e) => return Err(format!("Cannot open image: {}", e)),
+    };
     
     // 2. Генерируем путь для сохранения результата
     let hash = calculate_conversion_hash(path, from, to)
@@ -472,9 +502,13 @@ async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<Stri
     
     let to_lower = to.to_lowercase();
     
-    // 3. Выбираем правильный энкодер
+    // 3. Определяем тип изображения
+    let is_rgb32f = matches!(img, DynamicImage::ImageRgb32F(_));
+    let is_rgba16 = matches!(img, DynamicImage::ImageRgba16(_));
+    
+    // 4. Выбираем правильный энкодер
     match to_lower.as_str() {
-        // ICO: требует strict-размер (макс 256x256) и квадратные пропорции
+        // ICO: требует размер ≤256x256 и квадратные пропорции
         "ico" => {
             let file = std::fs::File::create(&out_path).map_err(|e| format!("Cannot create file: {}", e))?;
             let mut writer = BufWriter::new(file);
@@ -485,7 +519,7 @@ async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<Stri
             Ok(out_path)
         }
         
-        // EXR: требует 32-битный float формат (Rgb32F)
+        // EXR: требует Rgb32F
         "exr" | "openexr" => {
             let file = std::fs::File::create(&out_path).map_err(|e| format!("Cannot create file: {}", e))?;
             let mut writer = BufWriter::new(file);
@@ -496,7 +530,7 @@ async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<Stri
             Ok(out_path)
         }
         
-        // HDR: требует перевод в Rgb32F
+        // HDR: требует Rgb32F
         "hdr" => {
             let file = std::fs::File::create(&out_path).map_err(|e| format!("Cannot create file: {}", e))?;
             let mut writer = BufWriter::new(file);
@@ -507,7 +541,7 @@ async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<Stri
             Ok(out_path)
         }
         
-        // Farbfeld (ff): Полностью поддерживается! Переводим в 16 бит согласно спецификации
+        // Farbfeld: требует Rgba16
         "ff" | "farbfeld" => {
             let file = std::fs::File::create(&out_path).map_err(|e| format!("Cannot create file: {}", e))?;
             let mut writer = BufWriter::new(file);
@@ -538,21 +572,27 @@ async fn convert_image_to_image(path: &str, from: &str, to: &str) -> Result<Stri
                 "tga" => ImageFormat::Tga,
                 "pnm" | "pgm" | "ppm" => ImageFormat::Pnm,
                 "qoi" => ImageFormat::Qoi,
-                // DDS не поддерживает кодирование!
-                // "dds" => return Err("DDS encoding is not supported".to_string()),
                 _ => return Err(format!("Unsupported output format: {}", to)),
             };
             
-            // Для PNG и других форматов, которые поддерживают альфа-канал
-            img.save_with_format(&out_path, format)
+            // 🎯 Конвертируем в правильный цветовой тип
+            let img_to_save: DynamicImage = if is_rgb32f {
+                // Rgb32F → RGBA8
+                DynamicImage::ImageRgba8(img.to_rgba8())
+            } else if is_rgba16 {
+                // Rgba16 → RGBA8 (для Farbfeld)
+                DynamicImage::ImageRgba8(img.to_rgba8())
+            } else {
+                img
+            };
+            
+            img_to_save.save_with_format(&out_path, format)
                 .map_err(|e| format!("Cannot save image to {}: {}", to, e))?;
             
             Ok(out_path)
         }
     }
 }
-
-
 
 async fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
     audio::convert_audio_to_audio(path, from, to)
@@ -925,4 +965,719 @@ pub async fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
 #[tauri::command]
 pub async fn open_file(path: String) -> Result<(), String> {
     opener::open(&path).map_err(|e| format!("Cannot open file: {e}"))
+}
+
+
+
+
+// src-tauri/src/convert/mod.rs
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+    use sea_orm::{Database, DatabaseConnection, DbErr};
+
+    // ============================================================
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    // ============================================================
+
+    /// Создает тестовую БД (in-memory)
+    async fn create_test_db() -> Result<DatabaseConnection, DbErr> {
+        Database::connect("sqlite::memory:").await
+    }
+
+    /// Получает все файлы из fixtures с определенным расширением
+    fn get_fixture_files(ext: &str) -> Vec<PathBuf> {
+        let fixtures_dir = PathBuf::from("../fixtures");
+        if !fixtures_dir.exists() {
+            return vec![];
+        }
+        
+        let entries = fs::read_dir(&fixtures_dir).unwrap();
+        let mut files = Vec::new();
+        for entry in entries {
+            let entry = entry.unwrap();
+            let path = entry.path();
+            if path.is_file() {
+                if let Some(extension) = path.extension() {
+                    if extension == ext {
+                        files.push(path);
+                    }
+                }
+            }
+        }
+        files
+    }
+
+    /// Проверяет, есть ли файлы с расширением
+    fn has_fixtures(ext: &str) -> bool {
+        !get_fixture_files(ext).is_empty()
+    }
+
+    /// Все форматы изображений
+    const IMAGE_FORMATS: &[&str] = &[
+        "jpg", "jpeg", "png", "webp", "avif", "gif", "bmp", "tiff", "ico", "qoi", "tga", "exr", "hdr", "pnm", "ff"
+    ];
+
+    // ============================================================
+    // ТЕСТ: JPG → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_jpg_to_all_formats() {
+        if !has_fixtures("jpg") {
+            println!("⚠️ Skipping test: no JPG fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("jpg");
+        println!("📁 Found {} JPG files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "jpg" || to_format == "jpeg" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "jpg",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: PNG → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_png_to_all_formats() {
+        if !has_fixtures("png") {
+            println!("⚠️ Skipping test: no PNG fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("png");
+        println!("📁 Found {} PNG files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "png" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "png",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: WEBP → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_webp_to_all_formats() {
+        if !has_fixtures("webp") {
+            println!("⚠️ Skipping test: no WEBP fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("webp");
+        println!("📁 Found {} WEBP files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "webp" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "webp",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: AVIF → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_avif_to_all_formats() {
+        if !has_fixtures("avif") {
+            println!("⚠️ Skipping test: no AVIF fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("avif");
+        println!("📁 Found {} AVIF files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "avif" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "avif",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: GIF → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_gif_to_all_formats() {
+        if !has_fixtures("gif") {
+            println!("⚠️ Skipping test: no GIF fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("gif");
+        println!("📁 Found {} GIF files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "gif" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "gif",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: BMP → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_bmp_to_all_formats() {
+        if !has_fixtures("bmp") {
+            println!("⚠️ Skipping test: no BMP fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("bmp");
+        println!("📁 Found {} BMP files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "bmp" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "bmp",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: TIFF → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_tiff_to_all_formats() {
+        if !has_fixtures("tiff") {
+            println!("⚠️ Skipping test: no TIFF fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("tiff");
+        println!("📁 Found {} TIFF files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "tiff" || to_format == "tif" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "tiff",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: ICO → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_ico_to_all_formats() {
+        if !has_fixtures("ico") {
+            println!("⚠️ Skipping test: no ICO fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("ico");
+        println!("📁 Found {} ICO files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "ico" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "ico",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: QOI → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_qoi_to_all_formats() {
+        if !has_fixtures("qoi") {
+            println!("⚠️ Skipping test: no QOI fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("qoi");
+        println!("📁 Found {} QOI files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "qoi" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "qoi",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: TGA → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_tga_to_all_formats() {
+        if !has_fixtures("tga") {
+            println!("⚠️ Skipping test: no TGA fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("tga");
+        println!("📁 Found {} TGA files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "tga" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "tga",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: EXR → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    // EXPR POINT (CHECK ALL FORMAT AFTER)
+    #[tokio::test]
+    async fn test_exr_to_all_formats() {
+        if !has_fixtures("exr") {
+            println!("⚠️ Skipping test: no EXR fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("exr");
+        println!("📁 Found {} EXR files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "exr" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "exr",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: HDR → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_hdr_to_all_formats() {
+        if !has_fixtures("hdr") {
+            println!("⚠️ Skipping test: no HDR fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("hdr");
+        println!("📁 Found {} HDR files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "hdr" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "hdr",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: PNM → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_pnm_to_all_formats() {
+        if !has_fixtures("pnm") {
+            println!("⚠️ Skipping test: no PNM fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("pnm");
+        println!("📁 Found {} PNM files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "pnm" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "pnm",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ТЕСТ: FF (Farbfeld) → ВСЕ ФОРМАТЫ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_ff_to_all_formats() {
+        if !has_fixtures("ff") {
+            println!("⚠️ Skipping test: no Farbfeld (ff) fixtures found");
+            return;
+        }
+
+        let files = get_fixture_files("ff");
+        println!("📁 Found {} Farbfeld files", files.len());
+
+        for input_path in files {
+            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
+            
+            for &to_format in IMAGE_FORMATS {
+                if to_format == "ff" {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_image_to_image(
+                    input_path.to_str().unwrap(),
+                    "ff",
+                    to_format
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
 }
