@@ -969,7 +969,6 @@ pub async fn open_file(path: String) -> Result<(), String> {
 
 
 
-
 // src-tauri/src/convert/mod.rs
 
 #[cfg(test)]
@@ -978,17 +977,17 @@ mod tests {
     use std::fs;
     use std::path::PathBuf;
     use sea_orm::{Database, DatabaseConnection, DbErr};
+    use std::sync::Arc;
 
     // ============================================================
     // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
     // ============================================================
 
-    /// Создает тестовую БД (in-memory)
-    async fn create_test_db() -> Result<DatabaseConnection, DbErr> {
-        Database::connect("sqlite::memory:").await
+    async fn create_test_db() -> Result<Arc<DatabaseConnection>, DbErr> {
+        let db = Database::connect("sqlite::memory:").await?;
+        Ok(Arc::new(db))
     }
 
-    /// Получает все файлы из fixtures с определенным расширением
     fn get_fixture_files(ext: &str) -> Vec<PathBuf> {
         let fixtures_dir = PathBuf::from("../fixtures");
         if !fixtures_dir.exists() {
@@ -1011,673 +1010,630 @@ mod tests {
         files
     }
 
-    /// Проверяет, есть ли файлы с расширением
     fn has_fixtures(ext: &str) -> bool {
         !get_fixture_files(ext).is_empty()
     }
 
-    /// Все форматы изображений
+    // ============================================================
+    // УНИВЕРСАЛЬНАЯ ФУНКЦИЯ ДЛЯ ТЕСТИРОВАНИЯ
+    // ============================================================
+
+    /// Тестирует конвертацию из одного формата во все остальные
+    async fn test_conversion<F, Fut>(
+        from_format: &str,
+        to_formats: &[&str],
+        convert_fn: F,
+        db: Option<Arc<DatabaseConnection>>,
+    ) where
+        F: Fn(Arc<DatabaseConnection>, String, String, String) -> Fut,
+        Fut: std::future::Future<Output = Result<String, String>>,
+    {
+        if !has_fixtures(from_format) {
+            println!("⚠️ Skipping test: no {} fixtures found", from_format);
+            return;
+        }
+
+        let files = get_fixture_files(from_format);
+        println!("📁 Found {} {} files", files.len(), from_format.to_uppercase());
+
+        // Создаем временную БД если не передана
+        let db_arc = if let Some(db) = db {
+            db
+        } else {
+            create_test_db().await.unwrap()
+        };
+
+        for input_path in files {
+            let path_str = input_path.to_str().unwrap().to_string();
+            let file_name = input_path.file_name().unwrap().to_string_lossy();
+            println!("🔄 Testing: {}", file_name);
+            
+            for &to_format in to_formats {
+                if to_format == from_format {
+                    continue;
+                }
+
+                println!("  → {}", to_format);
+                
+                let result = convert_fn(
+                    db_arc.clone(),
+                    path_str.clone(),
+                    from_format.to_string(),
+                    to_format.to_string()
+                ).await;
+
+                match result {
+                    Ok(output_path) => {
+                        assert!(output_path.ends_with(&format!(".{}", to_format)));
+                        assert!(PathBuf::from(&output_path).exists());
+                        let metadata = fs::metadata(&output_path).unwrap();
+                        assert!(metadata.len() > 0, "File is empty: {}", output_path);
+                        println!("    ✅ {} bytes", metadata.len());
+                    }
+                    Err(e) => {
+                        println!("    ❌ Error: {}", e);
+                    }
+                }
+            }
+            println!();
+        }
+    }
+
+    // ============================================================
+    // ФОРМАТЫ
+    // ============================================================
+
+    const AUDIO_FORMATS: &[&str] = &[
+        "mp3", "wav", "aac", "flac", "ogg", "opus", "wma", "m4a", 
+        "aiff", "ac3", "eac3", "dts", "tta", "wv", "voc", "adx", 
+        "aptx", "sbc", "mlp", "caf", "w64"
+    ];
+
     const IMAGE_FORMATS: &[&str] = &[
-        "jpg", "jpeg", "png", "webp", "avif", "gif", "bmp", "tiff", "ico", "qoi", "tga", "exr", "hdr", "pnm", "ff"
+        "jpg", "jpeg", "png", "webp", "avif", "gif", "bmp", "tiff", 
+        "ico", "qoi", "tga", "exr", "hdr", "pnm", "ff"
+    ];
+
+    const VIDEO_FORMATS: &[&str] = &[
+        "mp4", "mov", "avi", "mkv", "webm", "wmv", "flv", "3gp", 
+        "m4v", "ts", "vob", "mpg", "hevc", "mjpeg", "nut"
+    ];
+
+    const TEXT_FORMATS: &[&str] = &[
+        "json", "yaml", "csv", "xml", "toml", "ini", "md", "html", "txt", "rtf"
+    ];
+
+    const DOCUMENT_FORMATS: &[&str] = &[
+        "pdf", "docx", "odt", "xlsx"
     ];
 
     // ============================================================
-    // ТЕСТ: JPG → ВСЕ ФОРМАТЫ
+    // ТЕСТЫ: AUDIO → AUDIO (без БД)
     // ============================================================
 
     #[tokio::test]
-    async fn test_jpg_to_all_formats() {
-        if !has_fixtures("jpg") {
-            println!("⚠️ Skipping test: no JPG fixtures found");
-            return;
-        }
+    async fn test_mp3_to_all_audio_formats() {
+        test_conversion("mp3", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
 
-        let files = get_fixture_files("jpg");
-        println!("📁 Found {} JPG files", files.len());
+    #[tokio::test]
+    async fn test_wav_to_all_audio_formats() {
+        test_conversion("wav", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
 
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "jpg" || to_format == "jpeg" {
-                    continue;
-                }
+    #[tokio::test]
+    async fn test_aac_to_all_audio_formats() {
+        test_conversion("aac", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
 
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "jpg",
-                    to_format
-                ).await;
+    #[tokio::test]
+    async fn test_flac_to_all_audio_formats() {
+        test_conversion("flac", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
 
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    #[tokio::test]
+    async fn test_ogg_to_all_audio_formats() {
+        test_conversion("ogg", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_opus_to_all_audio_formats() {
+        test_conversion("opus", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_wma_to_all_audio_formats() {
+        test_conversion("wma", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_m4a_to_all_audio_formats() {
+        test_conversion("m4a", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_aiff_to_all_audio_formats() {
+        test_conversion("aiff", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_ac3_to_all_audio_formats() {
+        test_conversion("ac3", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_eac3_to_all_audio_formats() {
+        test_conversion("eac3", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_dts_to_all_audio_formats() {
+        test_conversion("dts", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_tta_to_all_audio_formats() {
+        test_conversion("tta", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_wv_to_all_audio_formats() {
+        test_conversion("wv", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_voc_to_all_audio_formats() {
+        test_conversion("voc", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_adx_to_all_audio_formats() {
+        test_conversion("adx", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_aptx_to_all_audio_formats() {
+        test_conversion("aptx", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_sbc_to_all_audio_formats() {
+        test_conversion("sbc", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_mlp_to_all_audio_formats() {
+        test_conversion("mlp", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_caf_to_all_audio_formats() {
+        test_conversion("caf", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_w64_to_all_audio_formats() {
+        test_conversion("w64", AUDIO_FORMATS, |_db, path, from, to| async move {
+            audio::convert_audio_to_audio(&path, &from, &to)
+        }, None).await;
     }
 
     // ============================================================
-    // ТЕСТ: PNG → ВСЕ ФОРМАТЫ
+    // ТЕСТЫ: IMAGE → IMAGE (без БД)
     // ============================================================
 
     #[tokio::test]
-    async fn test_png_to_all_formats() {
-        if !has_fixtures("png") {
-            println!("⚠️ Skipping test: no PNG fixtures found");
-            return;
-        }
+    async fn test_jpg_to_all_image_formats() {
+        test_conversion("jpg", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
 
-        let files = get_fixture_files("png");
-        println!("📁 Found {} PNG files", files.len());
+    #[tokio::test]
+    async fn test_png_to_all_image_formats() {
+        test_conversion("png", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
 
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "png" {
-                    continue;
-                }
+    #[tokio::test]
+    async fn test_webp_to_all_image_formats() {
+        test_conversion("webp", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
 
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "png",
-                    to_format
-                ).await;
+    #[tokio::test]
+    async fn test_avif_to_all_image_formats() {
+        test_conversion("avif", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
 
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    #[tokio::test]
+    async fn test_gif_to_all_image_formats() {
+        test_conversion("gif", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_bmp_to_all_image_formats() {
+        test_conversion("bmp", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_tiff_to_all_image_formats() {
+        test_conversion("tiff", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_ico_to_all_image_formats() {
+        test_conversion("ico", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_qoi_to_all_image_formats() {
+        test_conversion("qoi", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_tga_to_all_image_formats() {
+        test_conversion("tga", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_exr_to_all_image_formats() {
+        test_conversion("exr", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_hdr_to_all_image_formats() {
+        test_conversion("hdr", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_pnm_to_all_image_formats() {
+        test_conversion("pnm", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_ff_to_all_image_formats() {
+        test_conversion("ff", IMAGE_FORMATS, |_db, path, from, to| async move {
+            convert_image_to_image(&path, &from, &to).await
+        }, None).await;
     }
 
     // ============================================================
-    // ТЕСТ: WEBP → ВСЕ ФОРМАТЫ
+    // ТЕСТЫ: VIDEO → VIDEO (без БД)
     // ============================================================
 
     #[tokio::test]
-    async fn test_webp_to_all_formats() {
-        if !has_fixtures("webp") {
-            println!("⚠️ Skipping test: no WEBP fixtures found");
-            return;
-        }
+    async fn test_mp4_to_all_video_formats() {
+        test_conversion("mp4", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
 
-        let files = get_fixture_files("webp");
-        println!("📁 Found {} WEBP files", files.len());
+    #[tokio::test]
+    async fn test_mov_to_all_video_formats() {
+        test_conversion("mov", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
 
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "webp" {
-                    continue;
-                }
+    #[tokio::test]
+    async fn test_avi_to_all_video_formats() {
+        test_conversion("avi", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
 
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "webp",
-                    to_format
-                ).await;
+    #[tokio::test]
+    async fn test_mkv_to_all_video_formats() {
+        test_conversion("mkv", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
 
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    #[tokio::test]
+    async fn test_webm_to_all_video_formats() {
+        test_conversion("webm", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_wmv_to_all_video_formats() {
+        test_conversion("wmv", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_flv_to_all_video_formats() {
+        test_conversion("flv", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_3gp_to_all_video_formats() {
+        test_conversion("3gp", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_m4v_to_all_video_formats() {
+        test_conversion("m4v", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_ts_to_all_video_formats() {
+        test_conversion("ts", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_vob_to_all_video_formats() {
+        test_conversion("vob", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_mpg_to_all_video_formats() {
+        test_conversion("mpg", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_hevc_to_all_video_formats() {
+        test_conversion("hevc", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_mjpeg_to_all_video_formats() {
+        test_conversion("mjpeg", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
+    }
+
+    #[tokio::test]
+    async fn test_nut_to_all_video_formats() {
+        test_conversion("nut", VIDEO_FORMATS, |_db, path, from, to| async move {
+            video::convert_video_to_video(&path, &from, &to)
+        }, None).await;
     }
 
     // ============================================================
-    // ТЕСТ: AVIF → ВСЕ ФОРМАТЫ
+    // ТЕСТЫ: TEXT → TEXT (с БД)
     // ============================================================
 
     #[tokio::test]
-    async fn test_avif_to_all_formats() {
-        if !has_fixtures("avif") {
-            println!("⚠️ Skipping test: no AVIF fixtures found");
-            return;
-        }
+    async fn test_json_to_all_text_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("json", TEXT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_text(&db, &path, &from, &to).await
+        }, Some(db)).await;
+    }
 
-        let files = get_fixture_files("avif");
-        println!("📁 Found {} AVIF files", files.len());
+    #[tokio::test]
+    async fn test_yaml_to_all_text_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("yaml", TEXT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_text(&db, &path, &from, &to).await
+        }, Some(db)).await;
+    }
 
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "avif" {
-                    continue;
-                }
+    #[tokio::test]
+    async fn test_csv_to_all_text_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("csv", TEXT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_text(&db, &path, &from, &to).await
+        }, Some(db)).await;
+    }
 
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "avif",
-                    to_format
-                ).await;
+    #[tokio::test]
+    async fn test_xml_to_all_text_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("xml", TEXT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_text(&db, &path, &from, &to).await
+        }, Some(db)).await;
+    }
 
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    #[tokio::test]
+    async fn test_toml_to_all_text_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("toml", TEXT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_text(&db, &path, &from, &to).await
+        }, Some(db)).await;
+    }
+
+    #[tokio::test]
+    async fn test_ini_to_all_text_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("ini", TEXT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_text(&db, &path, &from, &to).await
+        }, Some(db)).await;
+    }
+
+    #[tokio::test]
+    async fn test_md_to_all_text_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("md", TEXT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_text(&db, &path, &from, &to).await
+        }, Some(db)).await;
+    }
+
+    #[tokio::test]
+    async fn test_html_to_all_text_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("html", TEXT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_text(&db, &path, &from, &to).await
+        }, Some(db)).await;
+    }
+
+    #[tokio::test]
+    async fn test_txt_to_all_text_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("txt", TEXT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_text(&db, &path, &from, &to).await
+        }, Some(db)).await;
+    }
+
+    #[tokio::test]
+    async fn test_rtf_to_all_text_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("rtf", TEXT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_text(&db, &path, &from, &to).await
+        }, Some(db)).await;
     }
 
     // ============================================================
-    // ТЕСТ: GIF → ВСЕ ФОРМАТЫ
+    // ТЕСТЫ: TEXT → DOCUMENT (с БД)
     // ============================================================
 
     #[tokio::test]
-    async fn test_gif_to_all_formats() {
-        if !has_fixtures("gif") {
-            println!("⚠️ Skipping test: no GIF fixtures found");
-            return;
-        }
-
-        let files = get_fixture_files("gif");
-        println!("📁 Found {} GIF files", files.len());
-
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "gif" {
-                    continue;
-                }
-
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "gif",
-                    to_format
-                ).await;
-
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    async fn test_json_to_all_document_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("json", DOCUMENT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_document(&db, &path, &from, &to).await
+        }, Some(db)).await;
     }
-
-    // ============================================================
-    // ТЕСТ: BMP → ВСЕ ФОРМАТЫ
-    // ============================================================
 
     #[tokio::test]
-    async fn test_bmp_to_all_formats() {
-        if !has_fixtures("bmp") {
-            println!("⚠️ Skipping test: no BMP fixtures found");
-            return;
-        }
-
-        let files = get_fixture_files("bmp");
-        println!("📁 Found {} BMP files", files.len());
-
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "bmp" {
-                    continue;
-                }
-
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "bmp",
-                    to_format
-                ).await;
-
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    async fn test_yaml_to_all_document_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("yaml", DOCUMENT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_document(&db, &path, &from, &to).await
+        }, Some(db)).await;
     }
-
-    // ============================================================
-    // ТЕСТ: TIFF → ВСЕ ФОРМАТЫ
-    // ============================================================
 
     #[tokio::test]
-    async fn test_tiff_to_all_formats() {
-        if !has_fixtures("tiff") {
-            println!("⚠️ Skipping test: no TIFF fixtures found");
-            return;
-        }
-
-        let files = get_fixture_files("tiff");
-        println!("📁 Found {} TIFF files", files.len());
-
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "tiff" || to_format == "tif" {
-                    continue;
-                }
-
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "tiff",
-                    to_format
-                ).await;
-
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    async fn test_csv_to_all_document_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("csv", DOCUMENT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_document(&db, &path, &from, &to).await
+        }, Some(db)).await;
     }
-
-    // ============================================================
-    // ТЕСТ: ICO → ВСЕ ФОРМАТЫ
-    // ============================================================
 
     #[tokio::test]
-    async fn test_ico_to_all_formats() {
-        if !has_fixtures("ico") {
-            println!("⚠️ Skipping test: no ICO fixtures found");
-            return;
-        }
-
-        let files = get_fixture_files("ico");
-        println!("📁 Found {} ICO files", files.len());
-
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "ico" {
-                    continue;
-                }
-
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "ico",
-                    to_format
-                ).await;
-
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    async fn test_xml_to_all_document_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("xml", DOCUMENT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_document(&db, &path, &from, &to).await
+        }, Some(db)).await;
     }
-
-    // ============================================================
-    // ТЕСТ: QOI → ВСЕ ФОРМАТЫ
-    // ============================================================
 
     #[tokio::test]
-    async fn test_qoi_to_all_formats() {
-        if !has_fixtures("qoi") {
-            println!("⚠️ Skipping test: no QOI fixtures found");
-            return;
-        }
-
-        let files = get_fixture_files("qoi");
-        println!("📁 Found {} QOI files", files.len());
-
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "qoi" {
-                    continue;
-                }
-
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "qoi",
-                    to_format
-                ).await;
-
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    async fn test_toml_to_all_document_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("toml", DOCUMENT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_document(&db, &path, &from, &to).await
+        }, Some(db)).await;
     }
-
-    // ============================================================
-    // ТЕСТ: TGA → ВСЕ ФОРМАТЫ
-    // ============================================================
 
     #[tokio::test]
-    async fn test_tga_to_all_formats() {
-        if !has_fixtures("tga") {
-            println!("⚠️ Skipping test: no TGA fixtures found");
-            return;
-        }
-
-        let files = get_fixture_files("tga");
-        println!("📁 Found {} TGA files", files.len());
-
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "tga" {
-                    continue;
-                }
-
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "tga",
-                    to_format
-                ).await;
-
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    async fn test_ini_to_all_document_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("ini", DOCUMENT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_document(&db, &path, &from, &to).await
+        }, Some(db)).await;
     }
-
-    // ============================================================
-    // ТЕСТ: EXR → ВСЕ ФОРМАТЫ
-    // ============================================================
-
-    // EXPR POINT (CHECK ALL FORMAT AFTER)
-    #[tokio::test]
-    async fn test_exr_to_all_formats() {
-        if !has_fixtures("exr") {
-            println!("⚠️ Skipping test: no EXR fixtures found");
-            return;
-        }
-
-        let files = get_fixture_files("exr");
-        println!("📁 Found {} EXR files", files.len());
-
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "exr" {
-                    continue;
-                }
-
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "exr",
-                    to_format
-                ).await;
-
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
-    }
-
-    // ============================================================
-    // ТЕСТ: HDR → ВСЕ ФОРМАТЫ
-    // ============================================================
 
     #[tokio::test]
-    async fn test_hdr_to_all_formats() {
-        if !has_fixtures("hdr") {
-            println!("⚠️ Skipping test: no HDR fixtures found");
-            return;
-        }
-
-        let files = get_fixture_files("hdr");
-        println!("📁 Found {} HDR files", files.len());
-
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "hdr" {
-                    continue;
-                }
-
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "hdr",
-                    to_format
-                ).await;
-
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    async fn test_md_to_all_document_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("md", DOCUMENT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_document(&db, &path, &from, &to).await
+        }, Some(db)).await;
     }
-
-    // ============================================================
-    // ТЕСТ: PNM → ВСЕ ФОРМАТЫ
-    // ============================================================
 
     #[tokio::test]
-    async fn test_pnm_to_all_formats() {
-        if !has_fixtures("pnm") {
-            println!("⚠️ Skipping test: no PNM fixtures found");
-            return;
-        }
-
-        let files = get_fixture_files("pnm");
-        println!("📁 Found {} PNM files", files.len());
-
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "pnm" {
-                    continue;
-                }
-
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "pnm",
-                    to_format
-                ).await;
-
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    async fn test_html_to_all_document_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("html", DOCUMENT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_document(&db, &path, &from, &to).await
+        }, Some(db)).await;
     }
-
-    // ============================================================
-    // ТЕСТ: FF (Farbfeld) → ВСЕ ФОРМАТЫ
-    // ============================================================
 
     #[tokio::test]
-    async fn test_ff_to_all_formats() {
-        if !has_fixtures("ff") {
-            println!("⚠️ Skipping test: no Farbfeld (ff) fixtures found");
-            return;
-        }
-
-        let files = get_fixture_files("ff");
-        println!("📁 Found {} Farbfeld files", files.len());
-
-        for input_path in files {
-            println!("🔄 Testing: {}", input_path.file_name().unwrap().to_string_lossy());
-            
-            for &to_format in IMAGE_FORMATS {
-                if to_format == "ff" {
-                    continue;
-                }
-
-                println!("  → {}", to_format);
-                
-                let result = convert_image_to_image(
-                    input_path.to_str().unwrap(),
-                    "ff",
-                    to_format
-                ).await;
-
-                match result {
-                    Ok(output_path) => {
-                        assert!(output_path.ends_with(&format!(".{}", to_format)));
-                        assert!(PathBuf::from(&output_path).exists());
-                        let metadata = fs::metadata(&output_path).unwrap();
-                        assert!(metadata.len() > 0);
-                        println!("    ✅ {} bytes", metadata.len());
-                    }
-                    Err(e) => {
-                        println!("    ❌ Error: {}", e);
-                    }
-                }
-            }
-            println!();
-        }
+    async fn test_txt_to_all_document_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("txt", DOCUMENT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_document(&db, &path, &from, &to).await
+        }, Some(db)).await;
     }
 
+    #[tokio::test]
+    async fn test_rtf_to_all_document_formats() {
+        let db = create_test_db().await.unwrap();
+        test_conversion("rtf", DOCUMENT_FORMATS, |db, path, from, to| async move {
+            convert_text_to_document(&db, &path, &from, &to).await
+        }, Some(db)).await;
+    }
 }
