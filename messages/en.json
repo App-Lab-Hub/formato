@@ -193,7 +193,7 @@
   "file_not_found": "File not found",
   "preview_error": "Failed to open preview",
 
-  "preview_too_large_monaco": "File too large for preview ({size}). Maximum size: {limit}.",
+  "preview_too_large_with_max": "File too large for preview ({size}). Maximum size: {limit}.",
 
   "switch_to_text": "✏️ Switch to Text",
   "switch_to_file": "📁 Switch to File",

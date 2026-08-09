@@ -536,7 +536,7 @@
       const maxSizeBytes = maxSizeMB === 0 ? Infinity : maxSizeMB * 1024 * 1024;
 
       if (actualSize > maxSizeBytes) {
-        toast.warning(m.preview_too_large_monaco({
+        toast.warning(m.preview_too_large_with_max({
           size: formatFileSize(actualSize),
           limit: maxSizeMB === 0 ? m.preview_unlimited() : formatSize(maxSizeMB)
         }));

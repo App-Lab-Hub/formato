@@ -119,12 +119,6 @@ export function applyTheme(theme: string, emit: boolean = true): void {
     document.documentElement.classList.add("light");
   }
 
-  // @ts-ignore
-  if (window.monaco?.editor) {
-    // @ts-ignore
-    monaco.editor.setTheme(isDark ? "vs-dark" : "vs");
-  }
-
   setWindowBackground(theme);
 
   if (emit) {
