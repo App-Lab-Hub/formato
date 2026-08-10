@@ -92,7 +92,7 @@ pub struct ConvertResult {
 // ОСНОВНАЯ ЛОГИКА КОНВЕРТАЦИИ
 // ============================================================
 /// Проверяет, есть ли файл в кеше БД
-async fn is_file_cached(
+async fn is_file_cached( 
     db: &DatabaseConnection,
     path: &str,
     from: &str,
@@ -285,11 +285,7 @@ async fn convert_document_to_text(
     if to == "rtf" {
         let docx_path = convert_document_to_document(db, path, from, "docx").await?;
         let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
-        
-        // Проверяем кеш перед удалением
-        // if !is_file_cached(db,  path, from, "docx").await? {
-        //     let _ = std::fs::remove_file(&docx_path);
-        // }
+    
         
         return Ok(rtf_path);
     }
@@ -1115,7 +1111,7 @@ mod tests {
 
     const VIDEO_FORMATS: &[&str] = &[
         "mp4", "mov", "avi", "mkv", "webm", "wmv", "flv", "3gp", 
-        "m4v", "ts", "vob", "mpg", "hevc", "mjpeg", "nut"
+        "m4v", "ts", "vob", "mpg", "nut"
     ];
 
     const TEXT_FORMATS: &[&str] = &[
@@ -1467,20 +1463,6 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn test_hevc_to_all_video_formats() {
-            test_conversion("hevc", super::VIDEO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_video(&path, &from, &to)
-            }, None).await;
-        }
-
-        #[tokio::test]
-        async fn test_mjpeg_to_all_video_formats() {
-            test_conversion("mjpeg", super::VIDEO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_video(&path, &from, &to)
-            }, None).await;
-        }
-
-        #[tokio::test]
         async fn test_nut_to_all_video_formats() {
             test_conversion("nut", super::VIDEO_FORMATS, |_db, path, from, to| async move {
                 video::convert_video_to_video(&path, &from, &to)
@@ -1488,6 +1470,136 @@ mod tests {
         }
     }
 
+    // ============================================================
+    // МОДУЛЬ: VIDEO → AUDIO
+    // ============================================================
+        
+    mod video_to_audio {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_mp4_to_all_audio_formats() {
+            test_conversion("mp4", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_mov_to_all_audio_formats() {
+            test_conversion("mov", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_avi_to_all_audio_formats() {
+            test_conversion("avi", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_mkv_to_all_audio_formats() {
+            test_conversion("mkv", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_webm_to_all_audio_formats() {
+            test_conversion("webm", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_wmv_to_all_audio_formats() {
+            test_conversion("wmv", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_flv_to_all_audio_formats() {
+            test_conversion("flv", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_3gp_to_all_audio_formats() {
+            test_conversion("3gp", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_m4v_to_all_audio_formats() {
+            test_conversion("m4v", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_ts_to_all_audio_formats() {
+            test_conversion("ts", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_vob_to_all_audio_formats() {
+            test_conversion("vob", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_mpg_to_all_audio_formats() {
+            test_conversion("mpg", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_nut_to_all_audio_formats() {
+            test_conversion("nut", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                video::convert_video_to_audio(&path, &from, &to)
+            }, None).await;
+        }
+    }
+
+    // ============================================================
+    // МОДУЛЬ: DOCUMENT → DOCUMENT
+    // ============================================================
+        
+    mod document_to_document {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_docx_to_all_document_formats() {
+            test_conversion("docx", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_document_to_document(&db, &path, &from, &to).await
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_odt_to_all_document_formats() {
+            test_conversion("odt", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_document_to_document(&db, &path, &from, &to).await
+            }, None).await;
+        }
+
+        #[tokio::test]
+        async fn test_xlsx_to_all_document_formats() {
+            test_conversion("xlsx", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_document_to_document(&db, &path, &from, &to).await
+            }, None).await;
+        }
+    }
+
+
+    
     // ============================================================
     // МОДУЛЬ: TEXT → TEXT (с БД)
     // ============================================================

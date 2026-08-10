@@ -73,8 +73,6 @@ export async function entries() {
     { format: "vob" },
     { format: "mpg" },
     { format: "mpeg" },
-    { format: "hevc" },
-    { format: "mjpeg" },
     { format: "nut" },
   ];
 }

@@ -534,22 +534,6 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:hover:border-red-500/60 light:hover:border-red-600/50",
         "video"),
 
-        ("hevc", "HEVC", json!(["hevc"]),
-        "FileHevc", 
-        "dark:from-purple-500/30 light:from-purple-600/40 dark:to-violet-500/15 light:to-violet-600/25", 
-        "dark:shadow-purple-500/20 light:shadow-purple-600/30",
-        "dark:text-purple-400 light:text-purple-700", 
-        "dark:hover:border-purple-500/60 light:hover:border-purple-600/50",
-        "video"),
-
-        ("mjpeg", "MJPEG", json!(["mjpeg"]),
-        "FileMjpeg", 
-        "dark:from-orange-500/30 light:from-orange-600/40 dark:to-amber-500/15 light:to-amber-600/25", 
-        "dark:shadow-orange-500/20 light:shadow-orange-600/30",
-        "dark:text-orange-400 light:text-orange-700", 
-        "dark:hover:border-orange-500/60 light:hover:border-orange-600/50",
-        "video"),
-
         ("nut", "NUT", json!(["nut"]),
         "FileNut", 
         "dark:from-gray-500/30 light:from-gray-600/40 dark:to-slate-500/15 light:to-slate-600/25", 

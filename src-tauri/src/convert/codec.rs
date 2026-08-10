@@ -35,12 +35,10 @@ pub fn get_video_codec(format: &str) -> &'static str {
     match format {
         // Стандартные форматы
         "mp4" | "mov" | "mkv" | "flv" | "3gp" | "m4v" | "ts" | "nut" => "libx264",
-        "webm" => "libvpx-vp9",      // ✅ Исправлено: правильный кодек для WebM
-        "hevc" => "libx265",         // ✅ Исправлено: libx265 для HEVC
+        "webm" => "libvpx-vp9",
         "avi" => "mpeg4",
         "mpeg" | "mpg" | "vob" | "wtv" => "mpeg2video",
         "wmv" => "wmv2",
-        "mjpeg" => "mjpeg",
         "gif" => "gif",
         "apng" => "apng",
         "bmp" => "bmp",
