@@ -691,7 +691,6 @@ async fn convert_video_to_document(
     Ok(result)
 }
 
-
 // ============================================================
 // ПАРСЕРЫ И СЕРИАЛИЗАТОРЫ
 // ============================================================
@@ -718,7 +717,6 @@ pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<S
         "json" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}"))?,
         "yaml" | "yml" => serde_yaml::to_string(value).map_err(|e| format!("YAML: {e}"))?,
         "toml" => {
-            // 🔥 Всегда оборачиваем в корневую таблицу
             let mut map = serde_json::Map::new();
             map.insert("root".to_string(), value.clone());
             toml::to_string_pretty(&map).map_err(|e| format!("TOML: {e}"))?
@@ -726,7 +724,11 @@ pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<S
         "xml" => stringify_xml(value).map_err(|e| format!("XML: {e}"))?,
         "csv" => stringify_csv(value)?,
         "ini" => stringify_ini(value)?,
-        "html" => convert_to_html(value),
+        "html" => {
+            // Сначала конвертируем в XML, потом в HTML через soffice
+            let xml_str = stringify_xml(value).map_err(|e| format!("XML: {e}"))?;
+            xml_to_html_via_soffice(&xml_str)?
+        }
         "md" => stringify_markdown(value)?,
         "txt" | "text" => stringify_txt(value)?,
         _ => return Err(format!("Unsupported: {format}")),
@@ -737,6 +739,50 @@ pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<S
     let output_path = save_to_app_dir(&content, path, format, &hash)?;
     
     Ok(output_path)
+}
+
+/// Конвертирует XML в HTML через soffice (LibreOffice)
+fn xml_to_html_via_soffice(xml_str: &str) -> Result<String, String> {
+    use std::fs;
+    use std::process::Command;
+    
+    // Сохраняем XML во временный файл
+    let xml_path = std::env::temp_dir().join("temp.xml");
+    fs::write(&xml_path, xml_str)
+        .map_err(|e| format!("Cannot write XML: {}", e))?;
+    
+    let out_dir = std::env::temp_dir();
+    let html_path = out_dir.join("temp.html");
+    
+    // Конвертируем через soffice
+    let status = Command::new("soffice")
+        .args([
+            "--headless",
+            "--nologo",
+            "--norestore",
+            "--nofirststartwizard",
+            "--invisible",
+            "--convert-to", "html",
+            "--outdir", out_dir.to_str().unwrap_or("."),
+            xml_path.to_str().unwrap(),
+        ])
+        .status()
+        .map_err(|e| format!("soffice error: {}", e))?;
+    
+    if !status.success() {
+        let _ = fs::remove_file(&xml_path);
+        return Err("soffice conversion failed".to_string());
+    }
+    
+    // Читаем результат
+    let html_content = fs::read_to_string(&html_path)
+        .map_err(|e| format!("Cannot read HTML: {}", e))?;
+    
+    // Удаляем временные файлы
+    let _ = fs::remove_file(&xml_path);
+    let _ = fs::remove_file(&html_path);
+    
+    Ok(html_content)
 }
 
 
