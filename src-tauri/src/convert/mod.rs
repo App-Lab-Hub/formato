@@ -1105,7 +1105,7 @@ mod tests {
     const AUDIO_FORMATS: &[&str] = &[
         "mp3", "wav", "aac", "flac", "ogg", "opus", "wma", "m4a", 
         "aiff", "ac3", "eac3", "tta", "wv", "voc", "adx", 
-        "aptx", "sbc", "mlp", "caf", "w64"
+        "aptx", "sbc", "caf", "w64"
     ];
 
     const IMAGE_FORMATS: &[&str] = &[
@@ -1253,12 +1253,6 @@ mod tests {
             }, None).await;
         }
 
-        #[tokio::test]
-        async fn test_mlp_to_all_audio_formats() {
-            test_conversion("mlp", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                audio::convert_audio_to_audio(&path, &from, &to)
-            }, None).await;
-        }
 
         #[tokio::test]
         async fn test_caf_to_all_audio_formats() {

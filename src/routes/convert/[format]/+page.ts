@@ -56,7 +56,6 @@ export async function entries() {
     { format: "adx" },
     { format: "aptx" },
     { format: "sbc" },
-    { format: "mlp" },
     { format: "caf" },
     { format: "w64" },
 

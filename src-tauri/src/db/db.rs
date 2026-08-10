@@ -421,14 +421,6 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:hover:border-gray-500/60 light:hover:border-gray-600/50",
         "audio"),
 
-        ("mlp", "MLP", json!(["mlp"]),
-        "FileMlp", 
-        "dark:from-rose-500/30 light:from-rose-600/40 dark:to-pink-500/15 light:to-pink-600/25", 
-        "dark:shadow-rose-500/20 light:shadow-rose-600/30",
-        "dark:text-rose-400 light:text-rose-700", 
-        "dark:hover:border-rose-500/60 light:hover:border-rose-600/50",
-        "audio"),
-
         ("caf", "CAF", json!(["caf"]),
         "FileCaf", 
         "dark:from-teal-500/30 light:from-teal-600/40 dark:to-cyan-500/15 light:to-cyan-600/25", 

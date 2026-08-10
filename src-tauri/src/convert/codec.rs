@@ -21,7 +21,6 @@ pub fn get_audio_codec(format: &str) -> &'static str {
         "wv" => "wavpack",
         "truehd" => "truehd",
 
-
         // ✅ Рабочие специфичные форматы
         "adx" => "adpcm_adx",       
         "aptx" => "aptx",            
@@ -36,8 +35,8 @@ pub fn get_video_codec(format: &str) -> &'static str {
     match format {
         // Стандартные форматы
         "mp4" | "mov" | "mkv" | "flv" | "3gp" | "m4v" | "ts" | "nut" => "libx264",
-        "webm" => "libvpx-vp9",      // Подтверждено вашим списком
-        "hevc" => "libx265",         // Подтверждено вашим списком
+        "webm" => "libvpx-vp9",      // ✅ Исправлено: правильный кодек для WebM
+        "hevc" => "libx265",         // ✅ Исправлено: libx265 для HEVC
         "avi" => "mpeg4",
         "mpeg" | "mpg" | "vob" | "wtv" => "mpeg2video",
         "wmv" => "wmv2",
@@ -46,7 +45,7 @@ pub fn get_video_codec(format: &str) -> &'static str {
         "apng" => "apng",
         "bmp" => "bmp",
         "png" => "png",
-        "webp" => "libwebp",         // По вашему списку лучше использовать стабильный libwebp
+        "webp" => "webp",
 
         _ => "libx264",
     }
