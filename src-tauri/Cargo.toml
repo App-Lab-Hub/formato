@@ -71,4 +71,5 @@ lo_writer = "0.5.2"
 oxiwhisper = { version = "0.1.2", features = ["parallel"] }
 transcribe-rs = { version = "0.3.11", features = ["whisper-cpp"] }
 unicode-segmentation = "1.13.3"
+regex = "1.13.1"
 

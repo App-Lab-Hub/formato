@@ -2476,6 +2476,7 @@ dependencies = [
  "piper-rs",
  "pulldown-cmark",
  "quick-xml 0.40.1",
+ "regex",
  "reqwest",
  "rtf-parser",
  "rust-ini",

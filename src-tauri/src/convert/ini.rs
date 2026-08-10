@@ -4,146 +4,53 @@ use serde_flattened::flatten_json_value::flatten::flattened;
 use indexmap::IndexMap;
 use serde_json::Map;
 use serde_json::{Value as Json, json};
+use std::collections::HashMap;
 
 pub fn stringify_ini(value: &Json) -> Result<String, String> {
+   
+    
+    // 1. Разворачиваем JSON в плоскую структуру через serde_flattened
     let flat = flattened(value.clone());
     
-    let dot_flat: IndexMap<String, Json> = flat.into_iter()
-        .map(|(k, v)| {
-            let clean = k.replace("__", ".")
-                         .replace(".idx-", ".")
-                         .replace("idx-", "");
-            (clean, v)
-        })
-        .collect();
-    
-    let mut result = String::new();
-    let mut sections: IndexMap<String, Vec<(String, String)>> = IndexMap::new();
-    let mut simple_arrays: IndexMap<String, (String, Vec<String>)> = IndexMap::new();
-    
-    for (key, val) in &dot_flat {
+    // 2. Преобразуем в HashMap<String, String> для serde_ini
+    let mut flat_map = HashMap::new();
+    for (key, val) in flat {
         let val_str = match val {
-            Json::String(s) => format!("\"{}\"", s.replace('"', "\\\"")),
+            Json::String(s) => s,
             Json::Number(n) => n.to_string(),
-            Json::Bool(b) => if *b { "true".to_string() } else { "false".to_string() },
-            Json::Null => continue,
+            Json::Bool(b) => b.to_string(),
+            Json::Null => "null".to_string(),
             _ => val.to_string(),
         };
-        
-        if let Some(dot_pos) = key.find('.') {
-            let parts: Vec<&str> = key.split('.').collect();
-                            
-            if parts.len() >= 2 && parts[parts.len()-1].parse::<usize>().is_ok() {
-                let idx: usize = parts[parts.len()-1].parse().unwrap();
-                let array_name = parts[parts.len()-2].to_string();
-                let section = if parts.len() >= 3 {
-                    parts[..parts.len()-2].join(".")
-                } else {
-                    continue;
-                };
-                
-                let all_numeric = dot_flat.keys()
-                    .filter(|k| k.starts_with(&format!("{}.{}.", section, array_name)))
-                    .all(|k| {
-                        let rest = &k[section.len() + array_name.len() + 2..];
-                        !rest.contains('.') && rest.parse::<usize>().is_ok()
-                    });
-                
-                if all_numeric {
-                    let entry = simple_arrays.entry(section.clone()).or_insert_with(|| (array_name.clone(), Vec::new()));
-                    while entry.1.len() <= idx { entry.1.push(String::new()); }
-                    entry.1[idx] = val_str;
-                    continue;
-                }
-            }
-            
-            let sub_key = parts[parts.len()-1].to_string();
-            let section = parts[..parts.len()-1].join(".");
-            
-            sections.entry(section).or_default().push((sub_key, val_str));
-        } else {
-            result.push_str(&format!("{} = {}\n", key, val_str));
-        }
+        // serde_flattened использует __ как разделитель, меняем на .
+        let clean_key = key.replace("__", ".");
+        flat_map.insert(clean_key, val_str);
     }
     
-    if !result.is_empty() { result.push('\n'); }
-    
-    // Собираем уникальные секции из обоих map
-    let mut all_sections: Vec<String> = Vec::new();
-    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
-    for key in sections.keys().chain(simple_arrays.keys()) {
-        if seen.insert(key.clone()) {
-            all_sections.push(key.clone());
-        }
-    }
-    
-    let root_order: IndexMap<&str, usize> = if let Json::Object(root) = value {
-        root.keys().enumerate().map(|(i, k)| (k.as_str(), i)).collect()
-    } else {
-        IndexMap::new()
-    };
-    
-    all_sections.sort_by(|a, b| {
-        let a_root = a.split('.').next().unwrap_or("");
-        let b_root = b.split('.').next().unwrap_or("");
-        let a_order = root_order.get(a_root).unwrap_or(&usize::MAX);
-        let b_order = root_order.get(b_root).unwrap_or(&usize::MAX);
-        
-        match a_order.cmp(b_order) {
-            std::cmp::Ordering::Equal => {
-                let a_parts: Vec<&str> = a.split('.').collect();
-                let b_parts: Vec<&str> = b.split('.').collect();
-                let min_len = a_parts.len().min(b_parts.len());
-                for i in 0..min_len {
-                    let cmp = a_parts[i].cmp(b_parts[i]);
-                    if cmp != std::cmp::Ordering::Equal { return cmp; }
-                }
-                a_parts.len().cmp(&b_parts.len())
-            }
-            other => other,
-        }
-    });
-    
-    for section in &all_sections {
-        let has_pairs = sections.get(section).map(|p| !p.is_empty()).unwrap_or(false);
-        let has_array = simple_arrays.contains_key(section);
-        
-        if has_pairs || has_array {
-            result.push_str(&format!("[{}]\n", section));
-            
-            // Сначала обычные ключи
-            if let Some(pairs) = sections.get(section) {
-                for (key, val) in pairs {
-                    result.push_str(&format!("{} = {}\n", key, val));
-                }
-            }
-            
-            // Потом простые массивы
-            if let Some((array_name, values)) = simple_arrays.get(section) {
-                for val in values {
-                    result.push_str(&format!("{}[] = {}\n", array_name, val));
-                }
-            }
-            
-            result.push('\n');
-        }
-    }
-    
-    Ok(result.trim_end().to_string() + "\n")
+    // 3. Сериализуем в INI
+    serde_ini::to_string(&flat_map)
+        .map_err(|e| format!("INI: {}", e))
 }
+
 
 pub fn parse_ini(input: &str) -> Result<Json, String> {
     let mut raw_map: std::collections::HashMap<String, Vec<String>> = std::collections::HashMap::new();
     let mut current_section = String::new();
     
-    // Первый проход: собираем ВСЕ значения для каждого ключа (включая дубликаты)
+    // 🔥 Улучшенный парсинг INI — пропускаем строки без '='
     for line in input.lines() {
         let line = line.trim();
+        // Пропускаем пустые строки и комментарии
         if line.is_empty() || line.starts_with('#') || line.starts_with(';') {
             continue;
         }
+        // Секция
         if line.starts_with('[') && line.ends_with(']') {
             current_section = line[1..line.len()-1].trim().to_string();
+            continue;
+        }
+        // 🔥 Пропускаем строки без '='
+        if !line.contains('=') {
             continue;
         }
         if let Some(eq_pos) = line.find('=') {
@@ -158,64 +65,37 @@ pub fn parse_ini(input: &str) -> Result<Json, String> {
         }
     }
     
-    let raw: Json = serde_ini::from_str(input)
-        .map_err(|e| format!("INI: {e}"))?;
+    // 🔥 Используем наш ручной парсинг вместо serde_ini::from_str
+    // serde_ini падает на строках без '=', а мы уже их отфильтровали
     
+    // Строим JSON из raw_map
     let mut flat: Map<String, Json> = Map::new();
-    flatten_value(&raw, String::new(), &mut flat);
     
-    let mut fixed: Map<String, Json> = Map::new();
-    
-    for (flat_key, flat_val) in &flat {
-        // Очищаем ключ от [] и [N]
-        let clean_key = flat_key
-            .replace('[', ".")
-            .replace(']', "");
-        let clean_key = clean_key.strip_suffix('.').unwrap_or(&clean_key).to_string();
-        
-        // Определяем, является ли это [] массивом (не [N] с числом!)
-        // Проверяем оригинальный ключ: если заканчивается на [], это простой массив
-        let is_bracket_array = flat_key.ends_with("[]");
-        
-        if is_bracket_array {
-            // Ищем в raw_map все значения для этого ключа
-            if let Some(entries) = raw_map.get(flat_key.as_str()) {
-                if entries.len() >= 1 {
-                    let arr: Vec<Json> = entries.iter()
-                        .map(|s| unquote_value(&Json::String(s.clone())))
-                        .collect();
-                    fixed.insert(clean_key, Json::Array(arr));
-                    continue;
-                }
-            }
+    for (key, values) in &raw_map {
+        if values.len() == 1 {
+            // Одиночное значение
+            flat.insert(key.clone(), unquote_value(&Json::String(values[0].clone())));
+        } else {
+            // Массив значений (дубликаты ключей)
+            let arr: Vec<Json> = values.iter()
+                .map(|s| unquote_value(&Json::String(s.clone())))
+                .collect();
+            flat.insert(key.clone(), Json::Array(arr));
         }
-        
-        // Для обычных ключей (включая 0.label) — берём одно значение
-        // Если в raw_map несколько значений (дубликаты ключей), берём ПЕРВОЕ
-        if let Some(entries) = raw_map.get(flat_key.as_str()) {
-            if entries.len() >= 1 && !is_bracket_array {
-                // Берём первое значение (не делаем массив для числовых ключей)
-                fixed.insert(clean_key, unquote_value(&Json::String(entries[0].clone())));
-                continue;
-            }
-        }
-        
-        // Fallback: используем значение из flat
-        fixed.insert(clean_key, unquote_value(flat_val));
     }
     
-    let has_nesting = fixed.keys().any(|k| k.contains('.'));
+    let has_nesting = flat.keys().any(|k| k.contains('.'));
     
     if !has_nesting {
         let mut result = serde_json::Map::new();
-        for (key, val) in &fixed {
+        for (key, val) in &flat {
             result.insert(key.clone(), val.clone());
         }
         return Ok(Json::Object(result));
     }
     
     // Используем json_unflattening для восстановления структуры
-    let dot_flat: Map<String, Json> = fixed.clone();
+    let dot_flat: Map<String, Json> = flat.clone();
     
     let mut result = json_unflattening::unflattening::unflatten(&dot_flat)
         .map_err(|e| format!("INI unflatten: {}", e))?;
@@ -225,7 +105,6 @@ pub fn parse_ini(input: &str) -> Result<Json, String> {
     
     Ok(result)
 }
-
 
 
 fn flatten_value(value: &Json, prefix: String, result: &mut Map<String, Json>) {

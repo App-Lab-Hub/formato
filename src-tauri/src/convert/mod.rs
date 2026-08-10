@@ -22,6 +22,7 @@ mod image_to_document;
 mod audio_to_text;
 // mod video_to_text;
 use sea_orm::DatabaseConnection;
+use regex::Regex;
 
 use crate::AppState;
 use serde::{Deserialize, Serialize};
@@ -740,15 +741,17 @@ pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<S
     
     Ok(output_path)
 }
-
 /// Конвертирует XML в HTML через soffice (LibreOffice)
 fn xml_to_html_via_soffice(xml_str: &str) -> Result<String, String> {
     use std::fs;
     use std::process::Command;
     
+    // 🔥 Санитизируем XML: заменяем невалидные символы в тегах
+    let sanitized_xml = sanitize_xml_tags(xml_str);
+    
     // Сохраняем XML во временный файл
     let xml_path = std::env::temp_dir().join("temp.xml");
-    fs::write(&xml_path, xml_str)
+    fs::write(&xml_path, sanitized_xml)
         .map_err(|e| format!("Cannot write XML: {}", e))?;
     
     let out_dir = std::env::temp_dir();
@@ -766,6 +769,7 @@ fn xml_to_html_via_soffice(xml_str: &str) -> Result<String, String> {
             "--outdir", out_dir.to_str().unwrap_or("."),
             xml_path.to_str().unwrap(),
         ])
+        .stderr(std::process::Stdio::null())  // 🔥 Подавляем stderr
         .status()
         .map_err(|e| format!("soffice error: {}", e))?;
     
@@ -785,7 +789,54 @@ fn xml_to_html_via_soffice(xml_str: &str) -> Result<String, String> {
     Ok(html_content)
 }
 
-
+/// Санитизация XML тегов: заменяет невалидные символы
+fn sanitize_xml_tags(xml: &str) -> String {
+    use regex::Regex;
+    
+    // Регулярка для поиска тегов: <tag> или </tag>
+    let tag_re = Regex::new(r#"</?([a-zA-Z0-9_\-:.@]+)[^>]*>"#).unwrap();
+    
+    tag_re.replace_all(xml, |caps: &regex::Captures| {
+        let tag = &caps[1];
+        
+        // Заменяем невалидные символы
+        let sanitized: String = tag.chars()
+            .map(|c| match c {
+                '@' => "_at_".to_string(),
+                '/' => "_slash_".to_string(),
+                ':' => "_colon_".to_string(),
+                '$' => "_dollar_".to_string(),
+                '#' => "_hash_".to_string(),
+                '&' => "_amp_".to_string(),
+                c if c.is_alphanumeric() || c == '_' || c == '-' || c == '.' => {
+                    c.to_string()
+                }
+                _ => {
+                    format!("_x{:X}_", c as u32)
+                }
+            })
+            .collect();
+        
+        // Если тег изменился — возвращаем с новым именем
+        if tag != sanitized {
+            let full_tag = &caps[0];
+            // Сохраняем атрибуты, если есть
+            let attrs = if let Some(pos) = full_tag.find(' ') {
+                &full_tag[pos..]
+            } else {
+                ""
+            };
+            
+            if full_tag.starts_with("</") {
+                format!("</{}{}>", sanitized, attrs)
+            } else {
+                format!("<{}{}>", sanitized, attrs)
+            }
+        } else {
+            caps[0].to_string()
+        }
+    }).to_string()
+}
 
 // ============================================================
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -1688,7 +1739,7 @@ mod tests {
             }, Some(db)).await;
         }
 
-        // =============================================== NEED TO CHECK ===============================================
+        // =============================================== NEED TO CHECK (test_ini_to_all_text_formats) ===============================================
         #[tokio::test]
         async fn test_ini_to_all_text_formats() {
             let db = create_test_db().await.unwrap();
@@ -1696,6 +1747,7 @@ mod tests {
                 convert_text_to_text(&db, &path, &from, &to).await
             }, Some(db)).await;
         }
+        // =============================================== NEED TO CHECK (test_ini_to_all_text_formats) ===============================================
 
         #[tokio::test]
         async fn test_md_to_all_text_formats() {
@@ -1713,13 +1765,13 @@ mod tests {
             }, Some(db)).await;
         }
 
-        // #[tokio::test]
-        // async fn test_txt_to_all_text_formats() {
-        //     let db = create_test_db().await.unwrap();
-        //     test_conversion("txt", super::TEXT_FORMATS, |db, path, from, to| async move {
-        //         convert_text_to_text(&db, &path, &from, &to).await
-        //     }, Some(db)).await;
-        // }
+        #[tokio::test]
+        async fn test_txt_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("txt", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
 
         #[tokio::test]
         async fn test_rtf_to_all_text_formats() {
