@@ -373,14 +373,6 @@ async fn init_formats(db: &DatabaseConnection) -> Result<(), DbErr> {
         "dark:hover:border-violet-500/60 light:hover:border-violet-600/50",
         "audio"),
 
-        ("dts", "DTS", json!(["dts"]),
-        "FileDts", 
-        "dark:from-red-500/30 light:from-red-600/40 dark:to-rose-500/15 light:to-rose-600/25", 
-        "dark:shadow-red-500/20 light:shadow-red-600/30",
-        "dark:text-red-400 light:text-red-700", 
-        "dark:hover:border-red-500/60 light:hover:border-red-600/50",
-        "audio"),
-
         ("tta", "True Audio", json!(["tta"]),
         "FileTta", 
         "dark:from-emerald-500/30 light:from-emerald-600/40 dark:to-teal-500/15 light:to-teal-600/25", 

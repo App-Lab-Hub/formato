@@ -16,30 +16,15 @@ pub fn convert_audio_to_audio(path: &str, from: &str, to: &str) -> Result<String
 
     let mut cmd = FfmpegCommand::new();
     cmd.input(path);
+    cmd.args(&["-vn"]);
     
-    // Отсекаем треки обложек в аудиофайлах
-    cmd.args(&["-vn"]); 
-    
-    // 🧠 Умный ресемплинг
     if to != "wav" {
         cmd.args(&["-ar", "44100"]);
         cmd.args(&["-ac", "2"]);
     }
 
-    // 🎵 Специальная обработка для Opus (исправление ошибки 234)
-    if to == "opus" {
-        cmd.args(&["-c:a", "libopus"]);
-        cmd.args(&["-b:a", "128k"]);       // Ограничиваем битрейт (макс для Opus - 256k)
-        cmd.args(&["-ac", "2"]);           // Принудительно стерео (решает проблему 5.1)
-        cmd.args(&["-ar", "48000"]);       // Стандартная частота для Opus
-        cmd.args(&["-application", "audio"]); // Оптимально для музыки
-        cmd.args(&["-frame_duration", "20"]); // 20ms фреймы (стандарт)
-    } else {
-        // Фильтр: мягкое ограничение пиков + дизеринг для всех остальных
-        cmd.args(&["-af", "aresample=dither_method=triangular"]);
-        cmd.args(&["-c:a", audio_codec]);
-    }
-    
+    cmd.args(&["-af", "aresample=dither_method=triangular"]);
+    cmd.args(&["-c:a", audio_codec]);
     cmd.args(&["-y"]);
     cmd.output(&output_path);
 
