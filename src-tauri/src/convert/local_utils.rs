@@ -241,25 +241,98 @@ pub fn write_temp_file(content: &str) -> Result<String, String> {
 use std::path::Path;
 use std::fs;
 
+
 pub fn convert_with_soffice_explicit(input_path: &str, output_path: &str) -> Result<(), String> {
     let input_path_obj = Path::new(input_path);
     let output_path_obj = Path::new(output_path);
 
-    // 1. Извлекаем расширение из финального пути (например, "pdf")
-    let ext = output_path_obj
+    let input_ext = input_path_obj
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    
+    let output_ext = output_path_obj
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("pdf");
 
-    // 2. Создаем изолированную временную папку (защита от конфликтов имен)
+    // Выбираем фильтр
+    let filter = match (input_ext, output_ext) {
+        ("odt", "pdf") => "writer_pdf_Export",
+        ("odt", "docx") => "Office Open XML Text",
+        ("odt", "odt") => "writer8",
+        ("docx", "pdf") => "writer_pdf_Export",
+        ("docx", "odt") => "writer8",
+        ("xlsx", "pdf") => "calc_pdf_Export",
+        ("xlsx", "docx") => "MS Excel 2007 XML",
+        ("xlsx", "odt") => "MS Excel 2007 XML",
+        _ => match output_ext {
+            "pdf" => "writer_pdf_Export",
+            "docx" => "Office Open XML Text",
+            "odt" => "writer8",
+            _ => "writer8",
+        }
+    };
+
     let temp_dir = tempfile::tempdir()
         .map_err(|e| format!("Failed to create temp dir: {}", e))?;
     
-    // 3. Конвертируем документ во временную папку
+    // 🚀 Убираем все предупреждения о Java
     let status = Command::new("soffice")
+        .env("JAVA_OPTS", "-Djava.awt.headless=true")  // Отключаем Java GUI
+        .env("SAL_USE_VCLPLUGIN", "svp")               // Используем без GUI
         .args([
             "--headless",
-            "--convert-to", ext,
+            "--nologo",
+            "--norestore",
+            "--nofirststartwizard",
+            "--invisible",
+            "--convert-to", &format!("{}:{}", output_ext, filter),
+            "--outdir", &temp_dir.path().to_string_lossy(),
+            input_path,
+        ])
+        .status()
+        .map_err(|e| format!("soffice error: {}", e))?;
+
+    if !status.success() {
+        // 🔄 Если не получилось, пробуем без фильтра
+        return fallback_convert(input_path, output_path, output_ext);
+    }
+
+    let input_stem = input_path_obj
+        .file_stem()
+        .ok_or_else(|| "Invalid input file name".to_string())?;
+    
+    let temp_output = temp_dir.path().join(format!("{}.{}", input_stem.to_string_lossy(), output_ext));
+
+    if temp_output.exists() {
+        fs::rename(&temp_output, output_path_obj)
+            .map_err(|e| format!("Failed to move to {}: {}", output_path, e))?;
+        Ok(())
+    } else {
+        // 🔄 Если файл не создан, пробуем без фильтра
+        fallback_convert(input_path, output_path, output_ext)
+    }
+}
+
+/// Резервный вариант конвертации без явного фильтра
+fn fallback_convert(input_path: &str, output_path: &str, output_ext: &str) -> Result<(), String> {
+    let input_path_obj = Path::new(input_path);
+    let output_path_obj = Path::new(output_path);
+
+    let temp_dir = tempfile::tempdir()
+        .map_err(|e| format!("Failed to create temp dir: {}", e))?;
+    
+    let status = Command::new("soffice")
+        .env("JAVA_OPTS", "-Djava.awt.headless=true")
+        .env("SAL_USE_VCLPLUGIN", "svp")
+        .args([
+            "--headless",
+            "--nologo",
+            "--norestore",
+            "--nofirststartwizard",
+            "--invisible",
+            "--convert-to", output_ext,
             "--outdir", &temp_dir.path().to_string_lossy(),
             input_path,
         ])
@@ -270,21 +343,17 @@ pub fn convert_with_soffice_explicit(input_path: &str, output_path: &str) -> Res
         return Err("soffice conversion failed".to_string());
     }
 
-    // 4. Находим файл, который создал soffice (исходное имя + новое расширение)
     let input_stem = input_path_obj
         .file_stem()
         .ok_or_else(|| "Invalid input file name".to_string())?;
     
-    let temp_output = temp_dir.path().join(format!("{}.{}", input_stem.to_string_lossy(), ext));
+    let temp_output = temp_dir.path().join(format!("{}.{}", input_stem.to_string_lossy(), output_ext));
 
-    // 5. Всегда переименовываем и перемещаем файл в целевой output_path
     if temp_output.exists() {
-        // fs::rename автоматически перезапишет старый файл по пути output_path, если он существовал
         fs::rename(&temp_output, output_path_obj)
-            .map_err(|e| format!("Failed to move and rename to {}: {}", output_path, e))?;
+            .map_err(|e| format!("Failed to move to {}: {}", output_path, e))?;
+        Ok(())
     } else {
-        return Err("soffice did not create output file in temp dir".to_string());
+        Err("soffice did not create output file".to_string())
     }
-
-    Ok(())
 }

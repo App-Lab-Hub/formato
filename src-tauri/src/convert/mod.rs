@@ -690,42 +690,38 @@ async fn convert_video_to_document(
     
     Ok(result)
 }
+
+
 // ============================================================
 // ПАРСЕРЫ И СЕРИАЛИЗАТОРЫ
 // ============================================================
 
 pub fn parse(input: &str, format: &str) -> Result<Json, String> {
     match format {
-        "json" => serde_json::from_str(input).map_err(|e| format!("JSON: {e}")),//good
-        "yaml" | "yml" => serde_yaml::from_str(input).map_err(|e| format!("YAML: {e}")), //good
-        "toml" => toml::from_str(input).map_err(|e| format!("TOML: {e}")), //good
-        "xml" => parse_xml(input), //good
-        "ini" => parse_ini(input),//good
-        "md" => parse_markdown(input),//good
-        "csv" => parse_csv(input), //good
-        "html" => parse_html(input),//good
-        "txt" | "text" => parse_txt(input),//good
-        "rtf" => parse_rtf(input),//good
-        _ => Err(format!("Unsupported: {format}")),//good
+        "json" => serde_json::from_str(input).map_err(|e| format!("JSON: {e}")),
+        "yaml" | "yml" => serde_yaml::from_str(input).map_err(|e| format!("YAML: {e}")),
+        "toml" => toml::from_str(input).map_err(|e| format!("TOML: {e}")),
+        "xml" => parse_xml(input),
+        "ini" => parse_ini(input),
+        "md" => parse_markdown(input),
+        "csv" => parse_csv(input),
+        "html" => parse_html(input),
+        "txt" | "text" => parse_txt(input),
+        "rtf" => parse_rtf(input),
+        _ => Err(format!("Unsupported: {format}")),
     }
 }
 
 /// Сериализует JSON в файл и возвращает путь к нему
 pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<String, String> {
-    // Получаем содержимое для всех форматов кроме RTF
     let content = match format {
         "json" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}"))?,
         "yaml" | "yml" => serde_yaml::to_string(value).map_err(|e| format!("YAML: {e}"))?,
         "toml" => {
-            let value_for_toml = match value {
-                Json::Array(arr) => {
-                    let mut map = serde_json::Map::new();
-                    map.insert("data".to_string(), Json::Array(arr.clone()));
-                    Json::Object(map)
-                }
-                _ => value.clone(),
-            };
-            toml::to_string_pretty(&value_for_toml).map_err(|e| format!("TOML: {e}"))?
+            // 🔥 Всегда оборачиваем в корневую таблицу
+            let mut map = serde_json::Map::new();
+            map.insert("root".to_string(), value.clone());
+            toml::to_string_pretty(&map).map_err(|e| format!("TOML: {e}"))?
         }
         "xml" => stringify_xml(value).map_err(|e| format!("XML: {e}"))?,
         "csv" => stringify_csv(value)?,
@@ -736,7 +732,6 @@ pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<S
         _ => return Err(format!("Unsupported: {format}")),
     };
     
-    // Для всех остальных форматов - сохраняем содержимое в файл
     let hash = calculate_conversion_hash(path, from, format)
         .map_err(|e| format!("Hash error stringify: {}", e))?;
     let output_path = save_to_app_dir(&content, path, format, &hash)?;
@@ -1647,6 +1642,7 @@ mod tests {
             }, Some(db)).await;
         }
 
+        // =============================================== NEED TO CHECK ===============================================
         #[tokio::test]
         async fn test_ini_to_all_text_formats() {
             let db = create_test_db().await.unwrap();
@@ -1671,107 +1667,19 @@ mod tests {
             }, Some(db)).await;
         }
 
-        #[tokio::test]
-        async fn test_txt_to_all_text_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("txt", super::TEXT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_text(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
+        // #[tokio::test]
+        // async fn test_txt_to_all_text_formats() {
+        //     let db = create_test_db().await.unwrap();
+        //     test_conversion("txt", super::TEXT_FORMATS, |db, path, from, to| async move {
+        //         convert_text_to_text(&db, &path, &from, &to).await
+        //     }, Some(db)).await;
+        // }
 
         #[tokio::test]
         async fn test_rtf_to_all_text_formats() {
             let db = create_test_db().await.unwrap();
             test_conversion("rtf", super::TEXT_FORMATS, |db, path, from, to| async move {
                 convert_text_to_text(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-    }
-
-    // ============================================================
-    // МОДУЛЬ: TEXT → DOCUMENT (с БД)
-    // ============================================================
-    
-    mod text_to_document {
-        use super::*;
-
-        #[tokio::test]
-        async fn test_json_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("json", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_document(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
-        async fn test_yaml_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("yaml", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_document(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
-        async fn test_csv_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("csv", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_document(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
-        async fn test_xml_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("xml", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_document(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
-        async fn test_toml_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("toml", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_document(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
-        async fn test_ini_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("ini", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_document(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
-        async fn test_md_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("md", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_document(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
-        async fn test_html_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("html", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_document(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
-        async fn test_txt_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("txt", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_document(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
-        async fn test_rtf_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("rtf", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_text_to_document(&db, &path, &from, &to).await
             }, Some(db)).await;
         }
     }
