@@ -6,7 +6,6 @@ use serde_json::{json, Value as Json};
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
 use std::io::Write;
-use base91::helpers::slice_encode;
 
 /// Открывает изображение с автодетектом формата (поддерживает PNM/PAM)
 pub fn open_image(path: &str, from: &str) -> Result<image::DynamicImage, String> {
@@ -95,28 +94,6 @@ pub fn get_exif_data(path: &str) -> Result<Json, String> {
     Ok(Json::Object(exif_map))
 }
 
-/// Сжатие Zlib + кодирование Base91
-pub fn zlib_and_then_base91(path: &str) -> Result<String, String> {
-    // 1. Читаем файл в байты
-    let bytes = fs::read(path)
-        .map_err(|e| format!("Cannot read file: {}", e))?;
-    
-    // 2. Сжимаем байты (zlib)
-    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
-    encoder.write_all(&bytes)
-        .map_err(|e| format!("Cannot compress: {}", e))?;
-    let compressed = encoder.finish()
-        .map_err(|e| format!("Cannot finish compression: {}", e))?;
-    
-    // 3. Кодируем сжатые байты в Base91
-    let encoded = slice_encode(&compressed);
-    
-    // 4. Конвертируем Vec<u8> в String
-    let encoded_str = String::from_utf8(encoded)
-        .map_err(|e| format!("Invalid UTF-8 in Base91: {}", e))?;
-    
-    Ok(encoded_str)
-}
 
 /// Сжатие Zlib + кодирование Base64
 pub fn zlib_and_then_base64(path: &str) -> Result<String, String> {
