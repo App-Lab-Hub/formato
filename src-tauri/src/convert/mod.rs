@@ -2083,4 +2083,92 @@ mod tests {
             }, Some(db)).await;
         }
     }
+
+    // ============================================================
+    // МОДУЛЬ: TEXT → AUDIO
+    // ============================================================
+        
+    mod text_to_audio {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_txt_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("txt", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_text_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_json_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("json", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_text_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_yaml_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("yaml", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_text_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_csv_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("csv", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_text_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_xml_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("xml", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_text_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_toml_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("toml", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_text_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_ini_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("ini", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_text_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_md_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("md", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_text_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_html_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("html", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_text_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_rtf_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("rtf", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_text_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+    }
 }
