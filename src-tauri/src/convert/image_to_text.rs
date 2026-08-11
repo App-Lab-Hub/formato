@@ -54,7 +54,7 @@ pub async fn convert_image_to_text(path: &str, from: &str, to: &str) -> Result<S
     // 4. Собираем всё в JSON
     let result = json!({
         "format": from,
-        "encoding": "zlib+base64"
+        "encoding": "zlib+base64",
         "metadata": metadata,
         "data": encoded_str,
     });
