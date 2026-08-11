@@ -278,18 +278,54 @@ async fn convert_document_to_text(
     from: &str, 
     to: &str
 ) -> Result<String, String> {
+    // 🔥 Специальная обработка для RTF
     if to == "rtf" {
+        // Если исходный формат PDF — парсим в JSON, берем текст, делаем DOCX, потом RTF
+        if from == "pdf" {
+            // 1. Парсим PDF в JSON
+            let json_value = parse_document(path, from)?;
+            
+            // 2. Извлекаем текст из JSON (поле "text")
+            let text = json_value
+                .get("text")
+                .and_then(|v| v.as_str())
+                .ok_or_else(|| "PDF JSON missing 'text' field".to_string())?
+                .to_string();
+            
+            // 3. Сохраняем текст во временный файл
+            let temp_text_path = std::env::temp_dir().join(format!("temp_{}.txt", uuid::Uuid::new_v4().simple()));
+            tokio::fs::write(&temp_text_path, &text)
+                .await
+                .map_err(|e| format!("Cannot write temp text file: {}", e))?;
+            
+            // 4. Конвертируем текст в DOCX через convert_text_to_document
+            let docx_path = convert_text_to_document(
+                db, 
+                temp_text_path.to_str().unwrap(), 
+                "txt", 
+                "docx"
+            ).await?;
+            
+            // 5. Конвертируем DOCX в RTF
+            let rtf_path = convert_docx_to_rtf(&docx_path, path, to).await?;
+            
+            // 6. Удаляем временные файлы
+            let _ = tokio::fs::remove_file(&temp_text_path).await;
+            
+            return Ok(rtf_path);
+        }
+        
+        // Для остальных форматов (DOCX, ODT, XLSX) — через convert_document_to_document
         let docx_path = convert_document_to_document(db, path, from, "docx").await?;
         let rtf_path = convert_docx_to_rtf(&docx_path, path, to).await?;
-    
         
         return Ok(rtf_path);
     }
     
+    // Для остальных форматов — стандартная логика
     let json_value = parse_document(path, from)?;
     stringify(&json_value, to, path, from).await
 }
-
 
 
 
