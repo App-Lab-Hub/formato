@@ -50,7 +50,7 @@ use crate::db;
 use crate::html_convert::{convert_to_html, parse_html};
 use crate::paths::converted_dir;
 use memmap2::Mmap;
-
+use crate::convert::local_utils::{xml_to_html_via_soffice, convert_docx_to_rtf};
 // ============================================================
 // ТИПЫ
 // ============================================================
@@ -218,19 +218,14 @@ async fn convert_text_to_text(db: &DatabaseConnection, path: &str, from: &str, t
         let docx_path = stringify_document(db, &input, path, from, "docx").await?;
         
         // Затем конвертируем DOCX в RTF
-        let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
-        
-        // Проверяем кеш перед удалением
-        // if !is_file_cached(db,  path, from, "docx").await? {
-        //     let _ = std::fs::remove_file(&docx_path);
-        // }
-        
+        let rtf_path = convert_docx_to_rtf(&docx_path, path, to).await?;
+
         return Ok(rtf_path);
     }
 
     // Для остальных форматов - стандартная логика
     let value = parse(&input, from)?;
-    stringify(&value, to, path, from)
+    stringify(&value, to, path, from).await
 }
 
 fn parse_document(path: &str, from: &str) -> Result<Json, String> {
@@ -285,14 +280,14 @@ async fn convert_document_to_text(
 ) -> Result<String, String> {
     if to == "rtf" {
         let docx_path = convert_document_to_document(db, path, from, "docx").await?;
-        let rtf_path = rtf::convert_docx_to_rtf(&docx_path, path, to)?;
+        let rtf_path = convert_docx_to_rtf(&docx_path, path, to).await?;
     
         
         return Ok(rtf_path);
     }
     
     let json_value = parse_document(path, from)?;
-    stringify(&json_value, to, path, from)
+    stringify(&json_value, to, path, from).await
 }
 
 
@@ -320,7 +315,7 @@ async fn convert_text_to_document(
 
 // Функция-обертка:
 async fn convert_image_to_text(path: &str, from: &str, to: &str) -> Result<String, String> {
-    image_to_text::convert_image_to_text(path, from, to)
+    image_to_text::convert_image_to_text(path, from, to).await
 }
 async fn convert_image_to_document(db: &DatabaseConnection, path: &str, from: &str, to: &str) -> Result<String, String> {
     image_to_document::convert_image_to_document(db, path, from, to).await
@@ -331,7 +326,7 @@ async fn convert_image_to_document(db: &DatabaseConnection, path: &str, from: &s
 
 /// Document → Document
 pub async fn convert_document_to_document(
-    db: &DatabaseConnection, 
+    _db: &DatabaseConnection, 
     path: &str, 
     from: &str, 
     to: &str
@@ -354,12 +349,12 @@ pub async fn convert_document_to_document(
         // ---------- DOCX ----------
         ("docx", "pdf") => {
             let out = out_path("pdf")?;
-            convert_with_soffice_explicit(path, &out)?;
+            convert_with_soffice_explicit(path, &out).await?;
             Ok(out)
         }
         ("docx", "odt") => {
             let out = out_path("odt")?;
-            convert_with_soffice_explicit(path, &out)?;
+            convert_with_soffice_explicit(path, &out).await?;
             Ok(out)
         }
         ("docx", "xlsx") => {
@@ -374,29 +369,26 @@ pub async fn convert_document_to_document(
         // ---------- ODT ----------
         ("odt", "pdf") => {
             let out = out_path("pdf")?;
-            convert_with_soffice_explicit(path, &out)?;
+            convert_with_soffice_explicit(path, &out).await?;
             Ok(out)
         }
         ("odt", "docx") => {
             let out = out_path("docx")?;
-            convert_with_soffice_explicit(path, &out)?;
+            convert_with_soffice_explicit(path, &out).await?;
             Ok(out)
         }
         ("odt", "xlsx") => {
             let out = out_path("xlsx")?;
             
             let docx_path = out_path("docx")?;
-            convert_with_soffice_explicit(path, &docx_path)?;
+            convert_with_soffice_explicit(path, &docx_path).await?;
             
             let doc = office_oxide::Document::open(&docx_path)
                 .map_err(|e| format!("Open DOCX: {}", e))?;
             doc.save_as(&out)
                 .map_err(|e| format!("Save as XLSX: {}", e))?;
             
-            // Проверяем кеш перед удалением
-            // if !is_file_cached(db, path, "odt", "docx").await? {
-            //     let _ = std::fs::remove_file(&docx_path);
-            // }
+
             
             Ok(out)
         }
@@ -419,18 +411,14 @@ pub async fn convert_document_to_document(
             doc.save_as(&docx_path)
                 .map_err(|e| format!("XLSX to DOCX: {}", e))?;
             
-            convert_with_soffice_explicit(&docx_path, &out)?;
-            
-            // Проверяем кеш перед удалением
-            // if !is_file_cached(db, path, "xlsx", "docx").await? {
-            //     let _ = std::fs::remove_file(&docx_path);
-            // }
+            convert_with_soffice_explicit(&docx_path, &out).await?;
+
             
             Ok(out)
         }
         ("xlsx", "pdf") => {
             let out = out_path("pdf")?;
-            convert_with_soffice_explicit(path, &out)?;
+            convert_with_soffice_explicit(path, &out).await?;
             Ok(out)
         }
         _ => {
@@ -713,7 +701,7 @@ pub fn parse(input: &str, format: &str) -> Result<Json, String> {
 }
 
 /// Сериализует JSON в файл и возвращает путь к нему
-pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<String, String> {
+pub async fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<String, String> {
     let content = match format {
         "json" => serde_json::to_string_pretty(value).map_err(|e| format!("JSON: {e}"))?,
         "yaml" | "yml" => serde_yaml::to_string(value).map_err(|e| format!("YAML: {e}"))?,
@@ -728,7 +716,7 @@ pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<S
         "html" => {
             // Сначала конвертируем в XML, потом в HTML через soffice
             let xml_str = stringify_xml(value).map_err(|e| format!("XML: {e}"))?;
-            xml_to_html_via_soffice(&xml_str)?
+            xml_to_html_via_soffice(&xml_str).await?
         }
         "md" => stringify_markdown(value)?,
         "txt" | "text" => stringify_txt(value)?,
@@ -741,56 +729,6 @@ pub fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Result<S
     
     Ok(output_path)
 }
-
-use std::process::Command;
-use uuid::Uuid;
-use std::fs;
-
-/// Конвертирует XML в HTML через soffice (LibreOffice)
-fn xml_to_html_via_soffice(xml_str: &str) -> Result<String, String> {
-    // Генерируем уникальные имена для каждого вызова
-    let uuid = Uuid::new_v4().simple().to_string();
-    let xml_path = std::env::temp_dir().join(format!("temp_{}.xml", uuid));
-    let html_path = std::env::temp_dir().join(format!("temp_{}.html", uuid));
-    
-    // Сохраняем XML во временный файл (без санитизации!)
-    fs::write(&xml_path, xml_str)
-        .map_err(|e| format!("Cannot write XML: {}", e))?;
-    
-    let out_dir = std::env::temp_dir();
-    
-    // Конвертируем через soffice
-    let status = Command::new("soffice")
-        .args([
-            "--headless",
-            "--nologo",
-            "--norestore",
-            "--nofirststartwizard",
-            "--invisible",
-            "--convert-to", "html",
-            "--outdir", out_dir.to_str().unwrap_or("."),
-            xml_path.to_str().unwrap(),
-        ])
-        .stderr(std::process::Stdio::null())
-        .status()
-        .map_err(|e| format!("soffice error: {}", e))?;
-    
-    if !status.success() {
-        let _ = fs::remove_file(&xml_path);
-        return Err("soffice conversion failed".to_string());
-    }
-    
-    // Читаем результат
-    let html_content = fs::read_to_string(&html_path)
-        .map_err(|e| format!("Cannot read HTML: {}", e))?;
-    
-    // Удаляем временные файлы
-    let _ = fs::remove_file(&xml_path);
-    let _ = fs::remove_file(&html_path);
-    
-    Ok(html_content)
-}
-
 
 
 // ============================================================
@@ -1733,6 +1671,134 @@ mod tests {
             let db = create_test_db().await.unwrap();
             test_conversion("rtf", super::TEXT_FORMATS, |db, path, from, to| async move {
                 convert_text_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+    }
+    
+    // ============================================================
+    // МОДУЛЬ: TEXT → DOCUMENT
+    // ============================================================
+        
+    mod text_to_document {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_json_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("json", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_yaml_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("yaml", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_csv_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("csv", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_xml_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("xml", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_toml_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("toml", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_ini_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("ini", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_md_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("md", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_html_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("html", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_txt_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("txt", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_rtf_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("rtf", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_text_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+    }
+
+    // ============================================================
+    // МОДУЛЬ: DOCUMENT → TEXT
+    // ============================================================
+        
+    mod document_to_text {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_pdf_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("pdf", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_document_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_docx_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("docx", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_document_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_odt_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("odt", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_document_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_xlsx_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("xlsx", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_document_to_text(&db, &path, &from, &to).await
             }, Some(db)).await;
         }
     }

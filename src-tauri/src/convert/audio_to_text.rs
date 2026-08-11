@@ -138,7 +138,7 @@ pub async fn convert_audio_to_text(
     }
     
     let parsed = parse(&full_text, "txt")?;
-    let output_path = stringify(&parsed, to, path, from)?;
+    let output_path = stringify(&parsed, to, path, from).await?;
     
     Ok(output_path)
 }
