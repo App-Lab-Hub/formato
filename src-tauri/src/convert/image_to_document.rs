@@ -1,7 +1,6 @@
 // src-tauri/src/convert/image_to_document.rs
 use sea_orm::DatabaseConnection;
 
-use image::GenericImageView;
 use crate::convert::{
     calculate_conversion_hash, 
     get_app_dir_path_with_hash, 

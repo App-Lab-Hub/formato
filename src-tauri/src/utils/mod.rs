@@ -193,47 +193,47 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
     
     match from {
         ContentType::Text => AvailabilityResponse {
-            text: "available".to_string(),
-            image: "not_available".to_string(),
-            audio: "available".to_string(),
-            video: "not_available".to_string(),
-            document: "available".to_string(),
+            text: "available".to_string(), // ok
+            image: "not_available".to_string(), // ok
+            audio: "available".to_string(), 
+            video: "not_available".to_string(), // ok
+            document: "available".to_string(), // ok
             enable_text_mode: true,
             exceptions: exceptions.clone(),
         },
         ContentType::Image => AvailabilityResponse {
-            text: "available".to_string(),
-            image: "available".to_string(),
-            audio: "not_available".to_string(),
-            video: "not_available".to_string(),
+            text: "available".to_string(), 
+            image: "available".to_string(), // ok
+            audio: "not_available".to_string(), // ok
+            video: "not_available".to_string(), // ok
             document: "available".to_string(),
             enable_text_mode: false,
             exceptions: exceptions.clone(),
         },
         ContentType::Audio => AvailabilityResponse {
-            text: "available".to_string(),
-            image: "not_available".to_string(),
-            audio: "available".to_string(),
-            video: "not_available".to_string(),
-            document: "available".to_string(),
+            text: "available".to_string(), 
+            image: "not_available".to_string(), // ok
+            audio: "available".to_string(), // ok
+            video: "not_available".to_string(), // ok
+            document: "available".to_string(), 
             enable_text_mode: false,
             exceptions: exceptions.clone(),
         },
         ContentType::Video => AvailabilityResponse {
             text: "available".to_string(),
-            image: "not_available".to_string(),
-            audio: "available".to_string(),
-            video: "available".to_string(),
+            image: "not_available".to_string(), // ok
+            audio: "available".to_string(), // ok
+            video: "available".to_string(), // ok
             document: "available".to_string(),
             enable_text_mode: false,
             exceptions: exceptions.clone(),
         },
         ContentType::Document => AvailabilityResponse {
-            text: "available".to_string(),
-            image: "not_available".to_string(),
+            text: "available".to_string(), // ok
+            image: "not_available".to_string(), // ok
             audio: "available".to_string(),
-            video: "not_available".to_string(),
-            document: "available".to_string(),
+            video: "not_available".to_string(), // ok
+            document: "available".to_string(), // ok
             enable_text_mode: false,
             exceptions: exceptions.clone(),
         },

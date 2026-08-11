@@ -1838,4 +1838,260 @@ mod tests {
             }, Some(db)).await;
         }
     }
+
+    // ============================================================
+    // МОДУЛЬ: IMAGE → TEXT
+    // ============================================================
+        
+    mod image_to_text {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_jpg_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("jpg", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_jpeg_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("jpeg", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_png_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("png", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_webp_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("webp", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_avif_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("avif", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_gif_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("gif", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_bmp_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("bmp", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_tiff_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("tiff", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_ico_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("ico", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_qoi_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("qoi", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_tga_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("tga", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_exr_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("exr", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_hdr_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("hdr", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_pnm_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("pnm", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_ff_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("ff", super::TEXT_FORMATS, |_db, path, from, to| async move {
+                convert_image_to_text(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+    }
+
+    // ============================================================
+    // МОДУЛЬ: IMAGE → DOCUMENT
+    // ============================================================
+        
+    mod image_to_document {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_jpg_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("jpg", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_jpeg_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("jpeg", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_png_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("png", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_webp_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("webp", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_avif_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("avif", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_gif_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("gif", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_bmp_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("bmp", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_tiff_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("tiff", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_ico_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("ico", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_qoi_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("qoi", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_tga_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("tga", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_exr_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("exr", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_hdr_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("hdr", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_pnm_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("pnm", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_ff_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("ff", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_image_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+    }
 }
