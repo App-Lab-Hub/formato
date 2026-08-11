@@ -2498,6 +2498,7 @@ dependencies = [
  "toml 1.1.4+spec-1.1.0",
  "transcribe-rs",
  "unicode-segmentation",
+ "uuid",
  "xml2json-rs",
  "xxhash-rust",
  "zip 8.6.0",
