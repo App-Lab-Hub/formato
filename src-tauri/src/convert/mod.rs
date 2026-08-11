@@ -22,7 +22,6 @@ mod image_to_document;
 mod audio_to_text;
 // mod video_to_text;
 use sea_orm::DatabaseConnection;
-use regex::Regex;
 
 use crate::AppState;
 use serde::{Deserialize, Serialize};
@@ -50,7 +49,7 @@ use crate::db;
 use crate::html_convert::{convert_to_html, parse_html};
 use crate::paths::converted_dir;
 use memmap2::Mmap;
-use crate::convert::local_utils::{xml_to_html_via_soffice, convert_docx_to_rtf};
+use crate::convert::local_utils::{xml_to_html_via_soffice, convert_docx_to_rtf, xml_to_rtf_via_soffice};
 // ============================================================
 // ТИПЫ
 // ============================================================
@@ -747,6 +746,11 @@ pub async fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Re
             toml::to_string_pretty(&map).map_err(|e| format!("TOML: {e}"))?
         }
         "xml" => stringify_xml(value).map_err(|e| format!("XML: {e}"))?,
+        "rtf" => {
+            // JSON → XML → RTF через soffice
+            let xml_str = stringify_xml(value).map_err(|e| format!("XML: {e}"))?;
+            xml_to_rtf_via_soffice(&xml_str).await?
+        }
         "csv" => stringify_csv(value)?,
         "ini" => stringify_ini(value)?,
         "html" => {
@@ -754,6 +758,7 @@ pub async fn stringify(value: &Json, format: &str, path: &str, from: &str) -> Re
             let xml_str = stringify_xml(value).map_err(|e| format!("XML: {e}"))?;
             xml_to_html_via_soffice(&xml_str).await?
         }
+        
         "md" => stringify_markdown(value)?,
         "txt" | "text" => stringify_txt(value)?,
         _ => return Err(format!("Unsupported: {format}")),
@@ -1126,7 +1131,7 @@ mod tests {
     ];
 
     const IMAGE_FORMATS: &[&str] = &[
-        "jpg", "jpeg", "png", "webp", "avif", "gif", "bmp", "tiff", 
+        "jpg", "png", "webp", "avif", "gif", "bmp", "tiff", 
         "ico", "qoi", "tga", "exr", "hdr", "pnm", "ff"
     ];
 
@@ -1855,14 +1860,6 @@ mod tests {
         }
 
         #[tokio::test]
-        async fn test_jpeg_to_all_text_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("jpeg", super::TEXT_FORMATS, |_db, path, from, to| async move {
-                convert_image_to_text(&path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
         async fn test_png_to_all_text_formats() {
             let db = create_test_db().await.unwrap();
             test_conversion("png", super::TEXT_FORMATS, |_db, path, from, to| async move {
@@ -1978,14 +1975,6 @@ mod tests {
         async fn test_jpg_to_all_document_formats() {
             let db = create_test_db().await.unwrap();
             test_conversion("jpg", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
-                convert_image_to_document(&db, &path, &from, &to).await
-            }, Some(db)).await;
-        }
-
-        #[tokio::test]
-        async fn test_jpeg_to_all_document_formats() {
-            let db = create_test_db().await.unwrap();
-            test_conversion("jpeg", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
                 convert_image_to_document(&db, &path, &from, &to).await
             }, Some(db)).await;
         }

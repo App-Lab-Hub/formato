@@ -2457,6 +2457,7 @@ dependencies = [
  "docx-rs",
  "encoding_rs",
  "ffmpeg-sidecar",
+ "flate2",
  "flatten-json-object",
  "handlebars",
  "hound",

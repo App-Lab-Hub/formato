@@ -1,10 +1,38 @@
-// src-tauri/src/convert/image_utils.rs
-
 use std::fs;
 use image::GenericImageView;
 use exif::Reader;
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
 use serde_json::{json, Value as Json};
+use flate2::write::ZlibEncoder;
+use flate2::Compression;
+use std::io::Write;
+use base91::helpers::slice_encode;
+
+/// Открывает изображение с автодетектом формата (поддерживает PNM/PAM)
+pub fn open_image(path: &str, from: &str) -> Result<image::DynamicImage, String> {
+    let reader = image::ImageReader::open(path)
+        .map_err(|e| format!("Cannot open image: {}", e))?;
+    
+    if from == "pnm" || path.to_lowercase().ends_with(".pnm") {
+        if let Ok(reader_with_format) = reader.with_guessed_format() {
+            if let Ok(img) = reader_with_format.decode() {
+                return Ok(img);
+            }
+        }
+        
+        match image::ImageReader::open(path) {
+            Ok(r) => {
+                match r.decode() {
+                    Ok(img) => Ok(img),
+                    Err(e) => Err(format!("Cannot decode PNM/PAM file: {}", e))
+                }
+            }
+            Err(e) => Err(format!("Cannot open PNM file: {}", e))
+        }
+    } else {
+        reader.decode().map_err(|e| format!("Cannot decode image: {}", e))
+    }
+}
 
 /// Получение метаданных изображения
 pub fn get_image_metadata(path: &str, img: &image::DynamicImage) -> Result<Json, String> {
@@ -67,7 +95,50 @@ pub fn get_exif_data(path: &str) -> Result<Json, String> {
     Ok(Json::Object(exif_map))
 }
 
-/// Получение Base64 представления изображения
+/// Сжатие Zlib + кодирование Base91
+pub fn zlib_and_then_base91(path: &str) -> Result<String, String> {
+    // 1. Читаем файл в байты
+    let bytes = fs::read(path)
+        .map_err(|e| format!("Cannot read file: {}", e))?;
+    
+    // 2. Сжимаем байты (zlib)
+    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(&bytes)
+        .map_err(|e| format!("Cannot compress: {}", e))?;
+    let compressed = encoder.finish()
+        .map_err(|e| format!("Cannot finish compression: {}", e))?;
+    
+    // 3. Кодируем сжатые байты в Base91
+    let encoded = slice_encode(&compressed);
+    
+    // 4. Конвертируем Vec<u8> в String
+    let encoded_str = String::from_utf8(encoded)
+        .map_err(|e| format!("Invalid UTF-8 in Base91: {}", e))?;
+    
+    Ok(encoded_str)
+}
+
+/// Сжатие Zlib + кодирование Base64
+pub fn zlib_and_then_base64(path: &str) -> Result<String, String> {
+    // 1. Читаем файл в байты
+    let bytes = fs::read(path)
+        .map_err(|e| format!("Cannot read file: {}", e))?;
+    
+    // 2. Сжимаем байты (zlib)
+    let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
+    encoder.write_all(&bytes)
+        .map_err(|e| format!("Cannot compress: {}", e))?;
+    let compressed = encoder.finish()
+        .map_err(|e| format!("Cannot finish compression: {}", e))?;
+    
+    // 3. Кодируем сжатые байты в Base64
+    let encoded = BASE64_STANDARD.encode(&compressed);
+    
+    Ok(encoded)
+}
+
+
+/// Получение Base64 представления изображения (старый метод, оставлен для совместимости)
 pub fn get_base64_data(path: &str) -> Result<String, String> {
     let bytes = fs::read(path)
         .map_err(|e| format!("Cannot read file for Base64: {}", e))?;

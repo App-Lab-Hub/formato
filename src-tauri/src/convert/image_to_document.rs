@@ -6,8 +6,9 @@ use crate::convert::{
     get_app_dir_path_with_hash, 
     stringify_document,
     image_utils::{
+        open_image,
         get_image_metadata,
-        get_base64_data,
+        zlib_and_then_base64,
     }
 };
 
@@ -18,15 +19,14 @@ pub async fn convert_image_to_document(
     from: &str, 
     to: &str
 ) -> Result<String, String> {
-    // 1. Читаем изображение
-    let img = image::open(path)
-        .map_err(|e| format!("Cannot open image: {}", e))?;
+    // 1. Читаем изображение с поддержкой PNM
+    let img = open_image(path, from)?;
     
     // 2. Получаем метаданные
     let metadata = get_image_metadata(path, &img)?;
     
-    // 3. Получаем Base64 представление
-    let base64_data = get_base64_data(path)?;
+    // 3. Сжимаем и кодируем изображение в Base91
+    let encoded_str = zlib_and_then_base64(path)?;
     
     // 4. Формируем читаемый текст
     let mut text = String::new();
@@ -45,7 +45,7 @@ pub async fn convert_image_to_document(
         }
     }
 
-    text.push_str(&format!("\nBase64: {:#?}", base64_data));
+    text.push_str(&format!("\nEncoded Data (zlib+base64):\n{}", encoded_str));
 
     // 5. Создаем документ через stringify_document
     let output_path = stringify_document(db, &text, path, from, to).await?;

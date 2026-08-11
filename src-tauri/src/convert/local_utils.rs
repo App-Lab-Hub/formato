@@ -290,3 +290,58 @@ pub async fn convert_docx_to_rtf(
 
     Ok(final_path)
 }
+
+
+/// Конвертирует XML в RTF через soffice (LibreOffice) — асинхронная версия
+pub async fn xml_to_rtf_via_soffice(xml_str: &str) -> Result<String, String> {
+    // Захватываем семафор
+    let _permit = SOFFICE_SEMAPHORE.acquire().await.unwrap();
+    
+    // Генерируем уникальные имена для каждого вызова
+    let uuid = Uuid::new_v4().simple().to_string();
+    let xml_path = std::env::temp_dir().join(format!("temp_{}.xml", uuid));
+    let rtf_path = std::env::temp_dir().join(format!("temp_{}.rtf", uuid));
+    
+    // Сохраняем XML во временный файл
+    tokio::fs::write(&xml_path, xml_str)
+        .await
+        .map_err(|e| format!("Cannot write XML: {}", e))?;
+    
+    let out_dir = std::env::temp_dir();
+    let out_dir_str = out_dir.to_string_lossy().to_string();
+    
+    // Конвертируем через soffice
+    let status = Command::new("soffice")
+        .env("JAVA_OPTS", "-Djava.awt.headless=true")
+        .env("SAL_USE_VCLPLUGIN", "svp")
+        .args([
+            "--headless",
+            "--nologo",
+            "--norestore",
+            "--nofirststartwizard",
+            "--invisible",
+            "--convert-to", "rtf",
+            "--outdir", &out_dir_str,
+            xml_path.to_str().unwrap(),
+        ])
+        .stderr(std::process::Stdio::null())
+        .status()
+        .await
+        .map_err(|e| format!("soffice error: {}", e))?;
+    
+    if !status.success() {
+        let _ = tokio::fs::remove_file(&xml_path).await;
+        return Err("soffice conversion failed".to_string());
+    }
+    
+    // Читаем результат
+    let rtf_content = tokio::fs::read_to_string(&rtf_path)
+        .await
+        .map_err(|e| format!("Cannot read RTF: {}", e))?;
+    
+    // Удаляем временные файлы
+    let _ = tokio::fs::remove_file(&xml_path).await;
+    let _ = tokio::fs::remove_file(&rtf_path).await;
+    
+    Ok(rtf_content)
+}
