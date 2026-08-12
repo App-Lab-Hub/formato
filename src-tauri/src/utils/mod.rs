@@ -195,7 +195,7 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
         ContentType::Text => AvailabilityResponse {
             text: "available".to_string(), // ok
             image: "not_available".to_string(), // ok
-            audio: "available".to_string(), 
+            audio: "available".to_string(),   // ok
             video: "not_available".to_string(), // ok
             document: "available".to_string(), // ok
             enable_text_mode: true,
@@ -231,7 +231,7 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
         ContentType::Document => AvailabilityResponse {
             text: "available".to_string(), // ok
             image: "not_available".to_string(), // ok
-            audio: "available".to_string(),
+            audio: "available".to_string(), // ok
             video: "not_available".to_string(), // ok
             document: "available".to_string(), // ok
             enable_text_mode: false,

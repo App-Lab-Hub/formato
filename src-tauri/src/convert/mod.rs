@@ -628,7 +628,7 @@ async fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<Stri
 }
 
 async fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
-    document_to_audio::convert_document_to_audio(path, from, to)
+    document_to_audio::convert_document_to_audio(path, from, to).await
 }
 // Функции-обертки:
 async fn convert_audio_to_text(db: &DatabaseConnection, path: &str, from: &str, to: &str) -> Result<String, String> {
@@ -2171,4 +2171,43 @@ mod tests {
             }, Some(db)).await;
         }
     }
+    // ============================================================
+    // МОДУЛЬ: DOCUMENT → AUDIO
+    // ============================================================
+        
+    mod document_to_audio {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_pdf_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("pdf", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_document_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_docx_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("docx", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_document_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_odt_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("odt", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_document_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_xlsx_to_all_audio_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("xlsx", super::AUDIO_FORMATS, |_db, path, from, to| async move {
+                convert_document_to_audio(&path, &from, &to).await
+            }, Some(db)).await;
+        }
+    }    
 }

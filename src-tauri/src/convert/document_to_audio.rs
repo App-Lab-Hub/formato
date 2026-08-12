@@ -6,11 +6,11 @@ use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash, pars
 use crate::convert::audio;
 use crate::utils::generate_audio;
 
-pub fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
-    // 1. Парсим документ в JSON
+pub async fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+    // 1. Парсим документ в JSON (синхронно)
     let json_value = parse_document(path, from)?;
     
-    // 2. Преобразуем JSON в читаемый текст в зависимости от формата
+    // 2. Преобразуем JSON в читаемый текст
     let text = match from {
         "docx" | "odt" | "pdf" => {
             if let Some(text) = json_value.get("text").and_then(|v| v.as_str()) {
@@ -37,8 +37,8 @@ pub fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<Str
 
     let final_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
 
-    // 4. Генерируем речь через Piper (WAV)
-    let temp_wav = generate_audio::generate_speech_with_piper(&text)?;
+    // 4. 🔥 Генерируем речь через Piper (асинхронно)
+    let temp_wav = generate_audio::generate_speech_with_piper_async(text).await?;
     
     if !Path::new(&temp_wav).exists() {
         return Err(format!("WAV file not created: {}", temp_wav));
@@ -52,27 +52,41 @@ pub fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<Str
 
     println!("✅ WAV file created: {} ({} bytes)", temp_wav, metadata.len());
 
-    // 5. Конвертируем WAV в целевой аудио формат через audio::convert_audio_to_audio
-    let audio_output = audio::convert_audio_to_audio(&temp_wav, "wav", to)?;
+    // 5. 🔥 Конвертируем WAV в целевой аудио формат через spawn_blocking
+    let to_clone = to.to_string();
+    let temp_wav_clone = temp_wav.clone();
+    
+    let audio_output = tokio::task::spawn_blocking(move || {
+        audio::convert_audio_to_audio(&temp_wav_clone, "wav", &to_clone)
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))??;
     
     // 6. Если файл сохранился не туда - перемещаем
     if audio_output != final_path {
         if let Some(parent) = Path::new(&final_path).parent() {
             if !parent.exists() {
-                fs::create_dir_all(parent)
+                tokio::fs::create_dir_all(parent)
+                    .await
                     .map_err(|e| format!("Cannot create output dir: {}", e))?;
             }
         }
-        fs::rename(&audio_output, &final_path)
+        tokio::fs::rename(&audio_output, &final_path)
+            .await
             .map_err(|e| format!("Cannot move file: {}", e))?;
     }
 
     // 7. Удаляем временный WAV файл
-    let _ = fs::remove_file(&temp_wav);
+    tokio::task::spawn_blocking(move || {
+        let _ = fs::remove_file(&temp_wav);
+    })
+    .await
+    .map_err(|e| format!("Task error: {}", e))?;
 
     println!("✅ Document to audio conversion complete: {}", final_path);
     Ok(final_path)
 }
+
 
 /// Преобразование JSON в читаемый текст для озвучивания (общий подход)
 fn json_to_speech_text(json: &serde_json::Value, format: &str) -> Result<String, String> {
