@@ -330,7 +330,7 @@ async fn convert_document_to_text(
 
 // Функция-обертка (уже есть в вашем коде)
 async fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
-    text_to_audio::convert_text_to_audio(path, from, to)
+    text_to_audio::convert_text_to_audio(path, from, to).await
 }
 
 
