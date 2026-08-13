@@ -15,6 +15,34 @@ use crate::settings::get_settings;
 use crate::paths::{whisper_models_dir};
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::panic::AssertUnwindSafe;
+use std::os::unix::io::IntoRawFd;
+
+/// Перехват stderr (отключает вывод whisper.cpp)
+struct StderrSilencer {
+    saved_fd: std::os::unix::io::RawFd,
+    devnull_fd: std::os::unix::io::RawFd,
+}
+
+impl StderrSilencer {
+    fn new() -> Self {
+        unsafe {
+            let saved_fd = libc::dup(2);
+            let devnull_fd = libc::open(b"/dev/null\0".as_ptr() as *const i8, libc::O_WRONLY);
+            libc::dup2(devnull_fd, 2);
+            Self { saved_fd, devnull_fd }
+        }
+    }
+}
+
+impl Drop for StderrSilencer {
+    fn drop(&mut self) {
+        unsafe {
+            libc::dup2(self.saved_fd, 2);
+            libc::close(self.saved_fd);
+            libc::close(self.devnull_fd);
+        }
+    }
+}
 
 /// Определяет язык текста (ru или en)
 fn detect_language_from_text(text: &str) -> String {
@@ -106,6 +134,9 @@ pub async fn convert_audio_to_text(
     from: &str, 
     to: &str
 ) -> Result<String, String> {
+    // 🔥 Отключаем логи whisper.cpp
+    let _silencer = StderrSilencer::new();
+    
     // 1. Асинхронные операции
     let settings = get_settings().await;
     let model_name = settings.recognition_model;
@@ -204,7 +235,6 @@ pub async fn convert_audio_to_text(
             if err_msg.contains("UTF-8") || err_msg.contains("inference") {
                 println!("⚠️ UTF-8/Inference crash detected. Running fallback with 'en' language...");
                 
-                // 🔥 Fallback конфиг (без clone)
                 let fallback_config = VadChunkedConfig {
                     min_chunk_secs: 2.0,
                     max_chunk_secs: 30.0,
@@ -222,7 +252,7 @@ pub async fn convert_audio_to_text(
                 
                 let mut ru_transcriber = VadChunked::new(
                     Box::new(EnergyVad::new(512, 0.05)), 
-                    fallback_config, // 🔥 передаём по значению, не клонируем
+                    fallback_config, 
                     ru_options
                 );
                 
