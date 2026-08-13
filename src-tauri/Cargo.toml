@@ -74,4 +74,6 @@ unicode-segmentation = "1.13.3"
 regex = "1.13.1"
 uuid = { version = "1.24.0", features = ["v4"] }
 flate2 = "1.1.9"
+log = "0.4.33"
+libc = "0.2.189"
 
