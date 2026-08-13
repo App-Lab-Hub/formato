@@ -12,7 +12,6 @@ use tauri::Manager;
 use sea_orm::DatabaseConnection;
 
 use crate::convert::docx::{stringify_docx};
-use crate::convert::is_file_cached;
 /// Создает PDF из текстовой строки 
 pub async fn stringify_pdf(
     db: &DatabaseConnection,
@@ -27,10 +26,7 @@ pub async fn stringify_pdf(
     // 2. Конвертируем DOCX в PDF через convert_document_to_document
     let pdf_path = crate::convert::convert_document_to_document(db, &docx_path, "docx", "pdf").await?;
     
-    // 3. Проверяем кеш перед удалением временного DOCX
-    // if !is_file_cached(db, path, from, "docx").await? {
-    //     let _ = std::fs::remove_file(&docx_path);
-    // }
+
     
     Ok(pdf_path)
 }

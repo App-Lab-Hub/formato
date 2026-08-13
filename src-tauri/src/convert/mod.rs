@@ -46,17 +46,13 @@ use crate::convert::xlsx::{stringify_xlsx, parse_xlsx};
 use local_utils::{convert_with_soffice_explicit};
 
 use crate::db;
-use crate::html_convert::{convert_to_html, parse_html};
+use crate::html_convert::{parse_html};
 use crate::paths::converted_dir;
 use memmap2::Mmap;
 use crate::convert::local_utils::{xml_to_html_via_soffice, convert_docx_to_rtf, xml_to_rtf_via_soffice};
 // ============================================================
 // ТИПЫ
 // ============================================================
-pub enum ConversionOutput {
-    Inline(String),    // Содержимое (строка)
-    Save(String),      // Путь к файлу
-}
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ContentType {
     Text,
@@ -91,22 +87,6 @@ pub struct ConvertResult {
 // ============================================================
 // ОСНОВНАЯ ЛОГИКА КОНВЕРТАЦИИ
 // ============================================================
-/// Проверяет, есть ли файл в кеше БД
-async fn is_file_cached( 
-    db: &DatabaseConnection,
-    path: &str,
-    from: &str,
-    to: &str,
-) -> Result<bool, String> {
-    let hash = calculate_conversion_hash(path, from, to)
-        .map_err(|e| format!("Hash error is_file_cached: {}", e))?;
-    println!("HASH=>{}",hash);
-    let a = db::find_conversion(db, &hash).await;
-    println!("FIND=>{:?}",a);
-    println!("Is_Some=>{}",db::find_conversion(db, &hash).await.is_some());
-
-    Ok(db::find_conversion(db, &hash).await.is_some())
-}
 pub async fn convert(
     db: &DatabaseConnection,
     path: &str,

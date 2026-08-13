@@ -734,3 +734,335 @@ pub async fn reset_database(state: tauri::State<'_, AppState>) -> Result<(), Str
     println!("✅ Database reset complete!");
     Ok(())
 }
+
+
+
+
+
+
+
+
+
+
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sea_orm::{Database, DatabaseConnection, DbErr};
+
+    /// Создает тестовую БД в памяти
+    async fn create_test_db() -> Result<DatabaseConnection, DbErr> {
+        let db = Database::connect("sqlite::memory:").await?;
+        
+        // Создаем таблицы
+        crate::create_tables!(
+            db,
+            Formats,
+            Conversions
+        );
+        
+        Ok(db)
+    }
+
+    /// Инициализирует тестовую БД с форматами
+    async fn init_test_db() -> Result<DatabaseConnection, String> {
+        let db = create_test_db()
+            .await
+            .map_err(|e| format!("Failed to create test DB: {}", e))?;
+        
+        init_formats(&db)
+            .await
+            .map_err(|e| format!("Failed to init formats: {}", e))?;
+        
+        Ok(db)
+    }
+
+    // ============================================================
+    // ТЕСТЫ: ИНИЦИАЛИЗАЦИЯ БД
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_db_init_creates_tables() {
+        let db = create_test_db().await.unwrap();
+        
+        // Проверяем, что таблица formats существует
+        let formats_count = Formats::find().count(&db).await.unwrap();
+        assert_eq!(formats_count, 0, "Formats table should be empty initially");
+        
+        // Проверяем, что таблица conversions существует
+        let conversions_count = Conversions::find().count(&db).await.unwrap();
+        assert_eq!(conversions_count, 0, "Conversions table should be empty initially");
+    }
+
+    #[tokio::test]
+    async fn test_init_formats_populates_data() {
+        let db = create_test_db().await.unwrap();
+        init_formats(&db).await.unwrap();
+        
+        let formats = Formats::find().all(&db).await.unwrap();
+        assert!(!formats.is_empty(), "Formats should be populated");
+        
+        // Проверяем несколько ключевых форматов
+        let json = get_format_by_id(&db, "json").await.unwrap().unwrap();
+        assert_eq!(json.format_id, "json");
+        assert_eq!(json.name, "JSON");
+        assert_eq!(json.format_type, "text");
+        
+        let pdf = get_format_by_id(&db, "pdf").await.unwrap().unwrap();
+        assert_eq!(pdf.format_id, "pdf");
+        assert_eq!(pdf.name, "PDF");
+        assert_eq!(pdf.format_type, "document");
+        
+        let mp3 = get_format_by_id(&db, "mp3").await.unwrap().unwrap();
+        assert_eq!(mp3.format_id, "mp3");
+        assert_eq!(mp3.name, "MP3");
+        assert_eq!(mp3.format_type, "audio");
+        
+        let mp4 = get_format_by_id(&db, "mp4").await.unwrap().unwrap();
+        assert_eq!(mp4.format_id, "mp4");
+        assert_eq!(mp4.name, "MP4");
+        assert_eq!(mp4.format_type, "video");
+    }
+
+    #[tokio::test]
+    async fn test_init_formats_skips_if_exists() {
+        let db = create_test_db().await.unwrap();
+        
+        // Первая инициализация
+        init_formats(&db).await.unwrap();
+        let count1 = Formats::find().count(&db).await.unwrap();
+        
+        // Вторая инициализация (должна пропустить)
+        init_formats(&db).await.unwrap();
+        let count2 = Formats::find().count(&db).await.unwrap();
+        
+        assert_eq!(count1, count2, "Formats should not be duplicated");
+    }
+
+    // ============================================================
+    // ТЕСТЫ: CRUD ДЛЯ ФОРМАТОВ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_get_all_formats() {
+        let db = init_test_db().await.unwrap();
+        
+        let formats = get_all_formats(&db).await.unwrap();
+        assert!(formats.len() > 50, "Should have many formats");
+        
+        // Проверяем, что есть все типы
+        let types: Vec<String> = formats.iter().map(|f| f.format_type.clone()).collect();
+        assert!(types.contains(&"text".to_string()));
+        assert!(types.contains(&"document".to_string()));
+        assert!(types.contains(&"image".to_string()));
+        assert!(types.contains(&"audio".to_string()));
+        assert!(types.contains(&"video".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_get_format_by_id_found() {
+        let db = init_test_db().await.unwrap();
+        
+        let format = get_format_by_id(&db, "json").await.unwrap();
+        assert!(format.is_some());
+        let format = format.unwrap();
+        assert_eq!(format.format_id, "json");
+        assert_eq!(format.name, "JSON");
+    }
+
+    #[tokio::test]
+    async fn test_get_format_by_id_not_found() {
+        let db = init_test_db().await.unwrap();
+        
+        let format = get_format_by_id(&db, "nonexistent").await.unwrap();
+        assert!(format.is_none());
+    }
+
+    // ============================================================
+    // ТЕСТЫ: КОНВЕРТАЦИИ (CRUD)
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_save_and_find_conversion() {
+        let db = init_test_db().await.unwrap();
+        
+        let hash = "test_hash_123";
+        let path = "/tmp/converted/file.pdf";
+        
+        // Сохраняем конвертацию
+        save_conversion(&db, hash, path).await.unwrap();
+        
+        // Находим
+        let found = find_conversion(&db, hash).await;
+        assert_eq!(found, Some(path.to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_save_conversion_duplicate() {
+        let db = init_test_db().await.unwrap();
+        
+        let hash = "test_hash_456";
+        let path1 = "/tmp/converted/file1.pdf";
+        let path2 = "/tmp/converted/file2.pdf";
+        
+        // Сохраняем первую
+        save_conversion(&db, hash, path1).await.unwrap();
+        
+        // Сохраняем вторую (дубликат)
+        save_conversion(&db, hash, path2).await.unwrap();
+        
+        // Находим — должен быть только первый
+        let found = find_conversion(&db, hash).await;
+        assert_eq!(found, Some(path1.to_string()), "Should keep first path");
+    }
+
+    #[tokio::test]
+    async fn test_find_conversion_not_found() {
+        let db = init_test_db().await.unwrap();
+        
+        let found = find_conversion(&db, "nonexistent_hash").await;
+        assert!(found.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_delete_conversion_by_path() {
+        let db = init_test_db().await.unwrap();
+        
+        let hash = "test_hash_789";
+        let path = "/tmp/converted/file.pdf";
+        
+        // Сохраняем
+        save_conversion(&db, hash, path).await.unwrap();
+        
+        // Проверяем, что есть
+        let found = find_conversion(&db, hash).await;
+        assert_eq!(found, Some(path.to_string()));
+        
+        // Удаляем
+        delete_conversion_by_path(&db, path).await.unwrap();
+        
+        // Проверяем, что удалилось
+        let found2 = find_conversion(&db, hash).await;
+        assert!(found2.is_none());
+    }
+
+    #[tokio::test]
+    async fn test_delete_conversion_by_path_not_found() {
+        let db = init_test_db().await.unwrap();
+        
+        // Удаляем несуществующий путь — должно быть Ok
+        let result = delete_conversion_by_path(&db, "/nonexistent/path").await;
+        assert!(result.is_ok());
+    }
+
+    // ============================================================
+    // ТЕСТЫ: ИНТЕГРАЦИОННЫЕ
+    // ============================================================
+
+    #[tokio::test]
+    async fn test_format_types_count() {
+        let db = init_test_db().await.unwrap();
+        
+        let formats = get_all_formats(&db).await.unwrap();
+        
+        let mut text_count = 0;
+        let mut document_count = 0;
+        let mut image_count = 0;
+        let mut audio_count = 0;
+        let mut video_count = 0;
+        
+        for format in formats {
+            match format.format_type.as_str() {
+                "text" => text_count += 1,
+                "document" => document_count += 1,
+                "image" => image_count += 1,
+                "audio" => audio_count += 1,
+                "video" => video_count += 1,
+                _ => {}
+            }
+        }
+        
+        // Проверяем, что все типы присутствуют
+        assert!(text_count > 0, "Should have text formats");
+        assert!(document_count > 0, "Should have document formats");
+        assert!(image_count > 0, "Should have image formats");
+        assert!(audio_count > 0, "Should have audio formats");
+        assert!(video_count > 0, "Should have video formats");
+        
+        println!("📊 Format counts: text={}, document={}, image={}, audio={}, video={}",
+            text_count, document_count, image_count, audio_count, video_count);
+    }
+
+    #[tokio::test]
+    async fn test_extensions_are_valid_json() {
+        let db = init_test_db().await.unwrap();
+        
+        let formats = get_all_formats(&db).await.unwrap();
+        
+        for format in formats {
+            // Проверяем, что extensions - это валидный JSON массив
+            let extensions: Vec<String> = serde_json::from_value(format.extensions)
+                .unwrap_or_else(|_| panic!("Invalid extensions JSON for {}", format.format_id));
+            
+            assert!(!extensions.is_empty(), "Format {} has no extensions", format.format_id);
+            
+            // Проверяем, что каждый extension - строка
+            for ext in extensions {
+                assert!(!ext.is_empty(), "Format {} has empty extension", format.format_id);
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn test_all_formats_have_required_fields() {
+        let db = init_test_db().await.unwrap();
+        
+        let formats = get_all_formats(&db).await.unwrap();
+        
+        for format in formats {
+            assert!(!format.format_id.is_empty(), "Format ID is empty");
+            assert!(!format.name.is_empty(), "Format name is empty for {}", format.format_id);
+            assert!(!format.icon.is_empty(), "Format icon is empty for {}", format.format_id);
+            assert!(!format.color.is_empty(), "Format color is empty for {}", format.format_id);
+            assert!(!format.glow.is_empty(), "Format glow is empty for {}", format.format_id);
+            assert!(!format.text_color.is_empty(), "Format text_color is empty for {}", format.format_id);
+            assert!(!format.border_hover.is_empty(), "Format border_hover is empty for {}", format.format_id);
+            assert!(!format.format_type.is_empty(), "Format type is empty for {}", format.format_id);
+            
+            // Проверяем, что format_type валидный
+            let valid_types = ["text", "document", "image", "audio", "video"];
+            assert!(
+                valid_types.contains(&format.format_type.as_str()),
+                "Invalid format_type '{}' for format '{}'",
+                format.format_type,
+                format.format_id
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn test_conversion_timestamps() {
+        let db = init_test_db().await.unwrap();
+        
+        let hash = "test_hash_timestamp";
+        let path = "/tmp/converted/timestamp.pdf";
+        
+        let before = chrono::Utc::now();
+        save_conversion(&db, hash, path).await.unwrap();
+        let after = chrono::Utc::now();
+        
+        let found = find_conversion(&db, hash).await.unwrap();
+        assert_eq!(found, path);
+        
+        // Проверяем, что запись создалась с временем
+        let record = conversions::Entity::find()
+            .filter(conversions::Column::FileHash.eq(hash))
+            .one(&db)
+            .await
+            .unwrap()
+            .unwrap();
+        
+        assert!(record.created_at >= before && record.created_at <= after);
+    }
+}
