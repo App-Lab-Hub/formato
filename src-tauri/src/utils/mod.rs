@@ -211,11 +211,11 @@ pub fn get_availability_from_type(from_type: &str) -> AvailabilityResponse {
             exceptions: exceptions.clone(),
         },
         ContentType::Audio => AvailabilityResponse {
-            text: "available".to_string(), 
+            text: "available".to_string(), // ok
             image: "not_available".to_string(), // ok
             audio: "available".to_string(), // ok
             video: "not_available".to_string(), // ok
-            document: "available".to_string(), 
+            document: "available".to_string(), // ok
             enable_text_mode: false,
             exceptions: exceptions.clone(),
         },

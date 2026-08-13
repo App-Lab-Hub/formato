@@ -2371,4 +2371,387 @@ mod tests {
         }
     }
 
+    // ============================================================
+    // МОДУЛЬ: AUDIO → DOCUMENT
+    // ============================================================
+        
+    mod audio_to_document {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_mp3_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("mp3", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_wav_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("wav", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_aac_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("aac", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_flac_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("flac", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_ogg_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("ogg", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_opus_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("opus", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_wma_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("wma", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_m4a_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("m4a", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_aiff_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("aiff", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_ac3_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("ac3", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_eac3_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("eac3", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_tta_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("tta", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_wv_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("wv", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_voc_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("voc", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_adx_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("adx", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_aptx_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("aptx", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_sbc_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("sbc", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_caf_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("caf", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_w64_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("w64", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_audio_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+    }
+
+    // ============================================================
+    // МОДУЛЬ: VIDEO → TEXT
+    // ============================================================
+        
+    mod video_to_text {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_mp4_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("mp4", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_mov_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("mov", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_avi_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("avi", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_mkv_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("mkv", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_webm_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("webm", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_wmv_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("wmv", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_flv_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("flv", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_3gp_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("3gp", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_m4v_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("m4v", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_ts_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("ts", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_vob_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("vob", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_mpg_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("mpg", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_nut_to_all_text_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("nut", super::TEXT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_text(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+    }
+
+    // ============================================================
+    // МОДУЛЬ: VIDEO → DOCUMENT
+    // ============================================================
+        
+    mod video_to_document {
+        use super::*;
+
+        #[tokio::test]
+        async fn test_mp4_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("mp4", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_mov_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("mov", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_avi_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("avi", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_mkv_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("mkv", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_webm_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("webm", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_wmv_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("wmv", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_flv_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("flv", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_3gp_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("3gp", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_m4v_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("m4v", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_ts_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("ts", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_vob_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("vob", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_mpg_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("mpg", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+
+        #[tokio::test]
+        async fn test_nut_to_all_document_formats() {
+            let db = create_test_db().await.unwrap();
+            test_conversion("nut", super::DOCUMENT_FORMATS, |db, path, from, to| async move {
+                convert_video_to_document(&db, &path, &from, &to).await
+            }, Some(db)).await;
+        }
+    }
 }
