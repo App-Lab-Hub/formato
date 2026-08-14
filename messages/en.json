@@ -339,5 +339,16 @@
   "download_selected_models": "Download selected models",
   "download_selected_model": "Download selected model",
   "language_russian": "Russian",
-  "language_english": "English"
+  "language_english": "English",
+
+  "files_loading": "Loading files...",
+  "files_load_error": "Failed to load files",
+
+  "pagination_prev": "Prev",
+  "pagination_next": "Next",
+  "files_showing": "Showing {from}–{to} of {total}",
+  "files_delete_page": "Delete page {page} ({count} files)",
+  "files_delete_all_filtered": "Delete all ({count} files)",
+  "confirm_delete_page": "Delete {count} files on page {page}?",
+  "confirm_delete_all_filtered": "Delete all {count} files in current filter?"
 }

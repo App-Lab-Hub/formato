@@ -339,5 +339,16 @@
   "download_selected_models": "Скачать выбранные модели",
   "download_selected_model": "Скачать выбранную модель",
   "language_russian": "Русский",
-  "language_english": "English"
+  "language_english": "English",
+
+  "files_loading": "Загрузка файлов...",
+  "files_load_error": "Не удалось загрузить файлы",
+
+  "pagination_prev": "Назад",
+  "pagination_next": "Вперёд",
+  "files_showing": "Показано {from}–{to} из {total}",
+  "files_delete_page": "Удалить страницу {page} ({count} файлов)",
+  "files_delete_all_filtered": "Удалить все ({count} файлов)",
+  "confirm_delete_page": "Удалить {count} файлов на странице {page}?",
+  "confirm_delete_all_filtered": "Удалить все {count} файлов в текущем фильтре?"
 }

@@ -3,7 +3,7 @@
   import type { PageProps } from './$types';
   import { goto, invalidateAll } from '$app/navigation';
   import { formatFileSize } from '$lib/utils/format';
-  import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X, LoaderCircle } from 'lucide-svelte';
+  import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X, LoaderCircle, ChevronLeft, ChevronRight } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { FileInfo } from '$lib/types/files';
   import { openPath } from "@tauri-apps/plugin-opener";
@@ -22,10 +22,26 @@
 
   let { data }: PageProps = $props();
   
+  // 🔥 Данные из layout
   let files: FileInfo[] = $derived(data.files);
+  let totalFiles = $derived(data.totalFiles);
+  let totalSize = $derived(data.totalSize);
+  let convertedCount = $derived(data.convertedCount);
+  let tempCount = $derived(data.tempCount);
+  
   let selectedFile = $state<FileInfo | null>(null);
   let searchQuery = $state('');
   let filterType = $state<'all' | 'converted' | 'temp'>('all');
+  
+  // 🔥 Пагинация
+  let currentPage = $state(0);
+  const ITEMS_PER_PAGE = 20;
+  let totalPages = $derived(Math.ceil(filteredFiles.length / ITEMS_PER_PAGE));
+  
+  // 🔥 Текущие файлы на странице
+  let currentPageFiles = $derived(
+    filteredFiles.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE)
+  );
   
   // Храним путь файла, который сейчас удаляется
   let deletingFilePath = $state<string | null>(null);
@@ -42,7 +58,7 @@
   let isModalOpening = $state(false);
   let isModalClosing = $state(false);
 
-  // Фильтрация
+  // 🔥 Фильтрация на клиенте
   let filteredFiles = $derived(
     files.filter(f => {
       const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -51,17 +67,32 @@
     })
   );
 
-  // Статистика
-  let totalFiles = $derived(files.length);
-  let totalSize = $derived(files.reduce((acc, f) => acc + f.size, 0));
-  let convertedCount = $derived(files.filter(f => f.file_type === 'converted').length);
-  let tempCount = $derived(files.filter(f => f.file_type === 'temp').length);
-
   // Функция для задержки
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   function goBack() {
     goto('/');
+  }
+
+  // 🔥 Переключение страницы
+  function goToPage(page: number) {
+    if (page < 0 || page >= totalPages) return;
+    currentPage = page;
+    if (listContainer) {
+      listContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }
+
+  function goToPrevPage() {
+    if (currentPage > 0) {
+      goToPage(currentPage - 1);
+    }
+  }
+
+  function goToNextPage() {
+    if (currentPage < totalPages - 1) {
+      goToPage(currentPage + 1);
+    }
   }
 
   // Функция переустановки базы данных
@@ -82,10 +113,7 @@
       }
       
       await invoke('reset_database');
-      
-      // Минимальная задержка 1 секунда для лоадера
       await delay(1000);
-      
       await invalidateAll();
       toast.success(m.database_reset_success());
     } catch (error) {
@@ -121,8 +149,7 @@
       const date = new Date(dateStr);
       if (isNaN(date.getTime())) return m.files_date_unknown();
       
-      // Используем язык из настроек
-      const locale = data.settings?.language || 'en';
+      const locale = data?.settings?.language || 'en';
       
       return date.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US', {
         day: '2-digit',
@@ -204,8 +231,61 @@
     }
   }
 
-  // Функция удаления всех файлов по текущему фильтру
-  async function deleteAllFiltered() {
+  // 🔥 Функция удаления файлов ТОЛЬКО на текущей странице
+  async function deleteCurrentPageFiles() {
+    if (loader.isDeletingAll) return;
+    if (currentPageFiles.length === 0) {
+      toast.warning(m.no_files_to_delete());
+      return;
+    }
+    
+    const typeLabel = filterType === 'all' 
+      ? m.delete_type_all() 
+      : filterType === 'converted' 
+        ? m.delete_type_converted() 
+        : m.delete_type_temp();
+    
+    const confirmed = await confirm(m.confirm_delete_page({ 
+      count: currentPageFiles.length,
+      page: currentPage + 1,
+      total_pages: totalPages
+    }), {
+      title: m.confirm_delete_title(),
+      kind: 'warning',
+    });
+    if (!confirmed) return;
+    
+    loader.startDeletingAll();
+    
+    try {
+      if (selectedFile) {
+        await closeModal();
+        await new Promise(resolve => setTimeout(resolve, 300));
+      }
+      
+      let deletedCount = 0;
+      for (const file of currentPageFiles) {
+        try {
+          await invoke('delete_file', { path: file.path });
+          deletedCount++;
+        } catch (e) {
+          console.error(`Failed to delete ${file.path}:`, e);
+        }
+      }
+      
+      await delay(1000);
+      await invalidateAll();
+      toast.success(m.files_deleted({ count: deletedCount }));
+    } catch (error) {
+      console.error('Failed to delete files:', error);
+      toast.error(m.delete_error());
+    } finally {
+      loader.stopDeletingAll();
+    }
+  }
+
+  // 🔥 Функция удаления ВСЕХ файлов в текущем фильтре (на всех страницах)
+  async function deleteAllFilteredFiles() {
     if (loader.isDeletingAll) return;
     if (filteredFiles.length === 0) {
       toast.warning(m.no_files_to_delete());
@@ -218,8 +298,7 @@
         ? m.delete_type_converted() 
         : m.delete_type_temp();
     
-    const confirmed = await confirm(m.confirm_delete_all({ 
-      type: typeLabel, 
+    const confirmed = await confirm(m.confirm_delete_all_filtered({ 
       count: filteredFiles.length 
     }), {
       title: m.confirm_delete_title(),
@@ -235,7 +314,6 @@
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
-      // Удаляем файлы без анимации, просто через лоадер
       let deletedCount = 0;
       for (const file of filteredFiles) {
         try {
@@ -246,9 +324,7 @@
         }
       }
       
-      // Минимальная задержка 1 секунда для лоадера
       await delay(1000);
-      
       await invalidateAll();
       toast.success(m.files_deleted({ count: deletedCount }));
     } catch (error) {
@@ -265,6 +341,7 @@
     
     if (!listContainer) {
       filterType = type;
+      currentPage = 0;
       return;
     }
     
@@ -279,6 +356,7 @@
       }).finished;
       
       filterType = type;
+      currentPage = 0;
       await tick();
       
       await animate(listContainer, {
@@ -290,6 +368,7 @@
     } catch (error) {
       console.warn('Filter animation failed:', error);
       filterType = type;
+      currentPage = 0;
     } finally {
       isFilterAnimating = false;
     }
@@ -375,21 +454,18 @@
 
 <svelte:window on:keydown={handleKeydown} />
 
-<!-- В самом верху, после <ScrollContainer> -->
 <ScrollContainer>
 <div class="min-h-screen flex flex-col">
   <div class="flex-1 bg-background text-foreground px-6 pt-6 sm:pt-8 sm:px-8 pb-3">
     
-    <!-- Кнопка назад всегда в углу -->
     <BackButton onClick={goBack} />
     
-    <!-- Контент со страницы -->
     <div class="max-w-7xl mx-auto pt-14">
       <div class="text-center mb-8">
         <h1 class="text-3xl sm:text-4xl font-bold mb-3">
-      <span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 dark:from-cyan-400 dark:via-purple-400 dark:to-pink-400 light:from-cyan-600 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent">
-        {m.files_management_title()}
-      </span>
+          <span class="bg-gradient-to-r from-cyan-400 via-purple-400 to-pink-400 dark:from-cyan-400 dark:via-purple-400 dark:to-pink-400 light:from-cyan-600 light:via-purple-600 light:to-pink-600 bg-clip-text text-transparent">
+            {m.files_management_title()}
+          </span>
         </h1>
         <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
         <p class="dark:text-muted-foreground/60 light:text-purple-800/60 text-sm mt-2">
@@ -417,25 +493,22 @@
         </div>
       </div>
 
-
-    <!-- Фильтры -->
-    <div class="flex flex-col sm:flex-row gap-3 mb-6">
-      <div class="flex-1">
-        <input
-          type="text"
-          placeholder={m.files_search_placeholder()}
-          bind:value={searchQuery}
-          class="w-full px-4 py-2 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 dark:text-foreground light:text-purple-800 placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+      <!-- Фильтры -->
+      <div class="flex flex-col sm:flex-row gap-3 mb-6">
+        <div class="flex-1">
+          <input
+            type="text"
+            placeholder={m.files_search_placeholder()}
+            bind:value={searchQuery}
+            class="w-full px-4 py-2 rounded-xl border dark:border-border/50 light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 dark:text-foreground light:text-purple-800 placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/50"
+          />
+        </div>
+        
+        <Tabs 
+          filterType={filterType}
+          onFilterChange={setFilter}
         />
       </div>
-      
-      <!-- Tabs - только визуал, логика на странице -->
-      <Tabs 
-        filterType={filterType}
-        onFilterChange={setFilter}
-      />
-    </div>
-
 
       <!-- Список файлов -->
       {#if loader.isDeletingAll || loader.isResetting}
@@ -457,7 +530,7 @@
           bind:this={listContainer}
           class="flex flex-col gap-2 w-full"
         >
-          {#each filteredFiles as file (file.path)}
+          {#each currentPageFiles as file (file.path)}
             <div
               data-file-path={file.path}
               role="button"
@@ -497,7 +570,6 @@
                 </div>
               </div>
 
-              <!-- В блоке с кнопкой удаления -->
               <div class="shrink-0 flex items-center gap-2">
                 <Tooltip>
                   <TooltipTrigger>
@@ -520,13 +592,61 @@
             </div>
           {/each}
         </div>
+        
+        <!-- 🔥 Пагинация -->
+        {#if totalPages > 1}
+          <div class="flex items-center justify-center gap-3 mt-4 py-2">
+            <button
+              onclick={goToPrevPage}
+              disabled={currentPage === 0}
+              class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium dark:bg-card/50 light:bg-purple-200/40 hover:dark:bg-card/70 hover:light:bg-purple-200/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              <ChevronLeft class="h-4 w-4" />
+              {m.pagination_prev()}
+            </button>
+            
+            <span class="text-sm dark:text-muted-foreground light:text-purple-700/70">
+              {currentPage + 1} / {totalPages}
+            </span>
+            
+            <button
+              onclick={goToNextPage}
+              disabled={currentPage >= totalPages - 1}
+              class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium dark:bg-card/50 light:bg-purple-200/40 hover:dark:bg-card/70 hover:light:bg-purple-200/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            >
+              {m.pagination_next()}
+              <ChevronRight class="h-4 w-4" />
+            </button>
+          </div>
+        {/if}
+        
+        <!-- Информация о количестве -->
+        <div class="text-center text-xs dark:text-muted-foreground/50 light:text-purple-600/50 py-1">
+          {m.files_showing({ from: currentPage * ITEMS_PER_PAGE + 1, to: Math.min((currentPage + 1) * ITEMS_PER_PAGE, filteredFiles.length), total: filteredFiles.length })}
+        </div>
       {/if}
 
-      <!-- Кнопка "Удалить все" -->
+      <!-- 🔥 Кнопки удаления -->
       {#if filteredFiles.length > 0 && !loader.isDeletingAll && !loader.isResetting}
-        <div class="flex justify-end mt-5 mb-2">
+        <div class="flex justify-end gap-3 mt-5 mb-2">
+          <!-- Удалить на текущей странице -->
           <button
-            onclick={deleteAllFiltered}
+            onclick={deleteCurrentPageFiles}
+            disabled={loader.isDeletingAll || currentPageFiles.length === 0}
+            class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium bg-destructive/80 text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {#if loader.isDeletingAll}
+              <LoaderCircle class="h-4 w-4 animate-spin" />
+              {m.files_deleting()}
+            {:else}
+              <Trash2 class="h-4 w-4" />
+              {m.files_delete_page({ count: currentPageFiles.length, page: currentPage + 1 })}
+            {/if}
+          </button>
+          
+          <!-- Удалить все в фильтре -->
+          <button
+            onclick={deleteAllFilteredFiles}
             disabled={loader.isDeletingAll}
             class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium bg-destructive text-white hover:bg-destructive/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
@@ -535,7 +655,7 @@
               {m.files_deleting()}
             {:else}
               <Trash2 class="h-4 w-4" />
-              {m.files_delete_all({ count: filteredFiles.length })}
+              {m.files_delete_all_filtered({ count: filteredFiles.length })}
             {/if}
           </button>
         </div>
