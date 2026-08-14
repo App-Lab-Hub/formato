@@ -32,6 +32,15 @@
   let selectedFile = $state<FileInfo | null>(null);
   let searchQuery = $state('');
   let filterType = $state<'all' | 'converted' | 'temp'>('all');
+
+  // 🔥 Фильтрация на клиенте
+  let filteredFiles = $derived(
+    files.filter(f => {
+      const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesType = filterType === 'all' || f.file_type === filterType;
+      return matchesSearch && matchesType;
+    })
+  );
   
   // 🔥 Пагинация
   let currentPage = $state(0);
@@ -58,15 +67,6 @@
   let isModalOpening = $state(false);
   let isModalClosing = $state(false);
 
-  // 🔥 Фильтрация на клиенте
-  let filteredFiles = $derived(
-    files.filter(f => {
-      const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesType = filterType === 'all' || f.file_type === filterType;
-      return matchesSearch && matchesType;
-    })
-  );
-
   // Функция для задержки
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -74,13 +74,17 @@
     goto('/');
   }
 
-  // 🔥 Переключение страницы
+  // 🔥 Переключение страницы с проверкой
   function goToPage(page: number) {
-    if (page < 0 || page >= totalPages) return;
-    currentPage = page;
-    if (listContainer) {
-      listContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (page < 0) {
+      currentPage = 0;
+      return;
     }
+    if (page >= totalPages) {
+      currentPage = Math.max(0, totalPages - 1);
+      return;
+    }
+    currentPage = page;
   }
 
   function goToPrevPage() {
@@ -213,6 +217,10 @@
       
       await invoke('delete_file', { path: file.path });
       await invalidateAll();
+      
+      // 🔥 Корректируем страницу после удаления
+      goToPage(currentPage);
+      
       toast.success(m.file_deleted({ name: file.name }));
       
       if (filterType !== 'all' && files.filter(f => f.file_type === filterType).length === 0) {
@@ -247,8 +255,7 @@
     
     const confirmed = await confirm(m.confirm_delete_page({ 
       count: currentPageFiles.length,
-      page: currentPage + 1,
-      total_pages: totalPages
+      page: currentPage + 1
     }), {
       title: m.confirm_delete_title(),
       kind: 'warning',
@@ -275,6 +282,10 @@
       
       await delay(1000);
       await invalidateAll();
+      
+      // 🔥 Корректируем страницу после удаления
+      goToPage(currentPage);
+      
       toast.success(m.files_deleted({ count: deletedCount }));
     } catch (error) {
       console.error('Failed to delete files:', error);
@@ -326,6 +337,10 @@
       
       await delay(1000);
       await invalidateAll();
+      
+      // 🔥 Корректируем страницу после удаления
+      goToPage(currentPage);
+      
       toast.success(m.files_deleted({ count: deletedCount }));
     } catch (error) {
       console.error('Failed to delete files:', error);
@@ -595,24 +610,39 @@
         
         <!-- 🔥 Пагинация -->
         {#if totalPages > 1}
-          <div class="flex items-center justify-center gap-3 mt-4 py-2">
+          <div class="flex items-center justify-center gap-2 mt-4 py-2 flex-wrap">
             <button
               onclick={goToPrevPage}
               disabled={currentPage === 0}
-              class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium dark:bg-card/50 light:bg-purple-200/40 hover:dark:bg-card/70 hover:light:bg-purple-200/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              class="cursor-pointer px-3 py-2 rounded-lg text-sm font-medium dark:bg-card/50 light:bg-purple-200/40 hover:dark:bg-card/70 hover:light:bg-purple-200/60 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
             >
               <ChevronLeft class="h-4 w-4" />
               {m.pagination_prev()}
             </button>
             
-            <span class="text-sm dark:text-muted-foreground light:text-purple-700/70">
-              {currentPage + 1} / {totalPages}
-            </span>
+            <!-- 🔥 Простая пагинация с номерами страниц -->
+            {#each Array.from({ length: totalPages }, (_, i) => i) as pageNum}
+              {#if pageNum === 0 || pageNum === totalPages - 1 || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)}
+                <button
+                  onclick={() => goToPage(pageNum)}
+                  class={[
+                    'cursor-pointer w-8 h-8 rounded-lg text-sm font-medium',
+                    currentPage === pageNum
+                      ? 'dark:bg-primary light:bg-purple-600 text-white'
+                      : 'dark:bg-card/50 light:bg-purple-200/40 hover:dark:bg-card/70 hover:light:bg-purple-200/60'
+                  ]}
+                >
+                  {pageNum + 1}
+                </button>
+              {:else if (pageNum === currentPage - 2 && currentPage > 2) || (pageNum === currentPage + 2 && currentPage < totalPages - 3)}
+                <span class="px-1 text-muted-foreground">…</span>
+              {/if}
+            {/each}
             
             <button
               onclick={goToNextPage}
               disabled={currentPage >= totalPages - 1}
-              class="cursor-pointer px-4 py-2 rounded-lg text-sm font-medium dark:bg-card/50 light:bg-purple-200/40 hover:dark:bg-card/70 hover:light:bg-purple-200/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+              class="cursor-pointer px-3 py-2 rounded-lg text-sm font-medium dark:bg-card/50 light:bg-purple-200/40 hover:dark:bg-card/70 hover:light:bg-purple-200/60 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
             >
               {m.pagination_next()}
               <ChevronRight class="h-4 w-4" />
