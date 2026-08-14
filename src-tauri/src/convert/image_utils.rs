@@ -1,35 +1,34 @@
-use std::fs;
-use image::GenericImageView;
-use exif::Reader;
 use base64::{engine::general_purpose::STANDARD as BASE64_STANDARD, Engine};
-use serde_json::{json, Value as Json};
+use exif::Reader;
 use flate2::write::ZlibEncoder;
 use flate2::Compression;
+use image::GenericImageView;
+use serde_json::{json, Value as Json};
+use std::fs;
 use std::io::Write;
 
 /// Открывает изображение с автодетектом формата (поддерживает PNM/PAM)
 pub fn open_image(path: &str, from: &str) -> Result<image::DynamicImage, String> {
-    let reader = image::ImageReader::open(path)
-        .map_err(|e| format!("Cannot open image: {}", e))?;
-    
+    let reader = image::ImageReader::open(path).map_err(|e| format!("Cannot open image: {}", e))?;
+
     if from == "pnm" || path.to_lowercase().ends_with(".pnm") {
         if let Ok(reader_with_format) = reader.with_guessed_format() {
             if let Ok(img) = reader_with_format.decode() {
                 return Ok(img);
             }
         }
-        
+
         match image::ImageReader::open(path) {
-            Ok(r) => {
-                match r.decode() {
-                    Ok(img) => Ok(img),
-                    Err(e) => Err(format!("Cannot decode PNM/PAM file: {}", e))
-                }
-            }
-            Err(e) => Err(format!("Cannot open PNM file: {}", e))
+            Ok(r) => match r.decode() {
+                Ok(img) => Ok(img),
+                Err(e) => Err(format!("Cannot decode PNM/PAM file: {}", e)),
+            },
+            Err(e) => Err(format!("Cannot open PNM file: {}", e)),
         }
     } else {
-        reader.decode().map_err(|e| format!("Cannot decode image: {}", e))
+        reader
+            .decode()
+            .map_err(|e| format!("Cannot decode image: {}", e))
     }
 }
 
@@ -37,7 +36,7 @@ pub fn open_image(path: &str, from: &str) -> Result<image::DynamicImage, String>
 pub fn get_image_metadata(path: &str, img: &image::DynamicImage) -> Result<Json, String> {
     let dimensions = img.dimensions();
     let color_type = format!("{:?}", img.color());
-    
+
     let mut metadata = json!({
         "width": dimensions.0,
         "height": dimensions.1,
@@ -54,13 +53,13 @@ pub fn get_image_metadata(path: &str, img: &image::DynamicImage) -> Result<Json,
 
 /// Получение EXIF данных
 pub fn get_exif_data(path: &str) -> Result<Json, String> {
-    let file = fs::File::open(path)
-        .map_err(|e| format!("Cannot open file for EXIF: {}", e))?;
-    
+    let file = fs::File::open(path).map_err(|e| format!("Cannot open file for EXIF: {}", e))?;
+
     let mut bufreader = std::io::BufReader::new(&file);
     let exifreader = Reader::new();
-    
-    let exif = exifreader.read_from_container(&mut bufreader)
+
+    let exif = exifreader
+        .read_from_container(&mut bufreader)
         .map_err(|e| format!("Cannot read EXIF: {}", e))?;
 
     let mut exif_map = serde_json::Map::new();
@@ -94,37 +93,28 @@ pub fn get_exif_data(path: &str) -> Result<Json, String> {
     Ok(Json::Object(exif_map))
 }
 
-
 /// Сжатие Zlib + кодирование Base64
 pub fn zlib_and_then_base64(path: &str) -> Result<String, String> {
     // 1. Читаем файл в байты
-    let bytes = fs::read(path)
-        .map_err(|e| format!("Cannot read file: {}", e))?;
-    
+    let bytes = fs::read(path).map_err(|e| format!("Cannot read file: {}", e))?;
+
     // 2. Сжимаем байты (zlib)
     let mut encoder = ZlibEncoder::new(Vec::new(), Compression::default());
-    encoder.write_all(&bytes)
+    encoder
+        .write_all(&bytes)
         .map_err(|e| format!("Cannot compress: {}", e))?;
-    let compressed = encoder.finish()
+    let compressed = encoder
+        .finish()
         .map_err(|e| format!("Cannot finish compression: {}", e))?;
-    
+
     // 3. Кодируем сжатые байты в Base64
     let encoded = BASE64_STANDARD.encode(&compressed);
-    
+
     Ok(encoded)
-}
-
-
-/// Получение Base64 представления изображения (старый метод, оставлен для совместимости)
-pub fn get_base64_data(path: &str) -> Result<String, String> {
-    let bytes = fs::read(path)
-        .map_err(|e| format!("Cannot read file for Base64: {}", e))?;
-    Ok(BASE64_STANDARD.encode(bytes))
 }
 
 /// Получение размера файла
 pub fn get_file_size(path: &str) -> Result<u64, String> {
-    let metadata = fs::metadata(path)
-        .map_err(|e| format!("Cannot get file metadata: {}", e))?;
+    let metadata = fs::metadata(path).map_err(|e| format!("Cannot get file metadata: {}", e))?;
     Ok(metadata.len())
 }

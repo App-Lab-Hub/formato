@@ -1,6 +1,6 @@
 // src-tauri/src/settings.rs
-use serde::{Deserialize, Serialize};
 use crate::paths::config_dir;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -21,11 +21,11 @@ pub struct AppSettings {
     pub enable_archive: bool,
     #[serde(default = "default_archive_format")]
     pub archive_format: String,
-    
+
     #[serde(default = "default_synthesis_model")]
     pub synthesis_model: HashMap<String, String>,
     #[serde(default = "default_recognition_model")]
-    pub recognition_model: String, 
+    pub recognition_model: String,
 }
 
 fn default_synthesis_model() -> HashMap<String, String> {
@@ -35,16 +35,24 @@ fn default_synthesis_model() -> HashMap<String, String> {
     map
 }
 
+fn default_theme() -> String {
+    "system".into()
+}
+fn default_language() -> String {
+    "ru".into()
+}
+fn default_archive_format() -> String {
+    "zip".into()
+}
+fn default_true() -> bool {
+    true
+}
+fn default_max_preview_size() -> f64 {
+    1.0
+}
 
-
-fn default_theme() -> String { "system".into() }
-fn default_language() -> String { "ru".into() }
-fn default_archive_format() -> String { "zip".into() }
-fn default_true() -> bool { true }
-fn default_max_preview_size() -> f64 { 1.0 }
-
-fn default_recognition_model() -> String { 
-    "ggml-tiny-q5_1.bin".into() 
+fn default_recognition_model() -> String {
+    "ggml-tiny-q5_1.bin".into()
 }
 
 impl Default for AppSettings {
@@ -84,13 +92,6 @@ pub async fn save_settings(settings: AppSettings) -> Result<(), String> {
         .await
         .map_err(|e| e.to_string())
 }
-
-
-
-
-
-
-
 
 #[cfg(test)]
 mod tests {
@@ -163,13 +164,13 @@ mod tests {
     #[test]
     fn test_default_settings() {
         let settings = AppSettings::default();
-        
+
         assert_eq!(settings.theme, "system");
         assert!(is_valid_theme(&settings.theme));
-        
+
         assert_eq!(settings.language, "ru");
         assert!(is_valid_language(&settings.language));
-        
+
         assert!(!settings.auto_preview);
         assert_eq!(settings.max_preview_size, 1.0);
         assert!(settings.show_extensions);
@@ -177,15 +178,24 @@ mod tests {
         assert!(!settings.enable_archive);
         assert_eq!(settings.archive_format, "zip");
         assert_eq!(settings.recognition_model, "ggml-tiny-q5_1.bin");
-        
+
         // Проверяем модели синтеза
         assert_eq!(settings.synthesis_model.len(), 2);
         assert!(settings.synthesis_model.contains_key("ru"));
         assert!(settings.synthesis_model.contains_key("en"));
-        assert_eq!(settings.synthesis_model.get("ru"), Some(&"ru_RU-dmitri-medium".to_string()));
-        assert_eq!(settings.synthesis_model.get("en"), Some(&"en_US-lessac-medium".to_string()));
-        
-        println!("✅ Default settings: theme={}, language={}", settings.theme, settings.language);
+        assert_eq!(
+            settings.synthesis_model.get("ru"),
+            Some(&"ru_RU-dmitri-medium".to_string())
+        );
+        assert_eq!(
+            settings.synthesis_model.get("en"),
+            Some(&"en_US-lessac-medium".to_string())
+        );
+
+        println!(
+            "✅ Default settings: theme={}, language={}",
+            settings.theme, settings.language
+        );
     }
 
     #[test]
@@ -196,12 +206,18 @@ mod tests {
         assert!(default_true());
         assert_eq!(default_max_preview_size(), 1.0);
         assert_eq!(default_recognition_model(), "ggml-tiny-q5_1.bin");
-        
+
         let synthesis = default_synthesis_model();
         assert_eq!(synthesis.len(), 2);
-        assert_eq!(synthesis.get("ru"), Some(&"ru_RU-dmitri-medium".to_string()));
-        assert_eq!(synthesis.get("en"), Some(&"en_US-lessac-medium".to_string()));
-        
+        assert_eq!(
+            synthesis.get("ru"),
+            Some(&"ru_RU-dmitri-medium".to_string())
+        );
+        assert_eq!(
+            synthesis.get("en"),
+            Some(&"en_US-lessac-medium".to_string())
+        );
+
         println!("✅ All default functions work correctly");
     }
 
@@ -213,7 +229,7 @@ mod tests {
     fn test_serialize_settings() {
         let settings = AppSettings::default();
         let yaml = serde_yaml::to_string(&settings).unwrap();
-        
+
         assert!(yaml.contains("theme: system"));
         assert!(yaml.contains("language: ru"));
         assert!(yaml.contains("auto_preview: false"));
@@ -223,7 +239,7 @@ mod tests {
         assert!(yaml.contains("synthesis_model:"));
         assert!(yaml.contains("ru: ru_RU-dmitri-medium"));
         assert!(yaml.contains("en: en_US-lessac-medium"));
-        
+
         println!("✅ Serialization successful");
     }
 
@@ -235,14 +251,14 @@ mod tests {
             language: "en".to_string(),
             ..AppSettings::default()
         };
-        
+
         let yaml = serde_yaml::to_string(&settings).unwrap();
-        
+
         assert!(yaml.contains("theme: dark"));
         assert!(yaml.contains("language: en"));
         assert!(!yaml.contains("theme: system"));
         assert!(!yaml.contains("language: ru"));
-        
+
         println!("✅ Serialization with dark theme successful");
     }
 
@@ -253,11 +269,11 @@ mod tests {
             theme: "light".to_string(),
             ..AppSettings::default()
         };
-        
+
         let yaml = serde_yaml::to_string(&settings).unwrap();
         assert!(yaml.contains("theme: light"));
         assert!(!yaml.contains("theme: system"));
-        
+
         println!("✅ Serialization with light theme successful");
     }
 
@@ -277,9 +293,9 @@ synthesis_model:
   ru: ru_RU-irina-medium
   en: en_US-amy-medium
 "#;
-        
+
         let settings: AppSettings = serde_yaml::from_str(yaml).unwrap();
-        
+
         assert_eq!(settings.theme, "dark");
         assert_eq!(settings.language, "en");
         assert!(settings.auto_preview);
@@ -289,20 +305,29 @@ synthesis_model:
         assert!(settings.enable_archive);
         assert_eq!(settings.archive_format, "tar.gz");
         assert_eq!(settings.recognition_model, "ggml-base-q5_1.bin");
-        assert_eq!(settings.synthesis_model.get("ru"), Some(&"ru_RU-irina-medium".to_string()));
-        assert_eq!(settings.synthesis_model.get("en"), Some(&"en_US-amy-medium".to_string()));
-        
+        assert_eq!(
+            settings.synthesis_model.get("ru"),
+            Some(&"ru_RU-irina-medium".to_string())
+        );
+        assert_eq!(
+            settings.synthesis_model.get("en"),
+            Some(&"en_US-amy-medium".to_string())
+        );
+
         println!("✅ Deserialization successful");
     }
 
     #[test]
     fn test_deserialize_all_themes() {
         for theme in VALID_THEMES {
-            let yaml = format!(r#"
+            let yaml = format!(
+                r#"
 theme: {}
 language: ru
-"#, theme);
-            
+"#,
+                theme
+            );
+
             let settings: AppSettings = serde_yaml::from_str(&yaml).unwrap();
             assert_eq!(settings.theme, theme);
             println!("✅ Deserialized theme: {}", theme);
@@ -312,11 +337,14 @@ language: ru
     #[test]
     fn test_deserialize_all_languages() {
         for lang in VALID_LANGUAGES {
-            let yaml = format!(r#"
+            let yaml = format!(
+                r#"
 theme: system
 language: {}
-"#, lang);
-            
+"#,
+                lang
+            );
+
             let settings: AppSettings = serde_yaml::from_str(&yaml).unwrap();
             assert_eq!(settings.language, lang);
             println!("✅ Deserialized language: {}", lang);
@@ -329,12 +357,12 @@ language: {}
 theme: dark
 language: en
 "#;
-        
+
         let settings: AppSettings = serde_yaml::from_str(yaml).unwrap();
-        
+
         assert_eq!(settings.theme, "dark");
         assert_eq!(settings.language, "en");
-        
+
         // Проверяем, что остальные поля заполнены значениями по умолчанию
         assert!(!settings.auto_preview);
         assert_eq!(settings.max_preview_size, 1.0);
@@ -345,7 +373,7 @@ language: en
         assert_eq!(settings.recognition_model, "ggml-tiny-q5_1.bin");
         assert!(settings.synthesis_model.contains_key("ru"));
         assert!(settings.synthesis_model.contains_key("en"));
-        
+
         println!("✅ Partial deserialization successful");
     }
 
@@ -356,13 +384,13 @@ language: en
     #[tokio::test]
     async fn test_get_settings_default_when_no_file() {
         let settings = get_settings().await;
-        
+
         assert_eq!(settings.theme, "system");
         assert_eq!(settings.language, "ru");
         assert!(settings.synthesis_model.contains_key("ru"));
         assert!(settings.synthesis_model.contains_key("en"));
         assert_eq!(settings.recognition_model, "ggml-tiny-q5_1.bin");
-        
+
         println!("✅ get_settings returned defaults");
     }
 
@@ -389,16 +417,16 @@ language: en
             },
             recognition_model: "ggml-base-q5_1.bin".to_string(),
         };
-        
+
         let yaml = serde_yaml::to_string(&settings).unwrap();
-        
+
         assert!(yaml.contains("theme: dark"));
         assert!(yaml.contains("language: en"));
         assert!(yaml.contains("auto_preview: true"));
         assert!(yaml.contains("recognition_model: ggml-base-q5_1.bin"));
         assert!(yaml.contains("ru: ru_RU-irina-medium"));
         assert!(yaml.contains("en: en_US-amy-medium"));
-        
+
         println!("✅ Settings serialization for save successful");
     }
 
@@ -425,10 +453,10 @@ language: en
             },
             recognition_model: "ggml-base-q5_1.bin".to_string(),
         };
-        
+
         let yaml = serde_yaml::to_string(&original).unwrap();
         let deserialized: AppSettings = serde_yaml::from_str(&yaml).unwrap();
-        
+
         assert_eq!(deserialized.theme, original.theme);
         assert_eq!(deserialized.language, original.language);
         assert_eq!(deserialized.auto_preview, original.auto_preview);
@@ -439,7 +467,7 @@ language: en
         assert_eq!(deserialized.archive_format, original.archive_format);
         assert_eq!(deserialized.recognition_model, original.recognition_model);
         assert_eq!(deserialized.synthesis_model, original.synthesis_model);
-        
+
         println!("✅ Roundtrip successful");
     }
 
@@ -452,14 +480,14 @@ language: en
                     language: lang.to_string(),
                     ..AppSettings::default()
                 };
-                
+
                 assert_eq!(settings.theme, theme);
                 assert_eq!(settings.language, lang);
-                
+
                 let yaml = serde_yaml::to_string(&settings).unwrap();
                 assert!(yaml.contains(&format!("theme: {}", theme)));
                 assert!(yaml.contains(&format!("language: {}", lang)));
-                
+
                 println!("✅ Theme '{}' + Language '{}' works", theme, lang);
             }
         }
@@ -469,21 +497,21 @@ language: en
     // ТЕСТЫ: EDGE CASES
     // ============================================================
 
-   #[test]
+    #[test]
     fn test_empty_synthesis_model() {
         // 🔥 Исправлено: используем ..Default::default()
         let settings = AppSettings {
             synthesis_model: HashMap::new(),
             ..AppSettings::default()
         };
-        
+
         assert!(settings.synthesis_model.is_empty());
         assert!(!settings.synthesis_model.contains_key("ru"));
         assert!(!settings.synthesis_model.contains_key("en"));
-        
+
         let yaml = serde_yaml::to_string(&settings).unwrap();
         assert!(yaml.contains("synthesis_model: {}"));
-        
+
         println!("✅ Empty synthesis model works");
     }
 
@@ -494,12 +522,12 @@ language: en
             recognition_model: "ggml-large-v3-turbo-q5_0.bin".to_string(),
             ..AppSettings::default()
         };
-        
+
         assert_eq!(settings.recognition_model, "ggml-large-v3-turbo-q5_0.bin");
-        
+
         let yaml = serde_yaml::to_string(&settings).unwrap();
         assert!(yaml.contains("recognition_model: ggml-large-v3-turbo-q5_0.bin"));
-        
+
         println!("✅ Custom recognition model works");
     }
 
@@ -510,14 +538,20 @@ language: en
         custom_map.insert("ru".to_string(), "ru_RU-irina-medium".to_string());
         custom_map.insert("en".to_string(), "en_US-amy-medium".to_string());
         settings.synthesis_model = custom_map;
-        
-        assert_eq!(settings.synthesis_model.get("ru"), Some(&"ru_RU-irina-medium".to_string()));
-        assert_eq!(settings.synthesis_model.get("en"), Some(&"en_US-amy-medium".to_string()));
-        
+
+        assert_eq!(
+            settings.synthesis_model.get("ru"),
+            Some(&"ru_RU-irina-medium".to_string())
+        );
+        assert_eq!(
+            settings.synthesis_model.get("en"),
+            Some(&"en_US-amy-medium".to_string())
+        );
+
         let yaml = serde_yaml::to_string(&settings).unwrap();
         assert!(yaml.contains("ru: ru_RU-irina-medium"));
         assert!(yaml.contains("en: en_US-amy-medium"));
-        
+
         println!("✅ Custom synthesis model works");
     }
 
@@ -528,11 +562,11 @@ language: en
                 archive_format: format.to_string(),
                 ..AppSettings::default()
             };
-            
+
             assert_eq!(settings.archive_format, format);
             let yaml = serde_yaml::to_string(&settings).unwrap();
             assert!(yaml.contains(&format!("archive_format: {}", format)));
-            
+
             println!("✅ Archive format: {}", format);
         }
     }

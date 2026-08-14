@@ -22,9 +22,9 @@ pub fn get_audio_codec(format: &str) -> &'static str {
         "truehd" => "truehd",
 
         // ✅ Рабочие специфичные форматы
-        "adx" => "adpcm_adx",       
-        "aptx" => "aptx",            
-        "sbc" => "sbc",              
+        "adx" => "adpcm_adx",
+        "aptx" => "aptx",
+        "sbc" => "sbc",
 
         _ => "aac",
     }

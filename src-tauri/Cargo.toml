@@ -5,12 +5,8 @@ description = "A Tauri App"
 authors = ["you"]
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [lib]
-# The `_lib` suffix may seem redundant but it is necessary
-# to make the lib name unique and wouldn't conflict with the bin name.
-# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
 name = "formato_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
@@ -35,21 +31,15 @@ tauri-plugin-fs = "2.5.1"
 scraper = "0.27.0"
 pulldown-cmark = "0.13.4"
 json2csv = "0.2.0"
-md_gen = "0.1.0"
-flatten-json-object = "0.6.1"
 xml2json-rs = "1.0.1"
-rust-ini = "0.21.3"
 handlebars = "6.4.1"
-nalgebra = "0.35.0"
 json-unflattening = "0.1.5"
 serde-flattened = "0.1.1"
-indexmap = { version = "2.14.0", features = ["serde"] }
 sea-orm = { version = "2.0.0-rc", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "debug-print"] }
 chrono = "0.4.45"
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 memmap2 = "0.9.11"
 zippylib = "0.1.0"
-bytes = "1.12.1"
 docx-rs = "0.4.20"
 rust_xlsxwriter = "0.96.0"
 rtf-parser = "0.4.3"
@@ -65,15 +55,10 @@ base64 = "0.23.0"
 kamadak-exif = "0.6.1"
 piper-rs = "0.2.0"
 reqwest = { version = "0.13.4", features = ["blocking"] }
-anyhow = "1.0.104"
-hound = "3.5.1"
 lo_writer = "0.5.2"
-oxiwhisper = { version = "0.1.2", features = ["parallel"] }
 transcribe-rs = { version = "0.3.11", features = ["whisper-cpp"] }
 unicode-segmentation = "1.13.3"
-regex = "1.13.1"
 uuid = { version = "1.24.0", features = ["v4"] }
 flate2 = "1.1.9"
-log = "0.4.33"
 libc = "0.2.189"
 

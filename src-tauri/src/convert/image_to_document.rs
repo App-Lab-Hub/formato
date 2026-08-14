@@ -2,32 +2,27 @@
 use sea_orm::DatabaseConnection;
 
 use crate::convert::{
-    calculate_conversion_hash, 
-    get_app_dir_path_with_hash, 
+    calculate_conversion_hash, get_app_dir_path_with_hash,
+    image_utils::{get_image_metadata, open_image, zlib_and_then_base64},
     stringify_document,
-    image_utils::{
-        open_image,
-        get_image_metadata,
-        zlib_and_then_base64,
-    }
 };
 
 /// Конвертация изображения в документ
 pub async fn convert_image_to_document(
-    db: &DatabaseConnection, 
-    path: &str, 
-    from: &str, 
-    to: &str
+    db: &DatabaseConnection,
+    path: &str,
+    from: &str,
+    to: &str,
 ) -> Result<String, String> {
     // 1. Читаем изображение с поддержкой PNM
     let img = open_image(path, from)?;
-    
+
     // 2. Получаем метаданные
     let metadata = get_image_metadata(path, &img)?;
-    
+
     // 3. Сжимаем и кодируем изображение в Base91
     let encoded_str = zlib_and_then_base64(path)?;
-    
+
     // 4. Формируем читаемый текст
     let mut text = String::new();
     text.push_str(&format!("Image Format: {}\n", from));
@@ -53,8 +48,8 @@ pub async fn convert_image_to_document(
     // 6. Перемещаем в нужную директорию с хешем
     let hash = calculate_conversion_hash(path, from, to)
         .map_err(|e| format!("Hash error convert_image_to_document: {}", e))?;
-    let final_path = get_app_dir_path_with_hash(path, to, &hash, true)?;
-    
+    let final_path = get_app_dir_path_with_hash(path, to, &hash)?;
+
     if output_path != final_path {
         if let Some(parent) = std::path::Path::new(&final_path).parent() {
             if !parent.exists() {
@@ -65,6 +60,6 @@ pub async fn convert_image_to_document(
         std::fs::rename(&output_path, &final_path)
             .map_err(|e| format!("Cannot move file: {}", e))?;
     }
-    
+
     Ok(final_path)
 }

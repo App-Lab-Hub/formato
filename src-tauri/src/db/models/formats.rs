@@ -10,7 +10,7 @@ use serde_json::Value as JsonValue;
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub format_id: String,
-    
+
     pub name: String,
     pub extensions: JsonValue,
     pub icon: String,

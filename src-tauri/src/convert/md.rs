@@ -1,9 +1,7 @@
-
 use handlebars::{
     Handlebars, Helper, HelperDef, Output, RenderContext, RenderError, RenderErrorReason,
 };
-use serde_json::{Value as Json, json};
-
+use serde_json::{json, Value as Json};
 
 const MD_CSS: &str = include_str!("../../assets/md_styles.css");
 
@@ -21,7 +19,8 @@ impl HelperDef for MdHelper {
         _: &mut RenderContext<'reg, 'rc>,
         out: &mut dyn Output,
     ) -> Result<(), RenderError> {
-        let value = h.param(0)
+        let value = h
+            .param(0)
             .ok_or_else(|| RenderErrorReason::ParamNotFoundForIndex("md", 0))?
             .value();
         let key = h.param(1).and_then(|p| p.value().as_str()).unwrap_or("");
@@ -32,24 +31,40 @@ impl HelperDef for MdHelper {
 
         match value {
             Json::Object(obj) if obj.is_empty() => {
-                if !key.is_empty() { write!(out, "{}**{}** `{{}}`\n", indent, key)?; }
+                if !key.is_empty() {
+                    write!(out, "{}**{}** `{{}}`\n", indent, key)?;
+                }
             }
             Json::Array(arr) if arr.is_empty() => {
-                if !key.is_empty() { write!(out, "{}**{}** `[]`\n", indent, key)?; }
+                if !key.is_empty() {
+                    write!(out, "{}**{}** `[]`\n", indent, key)?;
+                }
             }
             Json::Object(obj) => {
                 if !key.is_empty() {
                     write!(out, "{}### {}\n", indent, key)?;
                 }
-                let field_indent = if is_root { String::new() } else { format!("{}> ", indent) };
+                let field_indent = if is_root {
+                    String::new()
+                } else {
+                    format!("{}> ", indent)
+                };
                 let next_depth = if is_root { 0 } else { depth + 1 };
                 for (k, v) in obj {
-                    if k.starts_with('_') { continue; }
+                    if k.starts_with('_') {
+                        continue;
+                    }
                     match v {
                         Json::Object(_) | Json::Array(_) => {
                             out.write(&render_entry(r, v, k, next_depth))?;
                         }
-                        _ => write!(out, "{}**{}** {}\n", field_indent, k, format_primitive_md(v))?,
+                        _ => write!(
+                            out,
+                            "{}**{}** {}\n",
+                            field_indent,
+                            k,
+                            format_primitive_md(v)
+                        )?,
                     }
                 }
             }
@@ -58,7 +73,13 @@ impl HelperDef for MdHelper {
                     write!(out, "{}**{}**\n", indent, key)?;
                     let item_indent = format!("{}> ", indent);
                     for (i, item) in arr.iter().enumerate() {
-                        write!(out, "{}- [{}] {}\n", item_indent, i, format_primitive_md(item))?;
+                        write!(
+                            out,
+                            "{}- [{}] {}\n",
+                            item_indent,
+                            i,
+                            format_primitive_md(item)
+                        )?;
                     }
                 } else {
                     let items: Vec<String> = arr.iter().map(format_primitive_md).collect();
@@ -76,12 +97,20 @@ impl HelperDef for MdHelper {
                         Json::Object(obj) => {
                             let field_indent = format!("{}> ", item_indent);
                             for (k, v) in obj {
-                                if k.starts_with('_') { continue; }
+                                if k.starts_with('_') {
+                                    continue;
+                                }
                                 match v {
                                     Json::Object(_) | Json::Array(_) => {
                                         out.write(&render_entry(r, v, k, depth + 2))?;
                                     }
-                                    _ => write!(out, "{}**{}** {}\n", field_indent, k, format_primitive_md(v))?,
+                                    _ => write!(
+                                        out,
+                                        "{}**{}** {}\n",
+                                        field_indent,
+                                        k,
+                                        format_primitive_md(v)
+                                    )?,
                                 }
                             }
                         }
@@ -95,8 +124,11 @@ impl HelperDef for MdHelper {
             }
             _ => {
                 let s = format_primitive_md(value);
-                if key.is_empty() { write!(out, "{}", s)?; }
-                else { write!(out, "{}**{}** {}\n", indent, key, s)?; }
+                if key.is_empty() {
+                    write!(out, "{}", s)?;
+                } else {
+                    write!(out, "{}**{}** {}\n", indent, key, s)?;
+                }
             }
         }
         Ok(())
@@ -114,7 +146,8 @@ fn render_entry(reg: &Handlebars, value: &Json, key: &str, depth: usize) -> Stri
 }
 
 fn all_primitive(arr: &[Json]) -> bool {
-    arr.iter().all(|v| v.is_string() || v.is_number() || v.is_boolean() || v.is_null())
+    arr.iter()
+        .all(|v| v.is_string() || v.is_number() || v.is_boolean() || v.is_null())
 }
 
 fn format_primitive_md(v: &Json) -> String {
@@ -131,17 +164,19 @@ pub fn stringify_markdown(value: &Json) -> Result<String, String> {
     let mut reg = Handlebars::new();
     reg.register_escape_fn(handlebars::no_escape);
     reg.register_helper("md", Box::new(MdHelper));
-    
+
     let result = match value {
         Json::Object(_) | Json::Array(_) => render_entry(&reg, value, "", 0),
         _ => format_primitive_md(value),
     };
-    
+
     // Стили вставляем здесь, в начало результата
-    Ok(format!("<span style=\"display:none\"></span>\n\n<style>{}</style>\n\n{}", MD_CSS, result.trim()))
+    Ok(format!(
+        "<span style=\"display:none\"></span>\n\n<style>{}</style>\n\n{}",
+        MD_CSS,
+        result.trim()
+    ))
 }
-
-
 
 pub fn parse_markdown(input: &str) -> Result<Json, String> {
     let parser = pulldown_cmark::Parser::new_ext(input, pulldown_cmark::Options::all());
@@ -155,7 +190,6 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
     let mut table_headers: Vec<String> = Vec::new();
     let mut table_rows: Vec<Json> = Vec::new();
     let mut table_cells: Vec<String> = Vec::new();
-    let mut in_table_head = false;
 
     fn flush_text(text: &mut String, target: &mut Vec<Json>) {
         let t = text.trim().to_string();
@@ -165,7 +199,11 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
         text.clear();
     }
 
-    fn make_node(node_type: &str, children: Vec<Json>, extra: serde_json::Map<String, Json>) -> Json {
+    fn make_node(
+        node_type: &str,
+        children: Vec<Json>,
+        extra: serde_json::Map<String, Json>,
+    ) -> Json {
         let mut map = extra;
         map.insert("type".to_string(), Json::String(node_type.to_string()));
         if !children.is_empty() {
@@ -181,7 +219,14 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
     for event in &events {
         match event {
             pulldown_cmark::Event::Start(tag) => {
-                flush_text(&mut current_text, if let Some((_, children, _)) = stack.last_mut() { children } else { &mut root_children });
+                flush_text(
+                    &mut current_text,
+                    if let Some((_, children, _)) = stack.last_mut() {
+                        children
+                    } else {
+                        &mut root_children
+                    },
+                );
 
                 match tag {
                     pulldown_cmark::Tag::Heading { level, .. } => {
@@ -221,7 +266,7 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
                         // headers не чистим — они перезапишутся в TableHead
                     }
                     pulldown_cmark::Tag::TableHead => {
-                        in_table_head = true;
+                        
                         table_cells.clear();
                     }
                     pulldown_cmark::Tag::TableRow => {
@@ -234,7 +279,12 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
                     pulldown_cmark::Tag::Strong => {
                         stack.push(("strong".to_string(), Vec::new(), serde_json::Map::new()));
                     }
-                    pulldown_cmark::Tag::Link { link_type: _, dest_url, title, id: _ } => {
+                    pulldown_cmark::Tag::Link {
+                        link_type: _,
+                        dest_url,
+                        title,
+                        id: _,
+                    } => {
                         let mut attrs = serde_json::Map::new();
                         attrs.insert("url".to_string(), Json::String(dest_url.to_string()));
                         if !title.is_empty() {
@@ -242,7 +292,12 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
                         }
                         stack.push(("link".to_string(), Vec::new(), attrs));
                     }
-                    pulldown_cmark::Tag::Image { link_type: _, dest_url, title, id: _ } => {
+                    pulldown_cmark::Tag::Image {
+                        link_type: _,
+                        dest_url,
+                        title,
+                        id: _,
+                    } => {
                         let mut attrs = serde_json::Map::new();
                         attrs.insert("url".to_string(), Json::String(dest_url.to_string()));
                         if !title.is_empty() {
@@ -254,7 +309,14 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
                 }
             }
             pulldown_cmark::Event::End(tag_end) => {
-                flush_text(&mut current_text, if let Some((_, children, _)) = stack.last_mut() { children } else { &mut root_children });
+                flush_text(
+                    &mut current_text,
+                    if let Some((_, children, _)) = stack.last_mut() {
+                        children
+                    } else {
+                        &mut root_children
+                    },
+                );
 
                 match tag_end {
                     pulldown_cmark::TagEnd::Heading(_)
@@ -286,7 +348,13 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
                             header_attrs.insert("header".to_string(), Json::Bool(true));
                             let header_cells: Vec<Json> = table_headers
                                 .iter()
-                                .map(|h| make_node("tableCell", vec![make_text(h)], serde_json::Map::new()))
+                                .map(|h| {
+                                    make_node(
+                                        "tableCell",
+                                        vec![make_text(h)],
+                                        serde_json::Map::new(),
+                                    )
+                                })
                                 .collect();
                             table_children.push(make_node("tableRow", header_cells, header_attrs));
                         }
@@ -296,18 +364,32 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
                             if let Json::Object(cells) = row {
                                 let cell_nodes: Vec<Json> = cells
                                     .values()
-                                    .map(|v| make_node("tableCell", vec![make_text(v.as_str().unwrap_or(""))], serde_json::Map::new()))
+                                    .map(|v| {
+                                        make_node(
+                                            "tableCell",
+                                            vec![make_text(v.as_str().unwrap_or(""))],
+                                            serde_json::Map::new(),
+                                        )
+                                    })
                                     .collect();
-                                table_children.push(make_node("tableRow", cell_nodes, serde_json::Map::new()));
+                                table_children.push(make_node(
+                                    "tableRow",
+                                    cell_nodes,
+                                    serde_json::Map::new(),
+                                ));
                             }
                         }
 
-                        root_children.push(make_node("table", table_children, serde_json::Map::new()));
+                        root_children.push(make_node(
+                            "table",
+                            table_children,
+                            serde_json::Map::new(),
+                        ));
                     }
                     pulldown_cmark::TagEnd::TableHead => {
                         // Сохраняем заголовки и очищаем
                         table_headers = std::mem::take(&mut table_cells);
-                        in_table_head = false;
+                        
                     }
                     pulldown_cmark::TagEnd::TableRow => {
                         let mut row = serde_json::Map::new();
@@ -315,7 +397,10 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
                             let key = if table_headers.is_empty() {
                                 format!("col{}", i)
                             } else {
-                                table_headers.get(i).cloned().unwrap_or_else(|| format!("col{}", i))
+                                table_headers
+                                    .get(i)
+                                    .cloned()
+                                    .unwrap_or_else(|| format!("col{}", i))
                             };
                             row.insert(key, Json::String(cell.clone()));
                         }

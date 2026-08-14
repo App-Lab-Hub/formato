@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub file_hash: String,
-    
+
     pub converted_path: String,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }

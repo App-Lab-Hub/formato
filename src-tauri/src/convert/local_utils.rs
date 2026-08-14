@@ -1,9 +1,9 @@
+use std::path::Path;
+use std::sync::LazyLock;
+use tempfile::tempdir;
+use tokio::fs;
 use tokio::process::Command;
 use tokio::sync::Semaphore;
-use std::path::Path;
-use tokio::fs;
-use tempfile::tempdir;
-use std::sync::LazyLock;
 use uuid::Uuid;
 
 // Глобальный семафор — только 1 вызов soffice одновременно
@@ -11,12 +11,12 @@ static SOFFICE_SEMAPHORE: LazyLock<Semaphore> = LazyLock::new(|| Semaphore::new(
 
 /// Конвертация через soffice с явным фильтром (асинхронная)
 pub async fn convert_with_soffice_explicit(
-    input_path: &str, 
-    output_path: &str
+    input_path: &str,
+    output_path: &str,
 ) -> Result<(), String> {
     // Захватываем семафор
     let _permit = SOFFICE_SEMAPHORE.acquire().await.unwrap();
-    
+
     let input_path_obj = Path::new(input_path);
     let output_path_obj = Path::new(output_path);
 
@@ -24,7 +24,7 @@ pub async fn convert_with_soffice_explicit(
         .extension()
         .and_then(|e| e.to_str())
         .unwrap_or("");
-    
+
     let output_ext = output_path_obj
         .extension()
         .and_then(|e| e.to_str())
@@ -45,14 +45,13 @@ pub async fn convert_with_soffice_explicit(
             "docx" => "Office Open XML Text",
             "odt" => "writer8",
             _ => "writer8",
-        }
+        },
     };
 
-    let temp_dir = tempdir()
-        .map_err(|e| format!("Failed to create temp dir: {}", e))?;
-    
+    let temp_dir = tempdir().map_err(|e| format!("Failed to create temp dir: {}", e))?;
+
     let temp_dir_path = temp_dir.path().to_string_lossy().to_string();
-    
+
     // 🚀 Запускаем soffice с фильтром
     let status = Command::new("soffice")
         .env("JAVA_OPTS", "-Djava.awt.headless=true")
@@ -63,8 +62,10 @@ pub async fn convert_with_soffice_explicit(
             "--norestore",
             "--nofirststartwizard",
             "--invisible",
-            "--convert-to", &format!("{}:{}", output_ext, filter),
-            "--outdir", &temp_dir_path,
+            "--convert-to",
+            &format!("{}:{}", output_ext, filter),
+            "--outdir",
+            &temp_dir_path,
             input_path,
         ])
         .stderr(std::process::Stdio::null())
@@ -82,7 +83,7 @@ pub async fn convert_with_soffice_explicit(
         .ok_or_else(|| "Invalid input file name".to_string())?
         .to_string_lossy()
         .to_string();
-    
+
     let temp_output = Path::new(&temp_dir_path).join(format!("{}.{}", input_stem, output_ext));
 
     if temp_output.exists() {
@@ -98,18 +99,17 @@ pub async fn convert_with_soffice_explicit(
 
 /// Резервный вариант конвертации без явного фильтра (асинхронный)
 async fn fallback_convert(
-    input_path: &str, 
-    output_path: &str, 
-    output_ext: &str
+    input_path: &str,
+    output_path: &str,
+    output_ext: &str,
 ) -> Result<(), String> {
     let input_path_obj = Path::new(input_path);
     let output_path_obj = Path::new(output_path);
 
-    let temp_dir = tempdir()
-        .map_err(|e| format!("Failed to create temp dir: {}", e))?;
-    
+    let temp_dir = tempdir().map_err(|e| format!("Failed to create temp dir: {}", e))?;
+
     let temp_dir_path = temp_dir.path().to_string_lossy().to_string();
-    
+
     let status = Command::new("soffice")
         .env("JAVA_OPTS", "-Djava.awt.headless=true")
         .env("SAL_USE_VCLPLUGIN", "svp")
@@ -119,8 +119,10 @@ async fn fallback_convert(
             "--norestore",
             "--nofirststartwizard",
             "--invisible",
-            "--convert-to", output_ext,
-            "--outdir", &temp_dir_path,
+            "--convert-to",
+            output_ext,
+            "--outdir",
+            &temp_dir_path,
             input_path,
         ])
         .stderr(std::process::Stdio::null())
@@ -137,7 +139,7 @@ async fn fallback_convert(
         .ok_or_else(|| "Invalid input file name".to_string())?
         .to_string_lossy()
         .to_string();
-    
+
     let temp_output = Path::new(&temp_dir_path).join(format!("{}.{}", input_stem, output_ext));
 
     if temp_output.exists() {
@@ -154,20 +156,20 @@ async fn fallback_convert(
 pub async fn xml_to_html_via_soffice(xml_str: &str) -> Result<String, String> {
     // Захватываем семафор
     let _permit = SOFFICE_SEMAPHORE.acquire().await.unwrap();
-    
+
     // Генерируем уникальные имена для каждого вызова
     let uuid = Uuid::new_v4().simple().to_string();
     let xml_path = std::env::temp_dir().join(format!("temp_{}.xml", uuid));
     let html_path = std::env::temp_dir().join(format!("temp_{}.html", uuid));
-    
+
     // Сохраняем XML во временный файл
     fs::write(&xml_path, xml_str)
         .await
         .map_err(|e| format!("Cannot write XML: {}", e))?;
-    
+
     let out_dir = std::env::temp_dir();
     let out_dir_str = out_dir.to_string_lossy().to_string();
-    
+
     // Конвертируем через soffice
     let status = Command::new("soffice")
         .env("JAVA_OPTS", "-Djava.awt.headless=true")
@@ -178,47 +180,46 @@ pub async fn xml_to_html_via_soffice(xml_str: &str) -> Result<String, String> {
             "--norestore",
             "--nofirststartwizard",
             "--invisible",
-            "--convert-to", "html",
-            "--outdir", &out_dir_str,
+            "--convert-to",
+            "html",
+            "--outdir",
+            &out_dir_str,
             xml_path.to_str().unwrap(),
         ])
         .stderr(std::process::Stdio::null())
         .status()
         .await
         .map_err(|e| format!("soffice error: {}", e))?;
-    
+
     if !status.success() {
         let _ = fs::remove_file(&xml_path).await;
         return Err("soffice conversion failed".to_string());
     }
-    
+
     // Читаем результат
     let html_content = fs::read_to_string(&html_path)
         .await
         .map_err(|e| format!("Cannot read HTML: {}", e))?;
-    
+
     // Удаляем временные файлы
     let _ = fs::remove_file(&xml_path).await;
     let _ = fs::remove_file(&html_path).await;
-    
+
     Ok(html_content)
 }
 
 /// Конвертирует DOCX в RTF через soffice (асинхронная версия)
 pub async fn convert_docx_to_rtf(
-    docx_path: &str, 
-    original_path: &str, 
-    to: &str
+    docx_path: &str,
+    original_path: &str,
+    to: &str,
 ) -> Result<String, String> {
     // Захватываем семафор
     let _permit = SOFFICE_SEMAPHORE.acquire().await.unwrap();
-    
+
     // Проверяем наличие soffice
-    let check = Command::new("soffice")
-        .arg("--version")
-        .output()
-        .await;
-    
+    let check = Command::new("soffice").arg("--version").output().await;
+
     if check.is_err() {
         return Err("soffice not found. Please install LibreOffice.".to_string());
     }
@@ -237,7 +238,7 @@ pub async fn convert_docx_to_rtf(
         .and_then(|s| s.to_str())
         .ok_or("Invalid docx filename")?
         .to_string();
-    
+
     let temp_rtf = format!("{}/{}.rtf", docx_dir, docx_stem);
 
     // Конвертируем через soffice
@@ -250,8 +251,10 @@ pub async fn convert_docx_to_rtf(
             "--norestore",
             "--nofirststartwizard",
             "--invisible",
-            "--convert-to", "rtf",
-            "--outdir", &docx_dir,
+            "--convert-to",
+            "rtf",
+            "--outdir",
+            &docx_dir,
             docx_path,
         ])
         .stderr(std::process::Stdio::null())
@@ -271,8 +274,8 @@ pub async fn convert_docx_to_rtf(
     // Перемещаем в нужную папку с хешем
     let hash = crate::convert::calculate_conversion_hash(original_path, "docx", to)
         .map_err(|e| format!("Hash error convert_docx_to_rtf: {}", e))?;
-    
-    let final_path = crate::convert::get_app_dir_path_with_hash(original_path, to, &hash, true)?;
+
+    let final_path = crate::convert::get_app_dir_path_with_hash(original_path, to, &hash)?;
 
     // Создаем директорию
     if let Some(parent) = Path::new(&final_path).parent() {
@@ -291,25 +294,24 @@ pub async fn convert_docx_to_rtf(
     Ok(final_path)
 }
 
-
 /// Конвертирует XML в RTF через soffice (LibreOffice) — асинхронная версия
 pub async fn xml_to_rtf_via_soffice(xml_str: &str) -> Result<String, String> {
     // Захватываем семафор
     let _permit = SOFFICE_SEMAPHORE.acquire().await.unwrap();
-    
+
     // Генерируем уникальные имена для каждого вызова
     let uuid = Uuid::new_v4().simple().to_string();
     let xml_path = std::env::temp_dir().join(format!("temp_{}.xml", uuid));
     let rtf_path = std::env::temp_dir().join(format!("temp_{}.rtf", uuid));
-    
+
     // Сохраняем XML во временный файл
     tokio::fs::write(&xml_path, xml_str)
         .await
         .map_err(|e| format!("Cannot write XML: {}", e))?;
-    
+
     let out_dir = std::env::temp_dir();
     let out_dir_str = out_dir.to_string_lossy().to_string();
-    
+
     // Конвертируем через soffice
     let status = Command::new("soffice")
         .env("JAVA_OPTS", "-Djava.awt.headless=true")
@@ -320,28 +322,30 @@ pub async fn xml_to_rtf_via_soffice(xml_str: &str) -> Result<String, String> {
             "--norestore",
             "--nofirststartwizard",
             "--invisible",
-            "--convert-to", "rtf",
-            "--outdir", &out_dir_str,
+            "--convert-to",
+            "rtf",
+            "--outdir",
+            &out_dir_str,
             xml_path.to_str().unwrap(),
         ])
         .stderr(std::process::Stdio::null())
         .status()
         .await
         .map_err(|e| format!("soffice error: {}", e))?;
-    
+
     if !status.success() {
         let _ = tokio::fs::remove_file(&xml_path).await;
         return Err("soffice conversion failed".to_string());
     }
-    
+
     // Читаем результат
     let rtf_content = tokio::fs::read_to_string(&rtf_path)
         .await
         .map_err(|e| format!("Cannot read RTF: {}", e))?;
-    
+
     // Удаляем временные файлы
     let _ = tokio::fs::remove_file(&xml_path).await;
     let _ = tokio::fs::remove_file(&rtf_path).await;
-    
+
     Ok(rtf_content)
 }
