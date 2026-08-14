@@ -19,7 +19,7 @@ use tokio::sync::Mutex;
 #[derive(Default)] 
 pub struct AppState {
     pub db: Arc<Mutex<Option<DatabaseConnection>>>,
-    pub system_theme: Mutex<String>, // 'dark' или 'light'
+    pub system_theme: Mutex<String>, 
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]

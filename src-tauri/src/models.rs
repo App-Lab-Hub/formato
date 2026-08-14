@@ -739,8 +739,7 @@ mod tests {
         #[test]
         #[ignore = "Deletes models - run manually with caution"]
         fn test_cleanup_all_models() {
-            // ⚠️ ВНИМАНИЕ: Этот тест удаляет ВСЕ модели!
-            // Запускайте только если уверены.
+
             
             let piper_dir = paths::piper_models_dir();
             let whisper_dir = paths::whisper_models_dir();
