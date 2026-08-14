@@ -1,6 +1,5 @@
 // src-tauri/src/utils.rs
 use std::fs;
-use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use crate::paths::{converted_dir, temp_dir};
 use crate::db::delete_conversion_by_path;

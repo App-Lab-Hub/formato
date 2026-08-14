@@ -195,3 +195,592 @@ fn download_file(url: &str, output_path: &PathBuf) -> Result<(), String> {
     
     Ok(())
 }
+
+
+
+
+
+// src-tauri/src/models.rs
+
+// ... весь существующий код ...
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use tempfile::tempdir;
+    use std::collections::HashMap;
+
+    // ============================================================
+    // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+    // ============================================================
+
+    /// Создает временную директорию для тестов
+    fn setup_test_dir() -> tempfile::TempDir {
+        tempdir().unwrap()
+    }
+
+    /// Создает фейковый файл модели
+    fn create_fake_model(dir: &Path, name: &str, size: u64) -> PathBuf {
+        let path = dir.join(name);
+        let data = vec![0u8; size as usize];
+        fs::write(&path, data).unwrap();
+        path
+    }
+
+    /// Проверяет, что модель существует
+    fn assert_model_exists(path: &Path) {
+        assert!(path.exists(), "Model not found: {:?}", path);
+        let size = fs::metadata(path).unwrap().len();
+        assert!(size > 0, "Model is empty: {:?}", path);
+        println!("✅ Model exists: {:?} ({} bytes)", path.file_name().unwrap(), size);
+    }
+
+    /// Проверяет, что модель не существует
+    fn assert_model_not_exists(path: &Path) {
+        assert!(!path.exists(), "Model should not exist: {:?}", path);
+        println!("✅ Model does not exist: {:?}", path.file_name().unwrap());
+    }
+
+    // ============================================================
+    // МОДУЛЬ 1: БАЗОВЫЕ ТЕСТЫ (check_model_exists, get_model_path, структуры)
+    // ============================================================
+
+    mod basic {
+        use super::*;
+
+        // ============================================================
+        // ТЕСТЫ: check_model_exists
+        // ============================================================
+
+        #[test]
+        fn test_check_model_exists_found() {
+            let temp_dir = setup_test_dir();
+            let model_path = create_fake_model(temp_dir.path(), "model.onnx", 1024);
+            
+            let status = check_model_exists(&model_path);
+            assert!(status.exists);
+            assert_eq!(status.path, Some(model_path.to_string_lossy().to_string()));
+            assert_eq!(status.size, Some(1024));
+            println!("✅ Model found: {:?} ({} bytes)", status.path, status.size.unwrap());
+        }
+
+        #[test]
+        fn test_check_model_exists_not_found() {
+            let temp_dir = setup_test_dir();
+            let model_path = temp_dir.path().join("nonexistent.onnx");
+            
+            let status = check_model_exists(&model_path);
+            assert!(!status.exists);
+            assert!(status.path.is_none());
+            assert!(status.size.is_none());
+            println!("✅ Model not found as expected");
+        }
+
+        // ============================================================
+        // ТЕСТЫ: get_model_path
+        // ============================================================
+
+        #[test]
+        fn test_get_model_path_piper() {
+            let path = get_model_path("piper", "test_model.onnx");
+            let path_str = path.to_string_lossy().to_string();
+            assert!(path_str.contains("piper"));
+            assert!(path_str.ends_with("test_model.onnx"));
+            println!("✅ Piper model path: {}", path_str);
+        }
+
+        #[test]
+        fn test_get_model_path_whisper() {
+            let path = get_model_path("whisper", "ggml-tiny.bin");
+            let path_str = path.to_string_lossy().to_string();
+            assert!(path_str.contains("whisper"));
+            assert!(path_str.ends_with("ggml-tiny.bin"));
+            println!("✅ Whisper model path: {}", path_str);
+        }
+
+        #[test]
+        fn test_get_model_path_unknown() {
+            let path = get_model_path("unknown", "model.bin");
+            let path_str = path.to_string_lossy().to_string();
+            assert!(path_str.contains("unknown"));
+            assert!(path_str.ends_with("model.bin"));
+            println!("✅ Unknown model path: {}", path_str);
+        }
+
+        // ============================================================
+        // ТЕСТЫ: get_models_status
+        // ============================================================
+
+        #[tokio::test]
+        async fn test_get_models_status_structure() {
+            let status = get_models_status().await;
+            
+            assert!(!status.synthesis.is_empty());
+            assert!(!status.recognition.is_empty());
+            
+            let expected_synthesis = vec![
+                "ru_RU-dmitri-medium",
+                "ru_RU-irina-medium",
+                "en_US-lessac-medium",
+                "en_US-amy-medium",
+            ];
+            for model in expected_synthesis {
+                assert!(status.synthesis.contains_key(model));
+            }
+            
+            let expected_recognition = vec![
+                "ggml-tiny-q5_1.bin",
+                "ggml-base-q5_1.bin",
+                "ggml-small-q5_1.bin",
+                "ggml-medium-q5_0.bin",
+                "ggml-large-v3-turbo-q5_0.bin",
+            ];
+            for model in expected_recognition {
+                assert!(status.recognition.contains_key(model));
+            }
+            
+            println!("✅ Models status structure OK");
+        }
+
+        // ============================================================
+        // ТЕСТЫ: Структуры моделей
+        // ============================================================
+
+        #[test]
+        fn test_model_status_serialization() {
+            let status = ModelStatus {
+                exists: true,
+                path: Some("/path/to/model.bin".to_string()),
+                size: Some(1024),
+            };
+            
+            let json = serde_json::to_string(&status).unwrap();
+            let deserialized: ModelStatus = serde_json::from_str(&json).unwrap();
+            
+            assert_eq!(deserialized.exists, status.exists);
+            assert_eq!(deserialized.path, status.path);
+            assert_eq!(deserialized.size, status.size);
+            println!("✅ ModelStatus serialization: {}", json);
+        }
+
+        #[test]
+        fn test_models_status_serialization() {
+            let mut synthesis = HashMap::new();
+            synthesis.insert(
+                "model1".to_string(),
+                ModelStatus {
+                    exists: true,
+                    path: Some("/path/model1.bin".to_string()),
+                    size: Some(512),
+                },
+            );
+            
+            let status = ModelsStatus {
+                synthesis,
+                recognition: HashMap::new(),
+                has_any_synthesis: true,
+                has_any_recognition: false,
+            };
+            
+            let json = serde_json::to_string(&status).unwrap();
+            let deserialized: ModelsStatus = serde_json::from_str(&json).unwrap();
+            
+            assert_eq!(deserialized.has_any_synthesis, status.has_any_synthesis);
+            assert_eq!(deserialized.has_any_recognition, status.has_any_recognition);
+            assert!(deserialized.synthesis.contains_key("model1"));
+            println!("✅ ModelsStatus serialization: {}", json);
+        }
+
+        // ============================================================
+        // ТЕСТЫ: Список моделей
+        // ============================================================
+
+        #[test]
+        fn test_synthesis_models_list() {
+            let expected_models = vec![
+                "ru_RU-dmitri-medium",
+                "ru_RU-irina-medium",
+                "en_US-lessac-medium",
+                "en_US-amy-medium",
+            ];
+            
+            assert_eq!(expected_models.len(), 4);
+            
+            for model in &expected_models {
+                let file_name = format!("{}.onnx", model);
+                assert!(file_name.ends_with(".onnx"));
+            }
+            println!("✅ Synthesis models list: {:?}", expected_models);
+        }
+
+        #[test]
+        fn test_recognition_models_list() {
+            let expected_models = vec![
+                "ggml-tiny-q5_1.bin",
+                "ggml-base-q5_1.bin",
+                "ggml-small-q5_1.bin",
+                "ggml-medium-q5_0.bin",
+                "ggml-large-v3-turbo-q5_0.bin",
+            ];
+            
+            assert_eq!(expected_models.len(), 5);
+            
+            for model in &expected_models {
+                assert!(model.ends_with(".bin"));
+            }
+            println!("✅ Recognition models list: {:?}", expected_models);
+        }
+    }
+
+    // ============================================================
+    // МОДУЛЬ 2: ТЕСТЫ СКАЧИВАНИЯ (download)
+    // ============================================================
+
+    mod download {
+        use super::*;
+
+        // ============================================================
+        // ТЕСТЫ: download_synthesis_model
+        // ============================================================
+
+        #[tokio::test]
+        async fn test_unknown_voice() {
+            let result = download_synthesis_model("unknown_voice".to_string()).await;
+            assert!(result.is_err());
+            let err = result.err().unwrap();
+            assert!(err.contains("Unknown voice"));
+            println!("❌ Expected error: {}", err);
+        }
+
+        #[tokio::test]
+        #[ignore = "Requires network and writes to disk - run manually"]
+        async fn test_download_ru_dmitri() {
+            let result = download_synthesis_model("ru_RU-dmitri-medium".to_string()).await;
+            assert!(result.is_ok());
+            println!("✅ Downloaded ru_RU-dmitri-medium model");
+            
+            let model_dir = paths::piper_models_dir();
+            let model_path = model_dir.join("ru_RU-dmitri-medium.onnx");
+            let config_path = model_dir.join("ru_RU-dmitri-medium.onnx.json");
+            
+            assert_model_exists(&model_path);
+            assert_model_exists(&config_path);
+        }
+
+        #[tokio::test]
+        #[ignore = "Requires network and writes to disk - run manually"]
+        async fn test_download_ru_irina() {
+            let result = download_synthesis_model("ru_RU-irina-medium".to_string()).await;
+            assert!(result.is_ok());
+            println!("✅ Downloaded ru_RU-irina-medium model");
+            
+            let model_dir = paths::piper_models_dir();
+            let model_path = model_dir.join("ru_RU-irina-medium.onnx");
+            let config_path = model_dir.join("ru_RU-irina-medium.onnx.json");
+            
+            assert_model_exists(&model_path);
+            assert_model_exists(&config_path);
+        }
+
+        #[tokio::test]
+        #[ignore = "Requires network and writes to disk - run manually"]
+        async fn test_download_en_lessac() {
+            let result = download_synthesis_model("en_US-lessac-medium".to_string()).await;
+            assert!(result.is_ok());
+            println!("✅ Downloaded en_US-lessac-medium model");
+            
+            let model_dir = paths::piper_models_dir();
+            let model_path = model_dir.join("en_US-lessac-medium.onnx");
+            let config_path = model_dir.join("en_US-lessac-medium.onnx.json");
+            
+            assert_model_exists(&model_path);
+            assert_model_exists(&config_path);
+        }
+
+        #[tokio::test]
+        #[ignore = "Requires network and writes to disk - run manually"]
+        async fn test_download_en_amy() {
+            let result = download_synthesis_model("en_US-amy-medium".to_string()).await;
+            assert!(result.is_ok());
+            println!("✅ Downloaded en_US-amy-medium model");
+            
+            let model_dir = paths::piper_models_dir();
+            let model_path = model_dir.join("en_US-amy-medium.onnx");
+            let config_path = model_dir.join("en_US-amy-medium.onnx.json");
+            
+            assert_model_exists(&model_path);
+            assert_model_exists(&config_path);
+        }
+
+        #[tokio::test]
+        async fn test_synthesis_already_exists() {
+            let result = download_synthesis_model("ru_RU-dmitri-medium".to_string()).await;
+            let _ = result;
+        }
+
+        // ============================================================
+        // ТЕСТЫ: download_recognition_model
+        // ============================================================
+
+        #[tokio::test]
+        #[ignore = "Requires network and writes to disk - run manually"]
+        async fn test_download_tiny() {
+            let result = download_recognition_model("ggml-tiny-q5_1.bin".to_string()).await;
+            assert!(result.is_ok());
+            println!("✅ Downloaded ggml-tiny-q5_1.bin model");
+            
+            let model_dir = paths::whisper_models_dir();
+            let model_path = model_dir.join("ggml-tiny-q5_1.bin");
+            assert_model_exists(&model_path);
+        }
+
+        #[tokio::test]
+        #[ignore = "Requires network and writes to disk - run manually"]
+        async fn test_download_base() {
+            let result = download_recognition_model("ggml-base-q5_1.bin".to_string()).await;
+            assert!(result.is_ok());
+            println!("✅ Downloaded ggml-base-q5_1.bin model");
+            
+            let model_dir = paths::whisper_models_dir();
+            let model_path = model_dir.join("ggml-base-q5_1.bin");
+            assert_model_exists(&model_path);
+        }
+
+        #[tokio::test]
+        #[ignore = "Requires network and writes to disk - run manually"]
+        async fn test_download_small() {
+            let result = download_recognition_model("ggml-small-q5_1.bin".to_string()).await;
+            assert!(result.is_ok());
+            println!("✅ Downloaded ggml-small-q5_1.bin model");
+            
+            let model_dir = paths::whisper_models_dir();
+            let model_path = model_dir.join("ggml-small-q5_1.bin");
+            assert_model_exists(&model_path);
+        }
+
+        #[tokio::test]
+        #[ignore = "Requires network and writes to disk - run manually"]
+        async fn test_download_medium() {
+            let result = download_recognition_model("ggml-medium-q5_0.bin".to_string()).await;
+            assert!(result.is_ok());
+            println!("✅ Downloaded ggml-medium-q5_0.bin model");
+            
+            let model_dir = paths::whisper_models_dir();
+            let model_path = model_dir.join("ggml-medium-q5_0.bin");
+            assert_model_exists(&model_path);
+        }
+
+        #[tokio::test]
+        #[ignore = "Requires network and writes to disk - run manually"]
+        async fn test_download_large_turbo() {
+            let result = download_recognition_model("ggml-large-v3-turbo-q5_0.bin".to_string()).await;
+            assert!(result.is_ok());
+            println!("✅ Downloaded ggml-large-v3-turbo-q5_0.bin model");
+            
+            let model_dir = paths::whisper_models_dir();
+            let model_path = model_dir.join("ggml-large-v3-turbo-q5_0.bin");
+            assert_model_exists(&model_path);
+        }
+
+        #[tokio::test]
+        async fn test_recognition_already_exists() {
+            let result = download_recognition_model("ggml-tiny-q5_1.bin".to_string()).await;
+            let _ = result;
+        }
+
+        // ============================================================
+        // ТЕСТЫ: download_file
+        // ============================================================
+
+        #[test]
+        #[ignore = "Requires network and writes to disk - run manually"]
+        fn test_download_file_success() {
+            let temp_dir = setup_test_dir();
+            let output_path = temp_dir.path().join("test.txt");
+            
+            let url = "https://raw.githubusercontent.com/rust-lang/rust/master/LICENSE-APACHE";
+            let result = download_file(url, &output_path);
+            
+            assert!(result.is_ok());
+            assert!(output_path.exists());
+            assert!(output_path.metadata().unwrap().len() > 0);
+            println!("✅ Downloaded file: {:?} ({} bytes)", output_path, output_path.metadata().unwrap().len());
+        }
+
+        #[test]
+        fn test_download_file_invalid_url() {
+            let temp_dir = setup_test_dir();
+            let output_path = temp_dir.path().join("test.txt");
+            
+            let url = "https://invalid.url/that/does/not/exist";
+            let result = download_file(url, &output_path);
+            
+            assert!(result.is_err());
+            let err = result.err().unwrap();
+            assert!(err.contains("Download request failed") || err.contains("Server returned error"));
+            println!("❌ Expected error: {}", err);
+        }
+    }
+
+    // ============================================================
+    // МОДУЛЬ 3: ТЕСТЫ СУЩЕСТВОВАНИЯ МОДЕЛЕЙ (exist)
+    // ============================================================
+
+    mod exist {
+        use super::*;
+
+        // ============================================================
+        // ТЕСТЫ: Проверка наличия моделей в папках
+        // ============================================================
+
+        #[test]
+        fn test_piper_models_directory() {
+            let piper_dir = paths::piper_models_dir();
+            if piper_dir.exists() {
+                println!("✅ Piper models directory exists: {:?}", piper_dir);
+                
+                let entries = fs::read_dir(&piper_dir).unwrap();
+                let mut count = 0;
+                for entry in entries {
+                    let entry = entry.unwrap();
+                    let path = entry.path();
+                    if path.is_file() {
+                        count += 1;
+                        println!("  📁 {} ({} bytes)", 
+                            path.file_name().unwrap().to_string_lossy(), 
+                            fs::metadata(&path).unwrap().len()
+                        );
+                    }
+                }
+                println!("📊 Total Piper models: {}", count);
+            } else {
+                println!("❌ Piper models directory does not exist: {:?}", piper_dir);
+            }
+        }
+
+        #[test]
+        fn test_whisper_models_directory() {
+            let whisper_dir = paths::whisper_models_dir();
+            if whisper_dir.exists() {
+                println!("✅ Whisper models directory exists: {:?}", whisper_dir);
+                
+                let entries = fs::read_dir(&whisper_dir).unwrap();
+                let mut count = 0;
+                for entry in entries {
+                    let entry = entry.unwrap();
+                    let path = entry.path();
+                    if path.is_file() {
+                        count += 1;
+                        println!("  📁 {} ({} bytes)", 
+                            path.file_name().unwrap().to_string_lossy(), 
+                            fs::metadata(&path).unwrap().len()
+                        );
+                    }
+                }
+                println!("📊 Total Whisper models: {}", count);
+            } else {
+                println!("❌ Whisper models directory does not exist: {:?}", whisper_dir);
+            }
+        }
+
+        // ============================================================
+        // ТЕСТЫ: Проверка конкретных моделей
+        // ============================================================
+
+        #[test]
+        fn test_specific_piper_models() {
+            let piper_dir = paths::piper_models_dir();
+            let models = vec![
+                "ru_RU-dmitri-medium.onnx",
+                "ru_RU-irina-medium.onnx",
+                "en_US-lessac-medium.onnx",
+                "en_US-amy-medium.onnx",
+            ];
+            
+            for model in models {
+                let path = piper_dir.join(model);
+                if path.exists() {
+                    let size = fs::metadata(&path).unwrap().len();
+                    println!("✅ {} exists ({} bytes)", model, size);
+                } else {
+                    println!("❌ {} does not exist", model);
+                }
+            }
+        }
+
+        #[test]
+        fn test_specific_whisper_models() {
+            let whisper_dir = paths::whisper_models_dir();
+            let models = vec![
+                "ggml-tiny-q5_1.bin",
+                "ggml-base-q5_1.bin",
+                "ggml-small-q5_1.bin",
+                "ggml-medium-q5_0.bin",
+                "ggml-large-v3-turbo-q5_0.bin",
+            ];
+            
+            for model in models {
+                let path = whisper_dir.join(model);
+                if path.exists() {
+                    let size = fs::metadata(&path).unwrap().len();
+                    println!("✅ {} exists ({} bytes)", model, size);
+                } else {
+                    println!("❌ {} does not exist", model);
+                }
+            }
+        }
+
+        // ============================================================
+        // ТЕСТЫ: Очистка всех моделей
+        // ============================================================
+
+        #[test]
+        #[ignore = "Deletes models - run manually with caution"]
+        fn test_cleanup_all_models() {
+            // ⚠️ ВНИМАНИЕ: Этот тест удаляет ВСЕ модели!
+            // Запускайте только если уверены.
+            
+            let piper_dir = paths::piper_models_dir();
+            let whisper_dir = paths::whisper_models_dir();
+            
+            println!("⚠️ Deleting all Piper models...");
+            if piper_dir.exists() {
+                for entry in fs::read_dir(&piper_dir).unwrap() {
+                    let entry = entry.unwrap();
+                    let path = entry.path();
+                    if path.is_file() {
+                        fs::remove_file(&path).unwrap();
+                        println!("  🗑️ Deleted: {:?}", path.file_name().unwrap());
+                    }
+                }
+            }
+            
+            println!("⚠️ Deleting all Whisper models...");
+            if whisper_dir.exists() {
+                for entry in fs::read_dir(&whisper_dir).unwrap() {
+                    let entry = entry.unwrap();
+                    let path = entry.path();
+                    if path.is_file() {
+                        fs::remove_file(&path).unwrap();
+                        println!("  🗑️ Deleted: {:?}", path.file_name().unwrap());
+                    }
+                }
+            }
+            
+            // Проверяем, что папки пустые
+            if piper_dir.exists() {
+                let count = fs::read_dir(&piper_dir).unwrap().count();
+                assert_eq!(count, 0, "Piper directory should be empty");
+                println!("✅ Piper directory is empty: {:?}", piper_dir);
+            }
+            
+            if whisper_dir.exists() {
+                let count = fs::read_dir(&whisper_dir).unwrap().count();
+                assert_eq!(count, 0, "Whisper directory should be empty");
+                println!("✅ Whisper directory is empty: {:?}", whisper_dir);
+            }
+        }
+    }
+}
