@@ -1,4 +1,4 @@
-<!-- +page.svelte -->
+<!-- src/routes/convert/[format]/+page.svelte -->
 <script lang="ts">
   import { page } from '$app/state';
   import { goto } from '$app/navigation';
@@ -41,7 +41,7 @@
     getArchiveFileName,
     getUniqueFileName,
     getArchiveName,
-    cleanupMissingFiles,
+    filterExistingFiles,
   } from '$lib/utils/convert';
 
   let isAddToList = $state(false);
@@ -163,20 +163,6 @@
     }
   }
 
-  async function animateAllFilesRemove() {
-    const items = document.querySelectorAll('[data-file-item]');
-    const animations = Array.from(items).map(el =>
-      (el as HTMLElement).animate(
-        [
-          { transform: 'translateX(0)', opacity: 1 },
-          { transform: 'translateX(300px)', opacity: 0 },
-        ],
-        { duration: 300, easing: 'ease-in', fill: 'forwards' }
-      ).finished
-    );
-    await Promise.all(animations);
-  }
-
   async function switchMode(mode: 'file' | 'text') {
     if (inputMode === mode || isAnimating) return;
     
@@ -219,6 +205,16 @@
   }
 
   // ============================================================
+  // УДАЛЕНИЕ ФАЙЛА БЕЗ ПОДТВЕРЖДЕНИЯ (для несуществующих файлов)
+  // ============================================================
+
+  async function removeFileWithoutConfirm(file: { id: string; name: string }) {
+    await animateFileRemove(file.id);
+    appState.removeFileFromFormat(sourceFormatId, file.id);
+    toast.info(m.file_removed({ name: file.name }));
+  }
+
+  // ============================================================
   // ИНИЦИАЛИЗАЦИЯ И ВОССТАНОВЛЕНИЕ СОСТОЯНИЯ
   // ============================================================
 
@@ -237,14 +233,21 @@
         
         isLoading = false;
         
-        const removedCount = await cleanupMissingFiles(
-          sourceFormatId,
-          () => appState.getFilesForFormat(sourceFormatId),
-          (id, ids) => appState.removeFilesById(id, ids)
+        // Проверяем несуществующие файлы
+        const currentFiles = appState.getFilesForFormat(sourceFormatId);
+        const { missing } = await filterExistingFiles(
+          currentFiles.map(f => ({ path: f.path, id: f.id }))
         );
         
-        if (removedCount > 0) {
-          toast.warning(`Удалено ${removedCount} несуществующих файлов из списка`);
+        // Удаляем с анимацией
+        if (missing.length > 0) {
+          for (const missingFile of missing) {
+            const fullFile = currentFiles.find(f => f.id === missingFile.id);
+            if (fullFile) {
+              await removeFileWithoutConfirm(fullFile);
+            }
+          }
+          toast.warning(`Удалено ${missing.length} несуществующих файлов из списка`);
         }
         
         return;
@@ -257,6 +260,7 @@
             if (f) {
               sourceFormat = f;
               targetFormats = getTargetFormats(getFormats(), sourceFormatId);
+              appState.currentFormatId = sourceFormatId;
               
               const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
               if (savedTargetId && targetFormats.length > 0) {
@@ -268,14 +272,21 @@
               
               isLoading = false;
               
-              const removedCount = await cleanupMissingFiles(
-                sourceFormatId,
-                () => appState.getFilesForFormat(sourceFormatId),
-                (id, ids) => appState.removeFilesById(id, ids)
+              // Проверяем несуществующие файлы
+              const currentFiles = appState.getFilesForFormat(sourceFormatId);
+              const { missing } = await filterExistingFiles(
+                currentFiles.map(f => ({ path: f.path, id: f.id }))
               );
               
-              if (removedCount > 0) {
-                toast.warning(`Удалено ${removedCount} несуществующих файлов из списка`);
+              // Удаляем с анимацией
+              if (missing.length > 0) {
+                for (const missingFile of missing) {
+                  const fullFile = currentFiles.find(f => f.id === missingFile.id);
+                  if (fullFile) {
+                    await removeFileWithoutConfirm(fullFile);
+                  }
+                }
+                toast.warning(`Удалено ${missing.length} несуществующих файлов из списка`);
               }
             } else {
               loadError = m.format_not_found() + ` "${sourceFormatId}"`;

@@ -8,20 +8,6 @@ export function getTargetFormats(
   return formats.filter(f => f.id !== sourceFormatId);
 }
 
-export function getTargetFormatsWithAvailability(
-  formats: Format[],
-  sourceFormatId: string,
-  availability: { available_formats?: string[] } | null,
-): { format: Format; available: boolean }[] {
-  const availableIds = availability?.available_formats || [];
-  return formats
-    .filter(f => f.id !== sourceFormatId)
-    .map(f => ({
-      format: f,
-      available: availableIds.includes(f.id),
-    }));
-}
-
 export function getInputMode(
   availability: { enable_text_mode?: boolean } | null,
   defaultMode: "file" | "text" = "file",
@@ -72,7 +58,6 @@ export function getUniqueFileName(
     return fileName;
   }
 
-  // Проверяем, есть ли расширение
   const lastDotIndex = fileName.lastIndexOf(".");
   const hasExtension = lastDotIndex > 0 && lastDotIndex < fileName.length - 1;
 
@@ -109,12 +94,9 @@ export function getArchiveName(format: string = "zip"): string {
 }
 
 // ============================================================
-// НОВЫЕ ФУНКЦИИ ДЛЯ ПРОВЕРКИ СУЩЕСТВОВАНИЯ ФАЙЛОВ
+// ФУНКЦИИ ДЛЯ ПРОВЕРКИ СУЩЕСТВОВАНИЯ ФАЙЛОВ
 // ============================================================
 
-/**
- * Проверяет, существует ли файл по указанному пути
- */
 export async function fileExists(path: string): Promise<boolean> {
   try {
     const { invoke } = await import("@tauri-apps/api/core");
@@ -125,9 +107,6 @@ export async function fileExists(path: string): Promise<boolean> {
   }
 }
 
-/**
- * Разделяет файлы на существующие и отсутствующие
- */
 export async function filterExistingFiles<
   T extends { path: string; id: string },
 >(files: T[]): Promise<{ existing: T[]; missing: T[] }> {
@@ -144,26 +123,4 @@ export async function filterExistingFiles<
   }
 
   return { existing, missing };
-}
-
-/**
- * Проверяет файлы в store и удаляет отсутствующие
- * Возвращает количество удаленных файлов
- */
-export async function cleanupMissingFiles(
-  formatId: string,
-  getFiles: () => { path: string; id: string }[],
-  removeFilesById: (formatId: string, ids: string[]) => void,
-): Promise<number> {
-  const files = getFiles();
-  if (files.length === 0) return 0;
-
-  const { missing } = await filterExistingFiles(files);
-
-  if (missing.length > 0) {
-    const missingIds = missing.map(f => f.id);
-    removeFilesById(formatId, missingIds);
-  }
-
-  return missing.length;
 }

@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   getTargetFormats,
-  getTargetFormatsWithAvailability,
   getInputMode,
   formatFileSize,
   formatSize,
@@ -35,47 +34,6 @@ describe("convert utils", () => {
       const result = getTargetFormats(mockFormats, "pdf");
       expect(result).toHaveLength(2);
       expect(result.map(f => f.id)).toEqual(["json", "yaml"]);
-    });
-  });
-
-  // ============================================================
-  // getTargetFormatsWithAvailability
-  // ============================================================
-
-  describe("getTargetFormatsWithAvailability", () => {
-    it("should mark formats as available", () => {
-      const availability = { available_formats: ["yaml", "pdf"] };
-      const result = getTargetFormatsWithAvailability(
-        mockFormats,
-        "json",
-        availability,
-      );
-      expect(result).toHaveLength(2);
-      expect(result[0].available).toBe(true);
-      expect(result[1].available).toBe(true);
-    });
-
-    it("should mark formats as unavailable", () => {
-      const availability = { available_formats: ["pdf"] };
-      const result = getTargetFormatsWithAvailability(
-        mockFormats,
-        "json",
-        availability,
-      );
-      expect(result).toHaveLength(2);
-      expect(result[0].available).toBe(false);
-      expect(result[1].available).toBe(true);
-    });
-
-    it("should handle null availability", () => {
-      const result = getTargetFormatsWithAvailability(
-        mockFormats,
-        "json",
-        null,
-      );
-      expect(result).toHaveLength(2);
-      expect(result[0].available).toBe(false);
-      expect(result[1].available).toBe(false);
     });
   });
 
