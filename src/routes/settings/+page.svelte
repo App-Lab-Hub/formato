@@ -437,42 +437,57 @@
             </div>
           </div>
 
-          <!-- Архивация -->
-          <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
-            <div class="flex items-center gap-3 mb-4">
-              <Archive class="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              <div>
-                <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">{m.settings_archive()}</h2>
-                <p class="text-sm dark:text-muted-foreground light:text-purple-700/70">{m.settings_archive_desc()}</p>
-              </div>
+        <!-- Архивация -->
+        <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
+          <div class="flex items-center gap-3 mb-4">
+            <Archive class="h-5 w-5 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+            <div>
+              <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">{m.settings_archive()}</h2>
+              <p class="text-sm dark:text-muted-foreground light:text-purple-700/70">{m.settings_archive_desc()}</p>
             </div>
-            <div class="flex items-center justify-between mb-4">
-              <span class="text-sm dark:text-muted-foreground light:text-purple-700/70">{m.settings_archive_enable()}</span>
-              <button 
-                onclick={() => enableArchive = !enableArchive}
-                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {enableArchive ? 'bg-purple-600 dark:bg-purple-500' : 'dark:bg-muted-foreground/20 light:bg-purple-300/40'}"
-              >
-                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {enableArchive ? 'left-6' : 'left-0.5'}"></span>
-              </button>
-            </div>
-            {#if enableArchive}
-              <div class="grid grid-cols-3 gap-3 mt-3 pt-3 dark:border-t border-border/50 light:border-t border-purple-300/40">
-                {#each [
-                  { id: 'zip', label: 'ZIP', desc: m.settings_archive_zip() },
-                  { id: 'tar.gz', label: 'TAR.GZ', desc: m.settings_archive_tar_gz() },
-                  { id: 'tar.xz', label: 'TAR.XZ', desc: m.settings_archive_tar_xz() }
-                ] as opt}
-                  <button 
-                    onclick={() => archiveFormat = opt.id}
-                    class="cursor-pointer px-4 py-3 rounded-xl border-2 transition-all text-left {archiveFormat === opt.id ? 'border-purple-600 bg-purple-300/50 text-purple-800 dark:border-purple-400 dark:bg-purple-500/20 dark:text-purple-300' : 'dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60'}"
-                  >
-                    <span class="text-sm font-medium">{opt.label}</span>
-                    <p class="text-xs dark:text-muted-foreground light:text-purple-700/60 mt-1">{opt.desc}</p>
-                  </button>
-                {/each}
-              </div>
-            {/if}
           </div>
+          
+          <div class="flex items-center justify-between mb-4">
+            <span id="archive-toggle-label" class="text-sm dark:text-muted-foreground light:text-purple-700/70">
+              {m.settings_archive_enable()}
+            </span>
+            <button 
+              onclick={() => enableArchive = !enableArchive}
+              class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {enableArchive ? 'bg-purple-600 dark:bg-purple-500' : 'dark:bg-muted-foreground/20 light:bg-purple-300/40'}"
+              role="switch"
+              aria-checked={enableArchive}
+              aria-labelledby="archive-toggle-label"
+              type="button"
+            >
+              <span class="sr-only">
+                {enableArchive ? m.settings_archive_disable() : m.settings_archive_enable()}
+              </span>
+              <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {enableArchive ? 'left-6' : 'left-0.5'}"></span>
+            </button>
+          </div>
+          
+          {#if enableArchive}
+            <div class="grid grid-cols-3 gap-3 mt-3 pt-3 dark:border-t border-border/50 light:border-t border-purple-300/40" role="radiogroup" aria-label={m.settings_archive_format_selection()}>
+              {#each [
+                { id: 'zip', label: 'ZIP', desc: m.settings_archive_zip() },
+                { id: 'tar.gz', label: 'TAR.GZ', desc: m.settings_archive_tar_gz() },
+                { id: 'tar.xz', label: 'TAR.XZ', desc: m.settings_archive_tar_xz() }
+              ] as opt}
+                <button 
+                  onclick={() => archiveFormat = opt.id}
+                  class="cursor-pointer px-4 py-3 rounded-xl border-2 transition-all text-left {archiveFormat === opt.id ? 'border-purple-600 bg-purple-300/50 text-purple-800 dark:border-purple-400 dark:bg-purple-500/20 dark:text-purple-300' : 'dark:border-border light:border-purple-300/40 dark:hover:border-purple-400/50 light:hover:border-purple-500/60 dark:bg-transparent light:bg-purple-100/40 dark:hover:bg-transparent light:hover:bg-purple-200/60'}"
+                  role="radio"
+                  aria-checked={archiveFormat === opt.id}
+                  aria-label={m.select_archive_format({ format: opt.label })}
+                  type="button"
+                >
+                  <span class="text-sm font-medium">{opt.label}</span>
+                  <p class="text-xs dark:text-muted-foreground light:text-purple-700/60 mt-1">{opt.desc}</p>
+                </button>
+              {/each}
+            </div>
+          {/if}
+        </div>
 
           <!-- Макс. размер предпросмотра -->
           <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
@@ -501,43 +516,51 @@
             </div>
           </div>
 
-          <!-- Показывать расширения -->
-          <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <FileCheck class="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                <div>
-                  <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">{m.settings_show_extensions()}</h2>
-                  <p class="text-sm dark:text-muted-foreground light:text-purple-700/70">{m.settings_show_extensions_desc()}</p>
-                </div>
+        <!-- Показывать расширения -->
+        <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <FileCheck class="h-5 w-5 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+              <div>
+                <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">{m.settings_show_extensions()}</h2>
+                <p class="text-sm dark:text-muted-foreground light:text-purple-700/70">{m.settings_show_extensions_desc()}</p>
               </div>
-              <button 
-                onclick={() => showExtensions = !showExtensions}
-                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {showExtensions ? 'bg-purple-600 dark:bg-purple-500' : 'dark:bg-muted-foreground/20 light:bg-purple-300/40'}"
-              >
-                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {showExtensions ? 'left-6' : 'left-0.5'}"></span>
-              </button>
             </div>
+            <button 
+              onclick={() => showExtensions = !showExtensions}
+              class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {showExtensions ? 'bg-purple-600 dark:bg-purple-500' : 'dark:bg-muted-foreground/20 light:bg-purple-300/40'}"
+              role="switch"
+              aria-checked={showExtensions}
+              aria-label={showExtensions ? m.settings_show_extensions_hide() : m.settings_show_extensions_show()}
+              type="button"
+            >
+              <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {showExtensions ? 'left-6' : 'left-0.5'}"></span>
+            </button>
           </div>
+        </div>
 
-          <!-- Кэширование -->
-          <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-3">
-                <Database class="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                <div>
-                  <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">{m.settings_enable_cache()}</h2>
-                  <p class="text-sm dark:text-muted-foreground light:text-purple-700/70">{m.settings_enable_cache_desc()}</p>
-                </div>
+        <!-- Кэширование -->
+        <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <Database class="h-5 w-5 text-purple-600 dark:text-purple-400" aria-hidden="true" />
+              <div>
+                <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">{m.settings_enable_cache()}</h2>
+                <p class="text-sm dark:text-muted-foreground light:text-purple-700/70">{m.settings_enable_cache_desc()}</p>
               </div>
-              <button 
-                onclick={() => enableCache = !enableCache}
-                class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {enableCache ? 'bg-purple-600 dark:bg-purple-500' : 'dark:bg-muted-foreground/20 light:bg-purple-300/40'}"
-              >
-                <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {enableCache ? 'left-6' : 'left-0.5'}"></span>
-              </button>
             </div>
+            <button 
+              onclick={() => enableCache = !enableCache}
+              class="cursor-pointer relative w-12 h-6 rounded-full transition-colors {enableCache ? 'bg-purple-600 dark:bg-purple-500' : 'dark:bg-muted-foreground/20 light:bg-purple-300/40'}"
+              role="switch"
+              aria-checked={enableCache}
+              aria-label={enableCache ? m.settings_enable_cache_disable() : m.settings_enable_cache_enable()}
+              type="button"
+            >
+              <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {enableCache ? 'left-6' : 'left-0.5'}"></span>
+            </button>
           </div>
+        </div>
 
           <!-- Безопасность -->
           <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">

@@ -345,10 +345,17 @@
   "files_load_error": "Не удалось загрузить файлы",
 
   "pagination_prev": "Назад",
-  "pagination_next": "Вперёд",
+  "pagination_next": "Вперед",
   "files_showing": "Показано {from}–{to} из {total}",
   "files_delete_page": "Удалить страницу {page} ({count} файлов)",
   "files_delete_all_filtered": "Удалить все ({count} файлов)",
   "confirm_delete_page": "Удалить {count} файлов на странице {page}?",
-  "confirm_delete_all_filtered": "Удалить все {count} файлов в текущем фильтре?"
+  "confirm_delete_all_filtered": "Удалить все {count} файлов в текущем фильтре?",
+  "settings_archive_disable": "Отключить архивацию",
+  "select_archive_format": "Выбрать формат {format}",
+  "settings_archive_format_selection": "Выбор формата архива",
+  "settings_show_extensions_show": "Показать расширения",
+  "settings_show_extensions_hide": "Скрыть расширения",
+  "settings_enable_cache_enable": "Включить кэш",
+  "settings_enable_cache_disable": "Отключить кэш"
 }

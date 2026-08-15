@@ -350,5 +350,14 @@
   "files_delete_page": "Delete page {page} ({count} files)",
   "files_delete_all_filtered": "Delete all ({count} files)",
   "confirm_delete_page": "Delete {count} files on page {page}?",
-  "confirm_delete_all_filtered": "Delete all {count} files in current filter?"
+  "confirm_delete_all_filtered": "Delete all {count} files in current filter?",
+  "settings_archive_disable": "Disable archiving",
+  "select_archive_format": "Select {format} format",
+  "settings_archive_format_selection": "Archive format selection",
+
+  "settings_show_extensions_show": "Show extensions",
+  "settings_show_extensions_hide": "Hide extensions",
+
+  "settings_enable_cache_enable": "Enable cache",
+  "settings_enable_cache_disable": "Disable cache"
 }

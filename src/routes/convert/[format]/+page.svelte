@@ -40,24 +40,22 @@
   
   let isAnimating = $state(false);
   let sourceFormat = $state<Format | undefined>(getFormatById(sourceFormatId));
-  let isLoading = $state(!isFormatsLoaded() && !sourceFormat);
+  let isLoading = $derived(!isFormatsLoaded() && !sourceFormat);
   let loadError = $state<string | null>(null);
   let targetFormats = $state<Format[]>([]);
 
   let selectedTarget = $state<Format | null>(null);
   
-  // Получаем файлы для текущего формата из store
   let files = $derived(appState.getFilesForFormat(sourceFormatId));
   let totalFiles = $derived(appState.getTotalFilesForFormat(sourceFormatId));
-  
-  // Получаем сконвертированные файлы из store
+
   let convertedFiles = $derived(appState.getConvertedFilesForFormat(sourceFormatId));
 
   // Состояние конвертации — используем SvelteSet для реактивности
   let convertingFileIds = $state(new SvelteSet<string>());
 
-  let inputMode = $state<'file' | 'text'>(
-    availability?.enable_text_mode ? 'file' : 'file'
+  let inputMode = $derived<'file' | 'text'>(
+    availability?.enable_text_mode ? 'text' : 'file'
   );
   let containerEl: HTMLDivElement | undefined = $state();
 

@@ -16,28 +16,9 @@
     onselect: (format: Format) => void;
   } = $props();
 
-  const Icon = format.icon;
-  const isAvailable = status === 'available' || status === 'available_with_ai';
-  const isNotAvailable = status === 'not_available';
+  const isAvailable = $derived(status === 'available');
 
-  function getStatusInfo() {
-    if (isAvailable) {
-      return { 
-        label: m.format_status_available(),
-        color: 'text-green-400 border-green-400/30 bg-green-500/10',
-        icon: Check,
-      };
-    } else {
-      return { 
-        label: m.format_status_unavailable(),
-        color: 'text-red-400 border-red-400/30 bg-red-500/10',
-        icon: Lock,
-      };
-    }
-  }
-
-  const statusInfo = getStatusInfo();
-
+  
   function handleCardClick() {
     if (isAvailable) {
       onselect(format);
