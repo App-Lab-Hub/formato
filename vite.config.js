@@ -1,12 +1,10 @@
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
+import { playwright } from "@vitest/browser-playwright";
 
-// import { monacoEditorPlugin } from "vite-plugin-monaco-editor-esm"; // ESM импорт
-const host = process.env.TAURI_DEV_HOST;
-
-export default defineConfig(async () => ({
+export default defineConfig({
   plugins: [
     tailwindcss(),
     sveltekit(),
@@ -16,12 +14,30 @@ export default defineConfig(async () => ({
       strategy: ["globalVariable", "baseLocale"],
     }),
   ],
-  clearScreen: false,
-  server: {
-    port: 1420,
-    strictPort: true,
-    host: host || false,
-    hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
-    watch: { ignored: ["**/src-tauri/**"] },
+  test: {
+    include: ["src/**/*.test.ts", "src/**/*.spec.ts"],
+    globals: true,
+    browser: {
+      enabled: true,
+      headless: true,
+      provider: playwright(), // <-- 2. ВЫЗЫВАЕМ ФУНКЦИЮ (Типы теперь совпадут!)
+      instances: [
+        { browser: "chromium" }, // <-- 3. ЗАДАЕМ БРАУЗЕР ЧЕРЕЗ INSTANCES
+      ],
+    },
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html"],
+      exclude: [
+        "node_modules/",
+        "src/**/*.test.ts",
+        "src/**/*.spec.ts",
+        "src/lib/paraglide/**",
+        "src-tauri/**",
+      ],
+    },
   },
-}));
+  resolve: {
+    conditions: ["browser"],
+  },
+});

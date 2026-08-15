@@ -13,8 +13,13 @@
   import FormatoLogo from '$lib/components/FormatoLogo.svelte';
   import type { Format } from '$lib/types/format';
   import { m } from '$lib/paraglide/messages';
-
-  const SPLIDE_INDEX_KEY = 'splide_active_index';
+  import { 
+    SPLIDE_INDEX_KEY, 
+    normalizeIndex, 
+    goToConvert, 
+    restoreSplidePosition,
+    shouldClearOnRefresh 
+  } from '$lib/utils/splide';
 
   const splideOptions = {
     type: 'loop' as const,
@@ -49,47 +54,28 @@
     return map;
   });
 
-  function normalizeIndex(index: number): number {
-    if (index < 0) {
-      return (index % formats.length + formats.length) % formats.length;
-    } else {
-      return index % formats.length;
-    }
+  function handleGoToConvert(formatId: string, index: number) {
+    goToConvert(formatId, index, browser, sessionStorage, goto);
   }
 
-  function goToConvert(formatId: string, index: number) {
-    if (browser && index >= 0) {
-      sessionStorage.setItem(SPLIDE_INDEX_KEY, String(index));
-    }
-    goto(`/convert/${formatId}`);
-  }
-
-  function restoreSplidePosition() {
-    if (!splideInstance || isRestoring) return;
-    
-    try {
-      const savedIndex = sessionStorage.getItem(SPLIDE_INDEX_KEY);
-      if (savedIndex) {
-        const index = parseInt(savedIndex);
-        if (index >= 0 && index < formats.length) {
-          isRestoring = true;
-          splideInstance.go(index, 0);
-          isRestoring = false;
-        }
-      }
-    } catch (e) {
-      isRestoring = false;
-    }
+  function handleRestoreSplidePosition() {
+    restoreSplidePosition(
+      splideInstance,
+      isRestoring,
+      (value) => { isRestoring = value; },
+      formats.length,
+      sessionStorage
+    );
   }
 
   onMount(() => {
-    const navigationType = performance?.navigation?.type;
-    if (navigationType === 1) {
+    if (shouldClearOnRefresh(performance)) {
       sessionStorage.removeItem(SPLIDE_INDEX_KEY);
     }
   });
 </script>
 
+<!-- Шаблон -->
 <ScrollContainer>
   <div class="min-h-full flex flex-col bg-background text-foreground">
     <Header />
@@ -109,16 +95,16 @@
               if (splideInstance) {
                 splideInstance.on('click', (Slide: any) => {
                   const slideIndex = Slide.index;
-                  const realIndex = normalizeIndex(slideIndex);
+                  const realIndex = normalizeIndex(slideIndex, formats.length);
                   const format = formatMap.get(realIndex);
                   
                   if (format) {
-                    goToConvert(format.id, realIndex);
+                    handleGoToConvert(format.id, realIndex);
                   }
                 });
               }
               
-              restoreSplidePosition();
+              handleRestoreSplidePosition();
             }}
           >
             {#each formats as format, index}
