@@ -266,7 +266,6 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
                         // headers не чистим — они перезапишутся в TableHead
                     }
                     pulldown_cmark::Tag::TableHead => {
-                        
                         table_cells.clear();
                     }
                     pulldown_cmark::Tag::TableRow => {
@@ -389,7 +388,6 @@ pub fn parse_markdown(input: &str) -> Result<Json, String> {
                     pulldown_cmark::TagEnd::TableHead => {
                         // Сохраняем заголовки и очищаем
                         table_headers = std::mem::take(&mut table_cells);
-                        
                     }
                     pulldown_cmark::TagEnd::TableRow => {
                         let mut row = serde_json::Map::new();

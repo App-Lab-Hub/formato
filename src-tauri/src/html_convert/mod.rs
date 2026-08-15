@@ -2,8 +2,6 @@ use serde_json::{json, Value as Json};
 
 use scraper::{ElementRef, Html};
 
-
-
 pub fn parse_html(input: &str) -> Result<Json, String> {
     let document = Html::parse_document(input);
 

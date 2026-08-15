@@ -48,11 +48,7 @@ pub fn parse_docx(path: &str) -> Result<Json, String> {
     let images: Vec<Json> = Vec::new();
     let lists: Vec<Json> = Vec::new();
 
-    parse_docx_content(
-        &docx.document,
-        &mut paragraphs,
-        &mut tables,
-    );
+    parse_docx_content(&docx.document, &mut paragraphs, &mut tables);
 
     let full_text: String = paragraphs.join("\n");
     let chars: Vec<String> = full_text.chars().map(|c| c.to_string()).collect();
@@ -143,14 +139,14 @@ fn parse_table(table: &Table) -> Vec<Json> {
 
     for table_child in &table.rows {
         // TableChild всегда содержит TableRow
-        let TableChild::TableRow(row) = table_child;  // ← убрали if let
-        
+        let TableChild::TableRow(row) = table_child; // ← убрали if let
+
         let mut row_cells = Vec::new();
 
         for row_child in &row.cells {
             // TableRowChild всегда содержит TableCell
-            let TableRowChild::TableCell(cell) = row_child;  // ← убрали if let
-            
+            let TableRowChild::TableCell(cell) = row_child; // ← убрали if let
+
             let mut cell_text = String::new();
 
             // Здесь if let оставляем, потому что TableCellContent имеет несколько вариантов

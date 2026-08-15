@@ -1,13 +1,13 @@
 use crate::convert::calculate_conversion_hash;
 use crate::convert::get_app_dir_path_with_hash;
+use lo_writer::{save_odt, WriterEditor};
 use quick_xml::events::Event;
 use quick_xml::Reader as XmlReader;
+use quick_xml::XmlVersion;
 use serde_json::Value as Json;
 use std::fs::File;
 use std::io::Read;
 use zip::ZipArchive;
-use quick_xml::XmlVersion; 
-use lo_writer::{save_odt, WriterEditor};
 
 /// Создает структурированный ODT из текстовой строки с сохранением YAML-отступов
 pub fn stringify_odt(text: &str, path: &str, from: &str, to: &str) -> Result<String, String> {

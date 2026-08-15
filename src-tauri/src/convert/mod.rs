@@ -332,9 +332,8 @@ pub async fn convert_document_to_document(
         .map_err(|e| format!("Hash error convert_document_to_document: {e}"))?;
 
     // Вспомогательная функция для генерации пути
-    let out_path = |ext: &str| -> Result<String, String> {
-        get_app_dir_path_with_hash(path, ext, &hash)
-    };
+    let out_path =
+        |ext: &str| -> Result<String, String> { get_app_dir_path_with_hash(path, ext, &hash) };
 
     match (from, to) {
         // ---------- DOCX ----------
