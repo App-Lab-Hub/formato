@@ -2,7 +2,6 @@ import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import { defineConfig } from "vitest/config";
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { playwright } from "@vitest/browser-playwright";
 
 export default defineConfig({
   plugins: [
@@ -15,16 +14,10 @@ export default defineConfig({
     }),
   ],
   test: {
-    include: ["src/**/*.test.ts", "src/**/*.spec.ts"],
+    include: ["src/**/*.{test,spec}.{js,ts}"],
     globals: true,
-    browser: {
-      enabled: true,
-      headless: true,
-      provider: playwright(), // <-- 2. ВЫЗЫВАЕМ ФУНКЦИЮ (Типы теперь совпадут!)
-      instances: [
-        { browser: "chromium" }, // <-- 3. ЗАДАЕМ БРАУЗЕР ЧЕРЕЗ INSTANCES
-      ],
-    },
+    environment: "jsdom",
+    setupFiles: ["./vitest-setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "html"],
@@ -36,8 +29,19 @@ export default defineConfig({
         "src-tauri/**",
       ],
     },
+    alias: {
+      $lib: "./src/lib",
+    },
+  },
+  server: {
+    watch: {
+      ignored: ["**/src-tauri/target/**"],
+    },
   },
   resolve: {
     conditions: ["browser"],
+    alias: {
+      $lib: "/src/lib",
+    },
   },
 });
