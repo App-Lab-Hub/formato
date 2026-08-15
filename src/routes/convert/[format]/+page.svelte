@@ -247,7 +247,7 @@
               await removeFileWithoutConfirm(fullFile);
             }
           }
-          toast.warning(`Удалено ${missing.length} несуществующих файлов из списка`);
+          toast.warning(m.files_removed_pending({ count: missing.length }));
         }
         
         return;
@@ -286,7 +286,7 @@
                     await removeFileWithoutConfirm(fullFile);
                   }
                 }
-                toast.warning(`Удалено ${missing.length} несуществующих файлов из списка`);
+                toast.warning(m.files_removed_pending({ count: missing.length }));
               }
             } else {
               loadError = m.format_not_found() + ` "${sourceFormatId}"`;
@@ -455,7 +455,7 @@
     toast.success(m.files_deleted({ count: filesToRemove.length }));
     
     if (filesToRemove.length < files.length) {
-      toast.warning(m.files_skipped_converting());
+      toast.warning(m.files_skipped_converting_en());
     }
   }
 
