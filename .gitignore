@@ -1,16 +1,57 @@
+# OS
 .DS_Store
-node_modules
+Thumbs.db
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Build
 /build
+/dist
 /.svelte-kit
 /package
+
+# Environment
 .env
 .env.*
 !.env.example
+
+# Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+*.timestamp-*
+
+# Static copied files
 static/package.json
 static/Cargo.toml
-# Paraglide
+
+# Paraglide (i18n)
 src/lib/paraglide
 project.inlang/cache/
-fixtures
+
+# Test fixtures (generated)
+fixtures/
+
+# Coverage
+coverage/
+.vitest-attachments/
+
+# Tauri
+src-tauri/target/
+src-tauri/gen/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/

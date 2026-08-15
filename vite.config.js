@@ -1,7 +1,9 @@
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vite"; // ← обычный vite, не vitest/config
 import { sveltekit } from "@sveltejs/kit/vite";
 import tailwindcss from "@tailwindcss/vite";
+
+const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
   plugins: [
@@ -13,33 +15,22 @@ export default defineConfig({
       strategy: ["globalVariable", "baseLocale"],
     }),
   ],
-  test: {
-    include: ["src/**/*.{test,spec}.{js,ts}"],
-    globals: true,
-    environment: "jsdom",
-    setupFiles: ["./vitest-setup.ts"],
-    coverage: {
-      provider: "v8",
-      reporter: ["text", "html"],
-      exclude: [
-        "node_modules/",
-        "src/**/*.test.ts",
-        "src/**/*.spec.ts",
-        "src/lib/paraglide/**",
-        "src-tauri/**",
-      ],
-    },
-    alias: {
-      $lib: "./src/lib",
-    },
-  },
+  clearScreen: false,
   server: {
+    port: 1420,
+    strictPort: true,
+    host: host || false,
+    hmr: host ? { protocol: "ws", host, port: 1421 } : undefined,
     watch: {
-      ignored: ["**/src-tauri/target/**"],
+      ignored: [
+        "**/src-tauri/target/**",
+        "**/src-tauri/**",
+        "**/.svelte-kit/**",
+        "**/coverage/**",
+      ],
     },
   },
   resolve: {
-    conditions: ["browser"],
     alias: {
       $lib: "/src/lib",
     },
