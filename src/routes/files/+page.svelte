@@ -1,5 +1,5 @@
 <!-- src/routes/files/+page.svelte -->
-<script lang="ts">
+ <script lang="ts">
   import type { PageProps } from './$types';
   import { goto, invalidateAll } from '$app/navigation';
   import { formatFileSize } from '$lib/utils/format';
@@ -19,10 +19,21 @@
   import TooltipTrigger from '$lib/components/ui/tooltip/tooltip-trigger.svelte';
   import TooltipContent from '$lib/components/ui/tooltip/tooltip-content.svelte';
   import BackButton from '$lib/components/BackButton.svelte';
+  import {
+    getTypeLabel,
+    getTypeColor,
+    formatDate,
+    getEmptyMessage,
+    filterFiles,
+    getCurrentPageFiles,
+    getTotalPages,
+    goToPage as goToPageUtil,
+    getPaginationInfo,
+    getPageNumbers,
+  } from '$lib/utils/files';
 
   let { data }: PageProps = $props();
   
-  // 🔥 Данные из layout
   let files: FileInfo[] = $derived(data.files);
   let totalFiles = $derived(data.totalFiles);
   let totalSize = $derived(data.totalSize);
@@ -33,73 +44,46 @@
   let searchQuery = $state('');
   let filterType = $state<'all' | 'converted' | 'temp'>('all');
 
-  // 🔥 Фильтрация на клиенте
-  let filteredFiles = $derived(
-    files.filter(f => {
-      const matchesSearch = f.name.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesType = filterType === 'all' || f.file_type === filterType;
-      return matchesSearch && matchesType;
-    })
-  );
+  let filteredFiles: FileInfo[] = $derived(filterFiles(files, searchQuery, filterType));
   
-  // 🔥 Пагинация
   let currentPage = $state(0);
   const ITEMS_PER_PAGE = 20;
-  let totalPages = $derived(Math.ceil(filteredFiles.length / ITEMS_PER_PAGE));
+  let totalPages = $derived(getTotalPages(filteredFiles.length, ITEMS_PER_PAGE));
   
-  // 🔥 Текущие файлы на странице
-  let currentPageFiles = $derived(
-    filteredFiles.slice(currentPage * ITEMS_PER_PAGE, (currentPage + 1) * ITEMS_PER_PAGE)
+  // ✅ Явно указываем тип FileInfo[]
+  let currentPageFiles: FileInfo[] = $derived(
+    getCurrentPageFiles(filteredFiles, currentPage, ITEMS_PER_PAGE)
   );
   
-  // Храним путь файла, который сейчас удаляется
   let deletingFilePath = $state<string | null>(null);
-  // Храним ID файлов для анимации удаления
   let deletingFileIds = $state<Set<string>>(new Set());
   
-  // Реф для контейнера списка
   let listContainer: HTMLDivElement | undefined = $state();
   let isFilterAnimating = $state(false);
 
-  // Реф для модального окна
   let modalOverlay: HTMLDivElement | undefined = $state();
   let modalContent: HTMLDivElement | undefined = $state();
   let isModalOpening = $state(false);
   let isModalClosing = $state(false);
 
-  // Функция для задержки
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
   function goBack() {
     goto('/');
   }
 
-  // 🔥 Переключение страницы с проверкой
   function goToPage(page: number) {
-    if (page < 0) {
-      currentPage = 0;
-      return;
-    }
-    if (page >= totalPages) {
-      currentPage = Math.max(0, totalPages - 1);
-      return;
-    }
-    currentPage = page;
+    currentPage = goToPageUtil(page, totalPages);
   }
 
   function goToPrevPage() {
-    if (currentPage > 0) {
-      goToPage(currentPage - 1);
-    }
+    if (currentPage > 0) goToPage(currentPage - 1);
   }
 
   function goToNextPage() {
-    if (currentPage < totalPages - 1) {
-      goToPage(currentPage + 1);
-    }
+    if (currentPage < totalPages - 1) goToPage(currentPage + 1);
   }
 
-  // Функция переустановки базы данных
   async function resetDatabase() {
     if (loader.isResetting) return;
     
@@ -112,10 +96,7 @@
     loader.startResetting();
     
     try {
-      if (selectedFile) {
-        await closeModal();
-      }
-      
+      if (selectedFile) await closeModal();
       await invoke('reset_database');
       await delay(1000);
       await invalidateAll();
@@ -138,47 +119,6 @@
     }
   }
 
-  function getTypeLabel(type: string) {
-    return type === 'converted' ? m.file_type_converted() : m.file_type_temp();
-  }
-
-  function getTypeColor(type: string) {
-    return type === 'converted' 
-      ? 'text-emerald-400 bg-emerald-400/10' 
-      : 'text-amber-400 bg-amber-400/10';
-  }
-
-  function formatDate(dateStr: string) {
-    try {
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return m.files_date_unknown();
-      
-      const locale = data?.settings?.language || 'en';
-      
-      return date.toLocaleString(locale === 'ru' ? 'ru-RU' : 'en-US', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return m.files_date_unknown();
-    }
-  }
-
-  function getEmptyMessage() {
-    if (searchQuery) return m.files_no_search_results();
-    
-    switch (filterType) {
-      case 'all': return m.files_empty_all();
-      case 'converted': return m.files_empty_converted();
-      case 'temp': return m.files_empty_temp();
-      default: return m.files_empty();
-    }
-  }
-
-  // Функция удаления файла с анимацией
   async function deleteFile(file: FileInfo) {
     if (deletingFilePath === file.path) return;
     
@@ -204,11 +144,7 @@
             { transform: 'translateX(0px)', opacity: 1 },
             { transform: 'translateX(300px)', opacity: 0 },
           ],
-          {
-            duration: 300,
-            easing: 'ease-in',
-            fill: 'forwards'
-          }
+          { duration: 300, easing: 'ease-in', fill: 'forwards' }
         );
         await animation.finished;
         el.style.transform = 'translateX(300px)';
@@ -218,9 +154,7 @@
       await invoke('delete_file', { path: file.path });
       await invalidateAll();
       
-      // 🔥 Корректируем страницу после удаления
       goToPage(currentPage);
-      
       toast.success(m.file_deleted({ name: file.name }));
       
       if (filterType !== 'all' && files.filter(f => f.file_type === filterType).length === 0) {
@@ -239,19 +173,8 @@
     }
   }
 
-  // 🔥 Функция удаления файлов ТОЛЬКО на текущей странице
   async function deleteCurrentPageFiles() {
-    if (loader.isDeletingAll) return;
-    if (currentPageFiles.length === 0) {
-      toast.warning(m.no_files_to_delete());
-      return;
-    }
-    
-    const typeLabel = filterType === 'all' 
-      ? m.delete_type_all() 
-      : filterType === 'converted' 
-        ? m.delete_type_converted() 
-        : m.delete_type_temp();
+    if (loader.isDeletingAll || currentPageFiles.length === 0) return;
     
     const confirmed = await confirm(m.confirm_delete_page({ 
       count: currentPageFiles.length,
@@ -282,10 +205,7 @@
       
       await delay(1000);
       await invalidateAll();
-      
-      // 🔥 Корректируем страницу после удаления
       goToPage(currentPage);
-      
       toast.success(m.files_deleted({ count: deletedCount }));
     } catch (error) {
       console.error('Failed to delete files:', error);
@@ -295,19 +215,8 @@
     }
   }
 
-  // 🔥 Функция удаления ВСЕХ файлов в текущем фильтре (на всех страницах)
   async function deleteAllFilteredFiles() {
-    if (loader.isDeletingAll) return;
-    if (filteredFiles.length === 0) {
-      toast.warning(m.no_files_to_delete());
-      return;
-    }
-    
-    const typeLabel = filterType === 'all' 
-      ? m.delete_type_all() 
-      : filterType === 'converted' 
-        ? m.delete_type_converted() 
-        : m.delete_type_temp();
+    if (loader.isDeletingAll || filteredFiles.length === 0) return;
     
     const confirmed = await confirm(m.confirm_delete_all_filtered({ 
       count: filteredFiles.length 
@@ -337,10 +246,7 @@
       
       await delay(1000);
       await invalidateAll();
-      
-      // 🔥 Корректируем страницу после удаления
       goToPage(currentPage);
-      
       toast.success(m.files_deleted({ count: deletedCount }));
     } catch (error) {
       console.error('Failed to delete files:', error);
@@ -350,7 +256,6 @@
     }
   }
 
-  // Функция смены фильтра с анимацией
   async function setFilter(type: 'all' | 'converted' | 'temp') {
     if (filterType === type || isFilterAnimating) return;
     
@@ -363,23 +268,11 @@
     isFilterAnimating = true;
     
     try {
-      await animate(listContainer, {
-        opacity: 0,
-      }, {
-        duration: 0.3,
-        easing: 'ease-in'
-      }).finished;
-      
+      await animate(listContainer, { opacity: 0 }, { duration: 0.3, easing: 'ease-in' }).finished;
       filterType = type;
       currentPage = 0;
       await tick();
-      
-      await animate(listContainer, {
-        opacity: [0, 1],
-      }, {
-        duration: 0.3,
-        easing: 'ease-out'
-      }).finished;
+      await animate(listContainer, { opacity: [0, 1] }, { duration: 0.3, easing: 'ease-out' }).finished;
     } catch (error) {
       console.warn('Filter animation failed:', error);
       filterType = type;
@@ -389,7 +282,6 @@
     }
   }
 
-  // Открытие модального окна с анимацией
   async function openModal(file: FileInfo) {
     if (selectedFile?.path === file.path) return;
     
@@ -404,62 +296,35 @@
       });
     }
     
-    if (selectedFile) {
-      await closeModal();
-    }
-    
+    if (selectedFile) await closeModal();
     if (isModalOpening) return;
-    isModalOpening = true;
     
+    isModalOpening = true;
     selectedFile = file;
     await tick();
     
     if (modalOverlay) {
-      await animate(modalOverlay, {
-        opacity: [0, 1],
-      }, {
-        duration: 0.3,
-        easing: 'ease-out'
-      }).finished;
+      await animate(modalOverlay, { opacity: [0, 1] }, { duration: 0.3, easing: 'ease-out' }).finished;
     }
     
     if (modalContent) {
-      await animate(modalContent, {
-        scale: [0.9, 1],
-        opacity: [0, 1],
-      }, {
-        duration: 0.3,
-        easing: 'ease-out'
-      }).finished;
+      await animate(modalContent, { scale: [0.9, 1], opacity: [0, 1] }, { duration: 0.3, easing: 'ease-out' }).finished;
     }
     
     isModalOpening = false;
   }
 
-  // Закрытие модального окна с анимацией
   async function closeModal() {
-    if (isModalOpening || !selectedFile) return;
-    if (isModalClosing) return;
+    if (isModalOpening || !selectedFile || isModalClosing) return;
     
     isModalClosing = true;
     
     if (modalContent) {
-      await animate(modalContent, {
-        scale: [1, 0.9],
-        opacity: [1, 0],
-      }, {
-        duration: 0.25,
-        easing: 'ease-in'
-      }).finished;
+      await animate(modalContent, { scale: [1, 0.9], opacity: [1, 0] }, { duration: 0.25, easing: 'ease-in' }).finished;
     }
     
     if (modalOverlay) {
-      await animate(modalOverlay, {
-        opacity: [1, 0],
-      }, {
-        duration: 0.25,
-        easing: 'ease-in'
-      }).finished;
+      await animate(modalOverlay, { opacity: [1, 0] }, { duration: 0.25, easing: 'ease-in' }).finished;
     }
     
     selectedFile = null;
@@ -537,7 +402,13 @@
         <div class="flex flex-col items-center justify-center py-20 gap-4">
           <FolderOpen class="h-20 w-20 dark:text-muted-foreground/30 light:text-purple-400/30" />
           <p class="dark:text-muted-foreground light:text-purple-700/70 text-lg">
-            {getEmptyMessage()}
+            {getEmptyMessage(searchQuery, filterType, {
+              noSearchResults: m.files_no_search_results(),
+              emptyAll: m.files_empty_all(),
+              emptyConverted: m.files_empty_converted(),
+              emptyTemp: m.files_empty_temp(),
+              empty: m.files_empty(),
+            })}
           </p>
         </div>
       {:else}
@@ -580,7 +451,7 @@
                   </span>
                   <span class="flex items-center gap-1">
                     <Clock class="h-3 w-3" />
-                    {formatDate(file.created)}
+                    {formatDate(file.created, data?.settings?.language)}
                   </span>
                 </div>
               </div>
@@ -608,7 +479,7 @@
           {/each}
         </div>
         
-        <!-- 🔥 Пагинация -->
+        <!-- Пагинация -->
         {#if totalPages > 1}
           <div class="flex items-center justify-center gap-2 mt-4 py-2 flex-wrap">
             <button
@@ -620,9 +491,10 @@
               {m.pagination_prev()}
             </button>
             
-            <!-- 🔥 Простая пагинация с номерами страниц -->
-            {#each Array.from({ length: totalPages }, (_, i) => i) as pageNum}
-              {#if pageNum === 0 || pageNum === totalPages - 1 || (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)}
+            {#each getPageNumbers(currentPage, totalPages) as pageNum}
+              {#if pageNum === '...'}
+                <span class="px-1 text-muted-foreground">…</span>
+              {:else}
                 <button
                   onclick={() => goToPage(pageNum)}
                   class={[
@@ -634,8 +506,6 @@
                 >
                   {pageNum + 1}
                 </button>
-              {:else if (pageNum === currentPage - 2 && currentPage > 2) || (pageNum === currentPage + 2 && currentPage < totalPages - 3)}
-                <span class="px-1 text-muted-foreground">…</span>
               {/if}
             {/each}
             
@@ -651,15 +521,15 @@
         {/if}
         
         <!-- Информация о количестве -->
+        {@const paginationInfo = getPaginationInfo(currentPage, ITEMS_PER_PAGE, filteredFiles.length)}
         <div class="text-center text-xs dark:text-muted-foreground/50 light:text-purple-600/50 py-1">
-          {m.files_showing({ from: currentPage * ITEMS_PER_PAGE + 1, to: Math.min((currentPage + 1) * ITEMS_PER_PAGE, filteredFiles.length), total: filteredFiles.length })}
+          {m.files_showing({ from: paginationInfo.from, to: paginationInfo.to, total: filteredFiles.length })}
         </div>
       {/if}
 
-      <!-- 🔥 Кнопки удаления -->
+      <!-- Кнопки удаления -->
       {#if filteredFiles.length > 0 && !loader.isDeletingAll && !loader.isResetting}
         <div class="flex justify-end gap-3 mt-5 mb-2">
-          <!-- Удалить на текущей странице -->
           <button
             onclick={deleteCurrentPageFiles}
             disabled={loader.isDeletingAll || currentPageFiles.length === 0}
@@ -674,7 +544,6 @@
             {/if}
           </button>
           
-          <!-- Удалить все в фильтре -->
           <button
             onclick={deleteAllFilteredFiles}
             disabled={loader.isDeletingAll}
@@ -723,7 +592,7 @@
   </footer>
 </div>
 
-<!-- Модальное окно с информацией о файле -->
+<!-- Модальное окно -->
 {#if selectedFile}
   <div 
     bind:this={modalOverlay}
@@ -775,7 +644,7 @@
         </div>
         <div class="flex justify-between py-2 border-b dark:border-border/50 light:border-purple-300/40">
           <span class="dark:text-muted-foreground light:text-purple-700/70">{m.files_modal_created()}</span>
-          <span class="dark:text-foreground light:text-purple-800">{formatDate(selectedFile.created)}</span>
+          <span class="dark:text-foreground light:text-purple-800">{formatDate(selectedFile.created, data?.settings?.language)}</span>
         </div>
         <div class="py-2">
           <span class="dark:text-muted-foreground light:text-purple-700/70 block mb-1 text-sm font-medium">{m.files_modal_path()}</span>
@@ -783,7 +652,6 @@
             class="dark:bg-background/50 light:bg-purple-200/50 p-3 rounded-xl border dark:border-border/30 light:border-purple-300/30 cursor-pointer transition-colors hover:dark:bg-background/70 hover:light:bg-purple-200/70 group"
             onclick={async () => {
               if (!selectedFile) return;
-              console.log("path to file -> ",selectedFile.path);
               await openPath(selectedFile.path);
             }}
             role="button"
@@ -792,7 +660,6 @@
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 if (!selectedFile) return;
-                console.log("path to file -> ",selectedFile.path);
                 await openPath(selectedFile.path);
               }
             }}
@@ -804,7 +671,6 @@
         </div>
       </div>
 
-      <!-- Кнопка удаления -->
       <div class="flex justify-end gap-2 mt-4 pt-3 border-t dark:border-border/50 light:border-purple-300/40">
         <button
           onclick={() => closeModal()}
