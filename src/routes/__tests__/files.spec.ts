@@ -67,14 +67,12 @@ describe("files utils", () => {
     it("should format date with default locale", () => {
       const dateStr = "2024-01-15T14:30:00";
       const result = formatDate(dateStr);
-      // en-US формат: MM/DD/YYYY
       expect(result).toMatch(/01\/15\/2024/);
     });
 
     it("should format date with Russian locale", () => {
       const dateStr = "2024-01-15T14:30:00";
       const result = formatDate(dateStr, "ru");
-      // ru-RU формат: DD.MM.YYYY
       expect(result).toMatch(/15\.01\.2024/);
     });
 
@@ -87,6 +85,27 @@ describe("files utils", () => {
       const date = new Date("2024-01-15T14:30:00");
       const result = formatDate(date.toString());
       expect(result).toBeTruthy();
+    });
+
+    it("should catch error and return 'Unknown'", () => {
+      const originalToLocaleString = Date.prototype.toLocaleString;
+
+      Date.prototype.toLocaleString = function (
+        this: Date,
+        locales?: string | string[],
+        options?: Intl.DateTimeFormatOptions,
+      ) {
+        // Для валидной даты выбрасываем ошибку
+        if (!isNaN(this.getTime())) {
+          throw new Error("Mock toLocaleString error");
+        }
+        return originalToLocaleString.call(this, locales, options);
+      };
+
+      const result = formatDate("2024-01-15T14:30:00");
+      expect(result).toBe("Unknown");
+
+      Date.prototype.toLocaleString = originalToLocaleString;
     });
   });
 
@@ -117,6 +136,12 @@ describe("files utils", () => {
       expect(getEmptyMessage("", "temp", mockMessages)).toBe(
         "No temporary files",
       );
+    });
+
+    it("should return empty message for unknown filter type", () => {
+      // @ts-ignore - тестируем default ветку
+      const result = getEmptyMessage("", "unknown", mockMessages);
+      expect(result).toBe("No files");
     });
   });
 

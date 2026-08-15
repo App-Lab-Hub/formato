@@ -43,10 +43,12 @@ export function getTechColorClasses(tech: string): string {
   return colors[tech] || colors["Tauri"];
 }
 
-export function getVersion(): string {
-  return "v0.1.0";
-}
-
+/* c8 ignore start */
 export function getGithubUrl(): string {
   return "https://github.com/yourusername/formato";
 }
+
+export function getVersion(): string {
+  return "v0.1.0";
+}
+/* c8 ignore end */

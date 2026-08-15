@@ -50,21 +50,18 @@ export function hasAnyModels(
 export function getSynthesisModelDisplay(model: string): string {
   if (!model) return model;
 
-  // Формат: ru_RU-dmitri-medium
-  // или en_US-amy-medium-v2
   const parts = model.split("-");
   if (parts.length >= 2) {
-    // Берем первую часть (ru_RU) и извлекаем код языка (ru → RU)
     const langPart = parts[0];
-    const lang = langPart.split("_")[0]?.toUpperCase() || langPart;
+    const lang = langPart.split("_")[0].toUpperCase();
 
-    // Вторая часть — имя модели
-    const name = parts[1] || "";
+    const name = parts[1];
 
-    // Третья часть — размер (если есть)
-    const size = parts[2] || "";
+    const sizeParts = parts.slice(2);
+    const size = sizeParts.length > 0 ? ` (${sizeParts.join("-")})` : "";
 
-    return `${lang} - ${name}${size ? ` (${size})` : ""}`;
+    return `${lang} - ${name}${size}`;
   }
+
   return model;
 }

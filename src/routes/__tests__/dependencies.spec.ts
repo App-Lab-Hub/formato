@@ -76,6 +76,92 @@ describe("dependencies utils", () => {
       expect(groups[1].data).toHaveLength(2);
       expect(groups[1].data[0].name).toBe("vitest");
     });
+
+    it("should include optionalDependencies when present", () => {
+      const deps = {
+        npm: {
+          dependencies: [],
+          devDependencies: [],
+          optionalDependencies: [{ name: "optional", version: "1.0.0" }],
+          peerDependencies: [],
+          bundleDependencies: [],
+        },
+        cargo: {
+          dependencies: [],
+          devDependencies: [],
+          buildDependencies: [],
+          targetDependencies: [],
+        },
+      };
+      const groups = getNpmGroups(deps);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].key).toBe("optionalDependencies");
+      expect(groups[0].label).toBe("Optional");
+    });
+
+    it("should include peerDependencies when present", () => {
+      const deps = {
+        npm: {
+          dependencies: [],
+          devDependencies: [],
+          optionalDependencies: [],
+          peerDependencies: [{ name: "peer", version: "1.0.0" }],
+          bundleDependencies: [],
+        },
+        cargo: {
+          dependencies: [],
+          devDependencies: [],
+          buildDependencies: [],
+          targetDependencies: [],
+        },
+      };
+      const groups = getNpmGroups(deps);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].key).toBe("peerDependencies");
+      expect(groups[0].label).toBe("Peer");
+    });
+
+    it("should include bundleDependencies when present", () => {
+      const deps = {
+        npm: {
+          dependencies: [],
+          devDependencies: [],
+          optionalDependencies: [],
+          peerDependencies: [],
+          bundleDependencies: [{ name: "bundled", version: "1.0.0" }],
+        },
+        cargo: {
+          dependencies: [],
+          devDependencies: [],
+          buildDependencies: [],
+          targetDependencies: [],
+        },
+      };
+      const groups = getNpmGroups(deps);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].key).toBe("bundleDependencies");
+      expect(groups[0].label).toBe("Bundled");
+    });
+
+    it("should handle empty npm object", () => {
+      const deps = {
+        npm: {
+          dependencies: [],
+          devDependencies: [],
+          optionalDependencies: [],
+          peerDependencies: [],
+          bundleDependencies: [],
+        },
+        cargo: {
+          dependencies: [],
+          devDependencies: [],
+          buildDependencies: [],
+          targetDependencies: [],
+        },
+      };
+      const groups = getNpmGroups(deps);
+      expect(groups).toHaveLength(0);
+    });
   });
 
   // ============================================================
@@ -97,6 +183,70 @@ describe("dependencies utils", () => {
       expect(groups[1].data).toHaveLength(1);
       expect(groups[1].data[0].name).toBe("tauri-build");
     });
+
+    it("should include devDependencies when present", () => {
+      const deps = {
+        npm: {
+          dependencies: [],
+          devDependencies: [],
+          optionalDependencies: [],
+          peerDependencies: [],
+          bundleDependencies: [],
+        },
+        cargo: {
+          dependencies: [],
+          devDependencies: [{ name: "dev", version: "1.0.0" }],
+          buildDependencies: [],
+          targetDependencies: [],
+        },
+      };
+      const groups = getCargoGroups(deps);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].key).toBe("dev-dependencies");
+      expect(groups[0].label).toBe("Dev");
+    });
+
+    it("should include targetDependencies when present", () => {
+      const deps = {
+        npm: {
+          dependencies: [],
+          devDependencies: [],
+          optionalDependencies: [],
+          peerDependencies: [],
+          bundleDependencies: [],
+        },
+        cargo: {
+          dependencies: [],
+          devDependencies: [],
+          buildDependencies: [],
+          targetDependencies: [{ name: "target", version: "1.0.0" }],
+        },
+      };
+      const groups = getCargoGroups(deps);
+      expect(groups).toHaveLength(1);
+      expect(groups[0].key).toBe("target-dependencies");
+      expect(groups[0].label).toBe("Platform");
+    });
+
+    it("should handle empty cargo object", () => {
+      const deps = {
+        npm: {
+          dependencies: [],
+          devDependencies: [],
+          optionalDependencies: [],
+          peerDependencies: [],
+          bundleDependencies: [],
+        },
+        cargo: {
+          dependencies: [],
+          devDependencies: [],
+          buildDependencies: [],
+          targetDependencies: [],
+        },
+      };
+      const groups = getCargoGroups(deps);
+      expect(groups).toHaveLength(0);
+    });
   });
 
   // ============================================================
@@ -106,7 +256,7 @@ describe("dependencies utils", () => {
   describe("getTotalCount", () => {
     it("should count all dependencies", () => {
       const count = getTotalCount(mockDeps);
-      expect(count).toBe(2 + 2 + 3 + 1); // npm deps + npm dev + cargo deps + cargo build
+      expect(count).toBe(2 + 2 + 3 + 1);
     });
 
     it("should handle empty dependencies", () => {
@@ -128,6 +278,25 @@ describe("dependencies utils", () => {
       const count = getTotalCount(emptyDeps);
       expect(count).toBe(0);
     });
+
+    it("should count only non-empty groups", () => {
+      const deps = {
+        npm: {
+          dependencies: [{ name: "a", version: "1.0.0" }],
+          devDependencies: [],
+          optionalDependencies: [],
+          peerDependencies: [],
+          bundleDependencies: [],
+        },
+        cargo: {
+          dependencies: [{ name: "b", version: "1.0.0" }],
+          devDependencies: [],
+          buildDependencies: [],
+          targetDependencies: [],
+        },
+      };
+      expect(getTotalCount(deps)).toBe(2);
+    });
   });
 
   // ============================================================
@@ -137,15 +306,15 @@ describe("dependencies utils", () => {
   describe("getGroupCount", () => {
     it("should count npm dependencies", () => {
       const count = getGroupCount(mockDeps, "npm");
-      expect(count).toBe(4); // 2 deps + 2 devDeps
+      expect(count).toBe(4);
     });
 
     it("should count cargo dependencies", () => {
       const count = getGroupCount(mockDeps, "cargo");
-      expect(count).toBe(4); // 3 deps + 1 build
+      expect(count).toBe(4);
     });
 
-    it("should handle empty dependencies", () => {
+    it("should handle empty dependencies for npm", () => {
       const emptyDeps = {
         npm: {
           dependencies: [],
@@ -162,6 +331,24 @@ describe("dependencies utils", () => {
         },
       };
       expect(getGroupCount(emptyDeps, "npm")).toBe(0);
+    });
+
+    it("should handle empty dependencies for cargo", () => {
+      const emptyDeps = {
+        npm: {
+          dependencies: [],
+          devDependencies: [],
+          optionalDependencies: [],
+          peerDependencies: [],
+          bundleDependencies: [],
+        },
+        cargo: {
+          dependencies: [],
+          devDependencies: [],
+          buildDependencies: [],
+          targetDependencies: [],
+        },
+      };
       expect(getGroupCount(emptyDeps, "cargo")).toBe(0);
     });
   });

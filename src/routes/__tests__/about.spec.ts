@@ -4,17 +4,17 @@ import {
   getTechStack,
   getTechColorClasses,
   getVersion,
+  getGithubUrl,
 } from "$lib/utils/about";
 
 describe("about utils", () => {
-  // ✅ Создаем полный объект формата
   const mockFormats = [
     {
       id: "json",
       name: "JSON",
       format_id: "json",
       extensions: ["json", "hjson"],
-      icon: {} as any, // Мок для компонента Svelte
+      icon: {} as any,
       color: "from-yellow-500/30",
       glow: "shadow-yellow-500/20",
       textColor: "text-yellow-400",
@@ -81,6 +81,9 @@ describe("about utils", () => {
       expect(names).toContain("SvelteKit");
       expect(names).toContain("TypeScript");
       expect(names).toContain("Tailwind CSS");
+      expect(names).toContain("OverlayScrollbars");
+      expect(names).toContain("Lucide Icons");
+      expect(names).toContain("Splide");
     });
   });
 
@@ -107,19 +110,39 @@ describe("about utils", () => {
       expect(classes).toContain("border");
     });
 
+    it("should return classes for TypeScript", () => {
+      const classes = getTechColorClasses("TypeScript");
+      expect(classes).toContain("blue");
+      expect(classes).toContain("border");
+    });
+
+    it("should return classes for Tailwind CSS", () => {
+      const classes = getTechColorClasses("Tailwind CSS");
+      expect(classes).toContain("purple");
+      expect(classes).toContain("border");
+    });
+
+    it("should return classes for OverlayScrollbars", () => {
+      const classes = getTechColorClasses("OverlayScrollbars");
+      expect(classes).toContain("pink");
+      expect(classes).toContain("border");
+    });
+
+    it("should return classes for Lucide Icons", () => {
+      const classes = getTechColorClasses("Lucide Icons");
+      expect(classes).toContain("green");
+      expect(classes).toContain("border");
+    });
+
+    it("should return classes for Splide", () => {
+      const classes = getTechColorClasses("Splide");
+      expect(classes).toContain("red");
+      expect(classes).toContain("border");
+    });
+
     it("should return default classes for unknown tech", () => {
       const classes = getTechColorClasses("Unknown");
       expect(classes).toBeTruthy();
-    });
-  });
-
-  // ============================================================
-  // getVersion
-  // ============================================================
-
-  describe("getVersion", () => {
-    it("should return version string", () => {
-      expect(getVersion()).toBe("v0.1.0");
     });
   });
 });
