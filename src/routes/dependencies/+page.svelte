@@ -1,4 +1,3 @@
-<!-- src/routes/dependencies/+page.svelte -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { ArrowLeft, Package, Cpu, BookOpen, ChevronDown } from 'lucide-svelte';
@@ -8,6 +7,14 @@
   import { cubicIn, cubicOut } from 'svelte/easing';
   import { m } from '$lib/paraglide/messages';
   import BackButton from '$lib/components/BackButton.svelte';
+  import {
+    hasDependencies,
+    getNpmGroups,
+    getCargoGroups,
+    getTotalCount,
+    getGroupCount,
+    getGroupLabel,
+  } from '$lib/utils/dependencies';
 
   let { data }: { data: { deps: DependenciesData } } = $props();
 
@@ -32,42 +39,6 @@
 
   function goBack() { goto('/'); }
 
-  function hasDependencies(group: any[]): boolean { return group && group.length > 0; }
-
-  function getNpmGroups(deps: DependenciesData) {
-    const groups: { key: string; label: string; data: any[] }[] = [];
-    const npm = deps.npm;
-    if (hasDependencies(npm.dependencies)) groups.push({ key: 'dependencies', label: m.deps_main(), data: npm.dependencies });
-    if (hasDependencies(npm.devDependencies)) groups.push({ key: 'devDependencies', label: m.deps_dev(), data: npm.devDependencies });
-    if (hasDependencies(npm.optionalDependencies)) groups.push({ key: 'optionalDependencies', label: m.deps_optional(), data: npm.optionalDependencies });
-    if (hasDependencies(npm.peerDependencies)) groups.push({ key: 'peerDependencies', label: m.deps_peer(), data: npm.peerDependencies });
-    if (hasDependencies(npm.bundleDependencies)) groups.push({ key: 'bundleDependencies', label: m.deps_bundle(), data: npm.bundleDependencies });
-    return groups;
-  }
-
-  function getCargoGroups(deps: DependenciesData) {
-    const groups: { key: string; label: string; data: any[] }[] = [];
-    const cargo = deps.cargo;
-    if (hasDependencies(cargo.dependencies)) groups.push({ key: 'dependencies', label: m.deps_main(), data: cargo.dependencies });
-    if (hasDependencies(cargo.devDependencies)) groups.push({ key: 'dev-dependencies', label: m.deps_dev(), data: cargo.devDependencies });
-    if (hasDependencies(cargo.buildDependencies)) groups.push({ key: 'build-dependencies', label: m.deps_build(), data: cargo.buildDependencies });
-    if (hasDependencies(cargo.targetDependencies)) groups.push({ key: 'target-dependencies', label: m.deps_platform(), data: cargo.targetDependencies });
-    return groups;
-  }
-
-  function getTotalCount(deps: DependenciesData): number {
-    let count = 0;
-    count += deps.npm.dependencies?.length || 0;
-    count += deps.npm.devDependencies?.length || 0;
-    count += deps.npm.optionalDependencies?.length || 0;
-    count += deps.npm.peerDependencies?.length || 0;
-    count += deps.npm.bundleDependencies?.length || 0;
-    count += deps.cargo.dependencies?.length || 0;
-    count += deps.cargo.devDependencies?.length || 0;
-    count += deps.cargo.buildDependencies?.length || 0;
-    count += deps.cargo.targetDependencies?.length || 0;
-    return count;
-  }
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === 'Escape') goBack();
   }
@@ -79,9 +50,7 @@
   <div class="flex flex-col bg-background text-foreground min-h-screen">
     <main class="flex flex-col items-center px-8 py-16 w-full">
       
-      <BackButton
-          onClick={goBack} 
-      />
+      <BackButton onClick={goBack} />
 
       <div class="w-full max-w-[1700px] pt-6">
         <div class="text-center mb-12">
@@ -90,10 +59,10 @@
               {m.deps_title()}
             </span>
           </h1>
-            <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
-            <p class="dark:text-muted-foreground/60 light:text-purple-800/60 text-sm mt-2">
-              {m.deps_subtitle()}
-            </p>
+          <div class="mt-4 h-px w-32 mx-auto bg-gradient-to-r from-transparent via-purple-400/50 to-transparent"></div>
+          <p class="dark:text-muted-foreground/60 light:text-purple-800/60 text-sm mt-2">
+            {m.deps_subtitle()}
+          </p>
         </div>
 
         <div class="max-w-4xl mx-auto space-y-6">
@@ -108,7 +77,7 @@
                     <Package class="h-5 w-5 text-yellow-400" />
                     <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">{m.deps_npm()}</h2>
                     <span class="text-xs dark:text-muted-foreground/60 light:text-purple-700/60 dark:bg-muted-foreground/10 light:bg-purple-300/50 px-2 py-1 rounded-full">
-                      {getNpmGroups(data.deps).reduce((acc, g) => acc + g.data.length, 0)} {m.deps_packages()}
+                      {getGroupCount(data.deps, 'npm')} {m.deps_packages()}
                     </span>
                   </div>
                   <ChevronDown class="h-5 w-5 dark:text-muted-foreground light:text-purple-600/60 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]" style="transform: rotate({npmOpen ? 180 : 0}deg)" />
@@ -123,7 +92,7 @@
                     {#each getNpmGroups(data.deps) as group}
                       <div>
                         <h3 class="text-sm font-medium dark:text-muted-foreground light:text-purple-700/70 mb-3">
-                          {group.label}
+                          {getGroupLabel(group.key)}
                           <span class="text-xs dark:text-muted-foreground/40 light:text-purple-600/40 ml-1">({group.data.length})</span>
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -151,7 +120,7 @@
                     <Cpu class="h-5 w-5 text-cyan-400" />
                     <h2 class="text-lg font-semibold dark:text-foreground light:text-purple-800">{m.deps_cargo()}</h2>
                     <span class="text-xs dark:text-muted-foreground/60 light:text-purple-700/60 dark:bg-muted-foreground/10 light:bg-purple-300/50 px-2 py-1 rounded-full">
-                      {getCargoGroups(data.deps).reduce((acc, g) => acc + g.data.length, 0)} {m.deps_packages()}
+                      {getGroupCount(data.deps, 'cargo')} {m.deps_packages()}
                     </span>
                   </div>
                   <ChevronDown class="h-5 w-5 dark:text-muted-foreground light:text-purple-600/60 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]" style="transform: rotate({cargoOpen ? 180 : 0}deg)" />
@@ -166,7 +135,7 @@
                     {#each getCargoGroups(data.deps) as group}
                       <div>
                         <h3 class="text-sm font-medium dark:text-muted-foreground light:text-purple-700/70 mb-3">
-                          {group.label}
+                          {getGroupLabel(group.key)}
                           <span class="text-xs dark:text-muted-foreground/40 light:text-purple-600/40 ml-1">({group.data.length})</span>
                         </h3>
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-2">

@@ -1,4 +1,3 @@
-<!-- src/routes/about/+page.svelte -->
 <script lang="ts">
   import { goto } from '$app/navigation';
   import { Info, Zap, Shield, Users, Code, Sparkles, Package } from 'lucide-svelte';
@@ -10,6 +9,13 @@
   import FormatoLogo from '$lib/components/FormatoLogo.svelte';
   import { m } from '$lib/paraglide/messages';
   import BackButton from '$lib/components/BackButton.svelte';
+  import {
+    getFormatCount,
+    getTechStack,
+    getTechColorClasses,
+    getVersion,
+    getGithubUrl,
+  } from '$lib/utils/about';
 
   let formats = getFormats();
 
@@ -31,7 +37,6 @@
       <BackButton onClick={goBack} />
 
       <div class="w-full max-w-[1700px] mx-auto">
-        <!-- Оборачиваем логотип в центрирующий контейнер -->
         <div class="max-w-4xl mx-auto">
           <FormatoLogo />
         </div>
@@ -46,7 +51,7 @@
               {m.about_desc_1()}
             </p>
             <p class="dark:text-muted-foreground light:text-purple-700/70 leading-relaxed mt-3">
-              {m.about_desc_2()} <span class="font-semibold dark:text-foreground light:text-purple-800">{formats.length}</span> {m.about_desc_3()}
+              {m.about_desc_2()} <span class="font-semibold dark:text-foreground light:text-purple-800">{getFormatCount(formats)}</span> {m.about_desc_3()}
             </p>
           </div>
 
@@ -90,14 +95,11 @@
               <h2 class="text-xl font-semibold dark:text-foreground light:text-purple-800">{m.about_tech_stack()}</h2>
             </div>
             <div class="flex flex-wrap gap-3">
-              <span class="px-4 py-2 dark:bg-primary/10 light:bg-purple-300/50 rounded-full text-sm dark:text-primary light:text-purple-700 border dark:border-primary/20 light:border-purple-300/50">Tauri</span>
-              <span class="px-4 py-2 dark:bg-cyan-500/10 light:bg-cyan-200/50 rounded-full text-sm dark:text-cyan-400 light:text-cyan-700 border dark:border-cyan-400/20 light:border-cyan-300/50">Rust</span>
-              <span class="px-4 py-2 dark:bg-yellow-500/10 light:bg-yellow-200/50 rounded-full text-sm dark:text-yellow-400 light:text-yellow-700 border dark:border-yellow-400/20 light:border-yellow-300/50">SvelteKit</span>
-              <span class="px-4 py-2 dark:bg-blue-500/10 light:bg-blue-200/50 rounded-full text-sm dark:text-blue-400 light:text-blue-700 border dark:border-blue-400/20 light:border-blue-300/50">TypeScript</span>
-              <span class="px-4 py-2 dark:bg-purple-500/10 light:bg-purple-300/50 rounded-full text-sm dark:text-purple-400 light:text-purple-700 border dark:border-purple-400/20 light:border-purple-300/50">Tailwind CSS</span>
-              <span class="px-4 py-2 dark:bg-pink-500/10 light:bg-pink-200/50 rounded-full text-sm dark:text-pink-400 light:text-pink-700 border dark:border-pink-400/20 light:border-pink-300/50">OverlayScrollbars</span>
-              <span class="px-4 py-2 dark:bg-green-500/10 light:bg-green-200/50 rounded-full text-sm dark:text-green-400 light:text-green-700 border dark:border-green-400/20 light:border-green-300/50">Lucide Icons</span>
-              <span class="px-4 py-2 dark:bg-red-500/10 light:bg-red-200/50 rounded-full text-sm dark:text-red-400 light:text-red-700 border dark:border-red-400/20 light:border-red-300/50">Splide</span>
+              {#each getTechStack() as tech}
+                <span class="px-4 py-2 rounded-full text-sm border {getTechColorClasses(tech.name)}">
+                  {tech.name}
+                </span>
+              {/each}
             </div>
           </div>
 
@@ -129,7 +131,7 @@
               {m.about_open_source_desc()}
             </p>
             <a 
-              href="https://github.com/yourusername/formato" 
+              href={getGithubUrl()} 
               target="_blank"
               rel="noopener noreferrer"
               class="inline-flex items-center gap-2 px-6 py-3 dark:bg-primary/10 light:bg-purple-300/50 dark:hover:bg-primary/20 light:hover:bg-purple-400/60 rounded-lg text-primary transition-colors border dark:border-primary/20 light:border-purple-300/50"
@@ -142,7 +144,7 @@
           </div>
 
           <div class="text-center mt-8 text-xs dark:text-muted-foreground/40 light:text-purple-700/40">
-            v0.1.0
+            {getVersion()}
           </div>
         </div>
       </div> 
