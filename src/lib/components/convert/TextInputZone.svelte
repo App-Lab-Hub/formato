@@ -81,7 +81,7 @@
           <Type class="h-5 w-5" />
         </div>
         
-        <!-- ✅ label привязан к input через for -->
+        <!-- [OK] label привязан к input через for -->
         <label for="file-name-input" class="text-sm font-medium text-muted-foreground">
           {m.file_name()}:
         </label>
@@ -107,7 +107,7 @@
     </div>
     
     <div class="relative">
-      <!-- ✅ Скрытый label для textarea (используем Tailwind класс sr-only) -->
+      <!-- [OK] Скрытый label для textarea (используем Tailwind класс sr-only) -->
       <label for="text-content-area" class="sr-only">
         {m.enter_text_prompt({ format: sourceFormatName })}
       </label>

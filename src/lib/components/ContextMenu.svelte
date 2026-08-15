@@ -66,7 +66,7 @@
   onMount(() => {
     if (!browser) return;
 
-    console.log('✅ ContextMenu mounted');
+    console.log('[OK] ContextMenu mounted');
     
     // Отключаем системное контекстное меню
     const preventContextMenu = (e: Event) => {

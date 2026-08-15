@@ -107,3 +107,63 @@ export function getArchiveName(format: string = "zip"): string {
   const randomId = Math.random().toString(36).slice(2, 8);
   return `formato_${timestamp}_${randomId}.${format}`;
 }
+
+// ============================================================
+// НОВЫЕ ФУНКЦИИ ДЛЯ ПРОВЕРКИ СУЩЕСТВОВАНИЯ ФАЙЛОВ
+// ============================================================
+
+/**
+ * Проверяет, существует ли файл по указанному пути
+ */
+export async function fileExists(path: string): Promise<boolean> {
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    await invoke("get_file_size", { path });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Разделяет файлы на существующие и отсутствующие
+ */
+export async function filterExistingFiles<
+  T extends { path: string; id: string },
+>(files: T[]): Promise<{ existing: T[]; missing: T[] }> {
+  const existing: T[] = [];
+  const missing: T[] = [];
+
+  for (const file of files) {
+    const exists = await fileExists(file.path);
+    if (exists) {
+      existing.push(file);
+    } else {
+      missing.push(file);
+    }
+  }
+
+  return { existing, missing };
+}
+
+/**
+ * Проверяет файлы в store и удаляет отсутствующие
+ * Возвращает количество удаленных файлов
+ */
+export async function cleanupMissingFiles(
+  formatId: string,
+  getFiles: () => { path: string; id: string }[],
+  removeFilesById: (formatId: string, ids: string[]) => void,
+): Promise<number> {
+  const files = getFiles();
+  if (files.length === 0) return 0;
+
+  const { missing } = await filterExistingFiles(files);
+
+  if (missing.length > 0) {
+    const missingIds = missing.map(f => f.id);
+    removeFilesById(formatId, missingIds);
+  }
+
+  return missing.length;
+}

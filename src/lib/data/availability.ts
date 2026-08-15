@@ -40,7 +40,7 @@ export function getAvailabilityStatus(status: string): {
 } {
   switch (status) {
     case "available":
-      return { label: "Доступно", color: "text-green-400", icon: "✅" };
+      return { label: "Доступно", color: "text-green-400", icon: "[OK]" };
     case "available_with_ai":
       return { label: "Доступно с AI", color: "text-yellow-400", icon: "🤖" };
     case "not_available":

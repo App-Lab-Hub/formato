@@ -30,10 +30,9 @@
   import { SvelteSet } from 'svelte/reactivity';
   import { loader } from '$lib/stores/loader.svelte';
   
-  // ✅ Импорт утилит
+  // [OK] Импорт утилит
   import {
     getTargetFormats,
-    getTargetFormatsWithAvailability,
     getInputMode,
     formatFileSize,
     formatSize,
@@ -42,6 +41,7 @@
     getArchiveFileName,
     getUniqueFileName,
     getArchiveName,
+    cleanupMissingFiles,
   } from '$lib/utils/convert';
 
   let isAddToList = $state(false);
@@ -223,50 +223,75 @@
   // ============================================================
 
   onMount(() => {
-    if (sourceFormat) {
-      targetFormats = getTargetFormats(getFormats(), sourceFormatId);
-      
-      const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
-      if (savedTargetId && targetFormats.length > 0) {
-        const found = targetFormats.find(f => f.id === savedTargetId);
-        if (found) {
-          selectedTarget = found;
-        }
-      }
-      
-      isLoading = false;
-      return;
-    }
-
-    if (!isFormatsLoaded()) {
-      const checkFormats = setInterval(() => {
-        if (isFormatsLoaded()) {
-          const f = getFormatById(sourceFormatId);
-          if (f) {
-            sourceFormat = f;
-            targetFormats = getTargetFormats(getFormats(), sourceFormatId);
-            
-            const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
-            if (savedTargetId && targetFormats.length > 0) {
-              const found = targetFormats.find(f => f.id === savedTargetId);
-              if (found) {
-                selectedTarget = found;
-              }
-            }
-            
-            isLoading = false;
-          } else {
-            loadError = m.format_not_found() + ` "${sourceFormatId}"`;
-            isLoading = false;
+    const init = async () => {
+      if (sourceFormat) {
+        targetFormats = getTargetFormats(getFormats(), sourceFormatId);
+        
+        const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
+        if (savedTargetId && targetFormats.length > 0) {
+          const found = targetFormats.find(f => f.id === savedTargetId);
+          if (found) {
+            selectedTarget = found;
           }
-          clearInterval(checkFormats);
         }
-      }, 100);
-      return () => clearInterval(checkFormats);
-    } else {
-      loadError = m.format_not_found() + ` "${sourceFormatId}"`;
-      isLoading = false;
-    }
+        
+        isLoading = false;
+        
+        const removedCount = await cleanupMissingFiles(
+          sourceFormatId,
+          () => appState.getFilesForFormat(sourceFormatId),
+          (id, ids) => appState.removeFilesById(id, ids)
+        );
+        
+        if (removedCount > 0) {
+          toast.warning(`Удалено ${removedCount} несуществующих файлов из списка`);
+        }
+        
+        return;
+      }
+
+      if (!isFormatsLoaded()) {
+        const checkFormats = setInterval(async () => {
+          if (isFormatsLoaded()) {
+            const f = getFormatById(sourceFormatId);
+            if (f) {
+              sourceFormat = f;
+              targetFormats = getTargetFormats(getFormats(), sourceFormatId);
+              
+              const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
+              if (savedTargetId && targetFormats.length > 0) {
+                const found = targetFormats.find(f => f.id === savedTargetId);
+                if (found) {
+                  selectedTarget = found;
+                }
+              }
+              
+              isLoading = false;
+              
+              const removedCount = await cleanupMissingFiles(
+                sourceFormatId,
+                () => appState.getFilesForFormat(sourceFormatId),
+                (id, ids) => appState.removeFilesById(id, ids)
+              );
+              
+              if (removedCount > 0) {
+                toast.warning(`Удалено ${removedCount} несуществующих файлов из списка`);
+              }
+            } else {
+              loadError = m.format_not_found() + ` "${sourceFormatId}"`;
+              isLoading = false;
+            }
+            clearInterval(checkFormats);
+          }
+        }, 100);
+        return () => clearInterval(checkFormats);
+      } else {
+        loadError = m.format_not_found() + ` "${sourceFormatId}"`;
+        isLoading = false;
+      }
+    };
+    
+    init();
   });
 
   function goBack() { 

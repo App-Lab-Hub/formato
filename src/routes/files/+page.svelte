@@ -50,7 +50,7 @@
   const ITEMS_PER_PAGE = 20;
   let totalPages = $derived(getTotalPages(filteredFiles.length, ITEMS_PER_PAGE));
   
-  // ✅ Явно указываем тип FileInfo[]
+  // [OK] Явно указываем тип FileInfo[]
   let currentPageFiles: FileInfo[] = $derived(
     getCurrentPageFiles(filteredFiles, currentPage, ITEMS_PER_PAGE)
   );

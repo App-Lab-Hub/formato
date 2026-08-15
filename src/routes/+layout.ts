@@ -28,11 +28,11 @@ export const load: LayoutLoad = async ({ url }) => {
   applyTheme(settings.theme);
   setLocale(settings.language as "en" | "ru", { reload: false });
 
-  // ✅ Загружаем статус моделей
+  // [OK] Загружаем статус моделей
   let modelsStatus = null;
   try {
     modelsStatus = await getModelsStatus();
-    console.log("✅ Models status loaded in root layout:", modelsStatus);
+    console.log("[OK] Models status loaded in root layout:", modelsStatus);
   } catch (e) {
     console.error("❌ Failed to load models status in root layout:", e);
   }

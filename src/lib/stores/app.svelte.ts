@@ -36,10 +36,9 @@ export const appState = {
     return filesMap.get(formatId)!;
   },
 
-  // ✅ Геттер только читает, НЕ создаёт новые Map
   getConvertedFilesForFormat(formatId: string): Map<string, ConvertedFile> {
     if (!convertedFilesMap.has(formatId)) {
-      return new Map(); // Возвращаем новый пустой Map, НЕ сохраняем в convertedFilesMap
+      return new Map();
     }
     return convertedFilesMap.get(formatId)!;
   },
@@ -91,7 +90,6 @@ export const appState = {
     filesMap.set(formatId, [...current, ...newFiles]);
   },
 
-  // ✅ Добавляем сконвертированный файл (создаём новый Map только здесь)
   addConvertedFile(formatId: string, fileId: string, data: ConvertedFile) {
     const current = convertedFilesMap.get(formatId);
     const newMap = new Map(current || []);
@@ -108,6 +106,23 @@ export const appState = {
     if (converted) {
       const newMap = new Map(converted);
       newMap.delete(fileId);
+      convertedFilesMap.set(formatId, newMap);
+    }
+  },
+
+  // [OK] НОВЫЙ МЕТОД: удаляет несколько файлов по id
+  removeFilesById(formatId: string, ids: string[]) {
+    const current = this.getFilesForFormat(formatId);
+    const idSet = new Set(ids);
+    const filtered = current.filter(f => !idSet.has(f.id));
+    filesMap.set(formatId, filtered);
+
+    const converted = convertedFilesMap.get(formatId);
+    if (converted) {
+      const newMap = new Map(converted);
+      for (const id of ids) {
+        newMap.delete(id);
+      }
       convertedFilesMap.set(formatId, newMap);
     }
   },

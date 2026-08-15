@@ -184,7 +184,7 @@ export async function loadFormatsData(): Promise<void> {
       }));
 
       _loaded = true;
-      console.log("✅ Formats loaded from DB:", _formats.length);
+      console.log("[OK] Formats loaded from DB:", _formats.length);
     } catch (error) {
       console.error("❌ Failed to load formats:", error);
       _formats = [];
