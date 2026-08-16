@@ -9,18 +9,22 @@ export function getTargetFormats(
 }
 
 export function getInputMode(
-  availability: { enable_text_mode?: boolean } | null,
+  availability?: { enable_text_mode?: boolean } | null,
   defaultMode: "file" | "text" = "file",
 ): "file" | "text" {
   return availability?.enable_text_mode ? "text" : defaultMode;
 }
 
 export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + " B";
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-  if (bytes < 1024 * 1024 * 1024)
-    return (bytes / 1024 / 1024).toFixed(1) + " MB";
-  return (bytes / 1024 / 1024 / 1024).toFixed(1) + " GB";
+  const absBytes = Math.abs(bytes);
+  const sign = bytes < 0 ? "-" : "";
+
+  if (absBytes < 1024) return sign + absBytes + " B";
+  if (absBytes < 1024 * 1024)
+    return sign + (absBytes / 1024).toFixed(1) + " KB";
+  if (absBytes < 1024 * 1024 * 1024)
+    return sign + (absBytes / 1024 / 1024).toFixed(1) + " MB";
+  return sign + (absBytes / 1024 / 1024 / 1024).toFixed(1) + " GB";
 }
 
 export function formatSize(mb: number): string {
@@ -28,11 +32,12 @@ export function formatSize(mb: number): string {
 }
 
 export function getBaseName(fileName: string): string {
-  let baseName = fileName.replace(/\.[^.]+$/, "");
-  if (baseName.includes("@hash@")) {
-    baseName = baseName.split("@hash@")[0];
+  const baseName = fileName.split(/[\\/]/).pop() || fileName;
+  let name = baseName.replace(/\.[^.]+$/, "");
+  if (name.includes("@hash@")) {
+    name = name.split("@hash@")[0];
   }
-  return baseName;
+  return name;
 }
 
 export function getDefaultFileName(
@@ -58,15 +63,16 @@ export function getUniqueFileName(
     return fileName;
   }
 
-  const lastDotIndex = fileName.lastIndexOf(".");
-  const hasExtension = lastDotIndex > 0 && lastDotIndex < fileName.length - 1;
+  // Находим ПЕРВУЮ точку для сложных расширений (.tar.gz)
+  const firstDotIndex = fileName.indexOf(".");
+  const hasExtension = firstDotIndex > 0 && firstDotIndex < fileName.length - 1;
 
   let nameWithoutExt: string;
   let ext: string;
 
   if (hasExtension) {
-    nameWithoutExt = fileName.substring(0, lastDotIndex);
-    ext = fileName.substring(lastDotIndex + 1);
+    nameWithoutExt = fileName.substring(0, firstDotIndex);
+    ext = fileName.substring(firstDotIndex);
   } else {
     nameWithoutExt = fileName;
     ext = "";
@@ -77,7 +83,7 @@ export function getUniqueFileName(
 
   do {
     if (ext) {
-      newName = `${nameWithoutExt}${counter}.${ext}`;
+      newName = `${nameWithoutExt}${counter}${ext}`;
     } else {
       newName = `${nameWithoutExt}${counter}`;
     }
