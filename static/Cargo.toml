@@ -1,0 +1,131 @@
+[package]
+name = "formato"
+version = "0.1.0"
+description = "Universal data converter for 60+ formats with modern UI, speech synthesis, and speech recognition. 100% local, no uploads, no limits. Powered by Rust + Svelte + Tauri."
+authors = ["Sazynek"]
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/sazynek/formato"
+homepage = "https://github.com/sazynek/formato#readme"
+documentation = "https://github.com/sazynek/formato#readme"
+readme = "../README.md"
+keywords = [
+    "converter",
+    "file-converter",
+    "data-converter",
+    "media-converter",
+    "json",
+    "yaml",
+    "xml",
+    "csv",
+    "toml",
+    "markdown",
+    "html",
+    "image-processing",
+    "audio-converter",
+    "video-converter",
+    "document-converter",
+    "pdf",
+    "docx",
+    "odt",
+    "xlsx",
+    "speech-synthesis",
+    "text-to-speech",
+    "speech-recognition",
+    "whisper",
+    "tts",
+    "stt",
+    "rust",
+    "svelte",
+    "tauri",
+    "desktop-app",
+    "gui",
+    "modern-ui",
+    "dark-mode",
+    "offline",
+    "local-processing",
+    "privacy-first",
+    "open-source",
+    "cross-platform",
+    "windows",
+    "macos",
+    "linux",
+    "no-cloud",
+    "ffmpeg",
+    "image-rs",
+    "piper",
+    "transcribe"
+]
+categories = [
+    "command-line-utilities",
+    "multimedia",
+    "multimedia::audio",
+    "multimedia::video",
+    "multimedia::images",
+    "text-processing",
+    "text-processing::markdown",
+    "text-processing::xml",
+    "text-processing::json",
+    "text-processing::yaml",
+    "text-processing::csv",
+    "visualization",
+    "gui",
+    "development-tools",
+    "development-tools::build-utils"
+]
+
+[lib]
+name = "formato_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = ["test"] }
+tauri-plugin-opener = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri-plugin-dialog = "2.7.1"
+serde_ini = "0.2.0"
+quick-xml = { version = "0.40.1", features = ["serialize"] }
+toml = "1.1.2"
+csv = "1.4.0"
+serde_yaml = "0.9.34"
+dirs = "6.0.0"
+opener = "0.8.4"
+tokio = { version = "1.52.3", features = ["rt", "macros", "time", "process"] }
+tauri-plugin-fs = "2.5.1"
+scraper = "0.27.0"
+pulldown-cmark = "0.13.4"
+json2csv = "0.2.0"
+xml2json-rs = "1.0.1"
+handlebars = "6.4.1"
+json-unflattening = "0.1.5"
+serde-flattened = "0.1.1"
+sea-orm = { version = "2.0.0-rc", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros", "debug-print"] }
+chrono = "0.4.45"
+xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
+memmap2 = "0.9.11"
+zippylib = "0.1.0"
+docx-rs = "0.4.20"
+rust_xlsxwriter = "0.96.0"
+rtf-parser = "0.4.3"
+zip = "8.6.0"
+calamine = "0.36.0"
+pdf-extract = "0.12.0"
+encoding_rs = "0.8.35"
+tempfile = "3.27.0"
+office_oxide = "0.1.7"
+image = { version = "0.25.5", features = ["avif-native"] }
+ffmpeg-sidecar = "2.5.2"
+base64 = "0.23.0"
+kamadak-exif = "0.6.1"
+piper-rs = "0.2.0"
+reqwest = { version = "0.13.4", features = ["blocking"] }
+lo_writer = "0.5.2"
+transcribe-rs = { version = "0.3.11", features = ["whisper-cpp"] }
+unicode-segmentation = "1.13.3"
+uuid = { version = "1.24.0", features = ["v4"] }
+flate2 = "1.1.9"
+libc = "0.2.189"

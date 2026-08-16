@@ -7,15 +7,12 @@ node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
-yarn.lock
-pnpm-lock.yaml
+
 
 # Build
 /build
 /dist
 /.svelte-kit
-/package
 
 # Environment
 .env
@@ -27,12 +24,9 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 *.timestamp-*
 
-# Static copied files
-static/package.json
-static/Cargo.toml
 
 # Paraglide (i18n)
-src/lib/paraglide
+src/lib/paraglide/
 project.inlang/cache/
 
 # Test fixtures (generated)
@@ -45,13 +39,29 @@ coverage/
 # Tauri
 src-tauri/target/
 src-tauri/gen/
+src-tauri/.tauri/
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
 # Logs
 *.log
 logs/
+
+# Temporary files
+*.tmp
+tmp/
+temp/
+*.temp
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
+*.tgz
+*.tar.gz
+*.zip
