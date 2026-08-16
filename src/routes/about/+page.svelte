@@ -145,7 +145,7 @@
             
             <!-- Кнопка Boosty с оранжевым свечением -->
             <a 
-              href="https://boosty.to/yourusername" 
+              href="https://boosty.to/applabhub" 
               target="_blank"
               rel="noopener noreferrer"
               class="boosty-pulse inline-flex items-center gap-2 px-6 py-3 dark:bg-amber-500/10 light:bg-amber-200/50 dark:hover:bg-amber-500/20 light:hover:bg-amber-300/60 rounded-lg text-amber-600 dark:text-amber-400 transition-colors border border-amber-500/30 dark:border-amber-500/20 light:border-amber-300/50"

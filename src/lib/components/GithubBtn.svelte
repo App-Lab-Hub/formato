@@ -12,7 +12,7 @@
 </script>
 
 <a 
-  href="https://github.com" 
+  href="https://github.com/App-Lab-Hub/formato" 
   target="_blank"
   rel="noopener noreferrer"
   class="github-pulse inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-purple-500/15 to-indigo-500/15 dark:from-purple-500/25 dark:to-indigo-500/25 border border-purple-500/30 dark:text-purple-300 light:text-purple-700 hover:scale-105 hover:shadow-lg transition-all duration-200 font-medium {customClass || 'px-3.5 py-1.5 sm:py-0.5 text-xs sm:text-sm'}"
