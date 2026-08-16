@@ -119,40 +119,43 @@
             </a>
           </div>
 
-          <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-8">
-            <div class="flex items-center gap-3 mb-4">
-              <div class="h-5 w-5 text-purple-600 dark:text-purple-400">
+        <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-8">
+          <div class="flex items-center gap-3 mb-4">
+            <div class="h-5 w-5 text-purple-600 dark:text-purple-400">
+              <FaGithub />
+            </div>
+            <h2 class="text-xl font-semibold dark:text-foreground light:text-purple-800">{m.about_open_source()}</h2>
+          </div>
+          <p class="dark:text-muted-foreground light:text-purple-700/70 leading-relaxed mb-4">
+            {m.about_open_source_desc()}
+          </p>
+          <div class="flex flex-wrap gap-3">
+            <!-- Кнопка GitHub с фиолетовым свечением -->
+            <a 
+              href={getGithubUrl()} 
+              target="_blank"
+              rel="noopener noreferrer"
+              class="github-pulse inline-flex items-center gap-2 px-6 py-3 dark:bg-primary/10 light:bg-purple-300/50 dark:hover:bg-primary/20 light:hover:bg-purple-400/60 rounded-lg text-primary transition-colors border dark:border-primary/20 light:border-purple-300/50"
+            >
+              <div class="h-4 w-4">
                 <FaGithub />
               </div>
-              <h2 class="text-xl font-semibold dark:text-foreground light:text-purple-800">{m.about_open_source()}</h2>
-            </div>
-            <p class="dark:text-muted-foreground light:text-purple-700/70 leading-relaxed mb-4">
-              {m.about_open_source_desc()}
-            </p>
-            <div class="flex flex-wrap gap-3">
-              <a 
-                href={getGithubUrl()} 
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 px-6 py-3 dark:bg-primary/10 light:bg-purple-300/50 dark:hover:bg-primary/20 light:hover:bg-purple-400/60 rounded-lg text-primary transition-colors border dark:border-primary/20 light:border-purple-300/50"
-              >
-                <div class="h-4 w-4">
-                  <FaGithub />
-                </div>
-                <span>{m.about_view_github()}</span>
-              </a>
-              
-              <a 
-                href="https://boosty.to/yourusername" 
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-2 px-6 py-3 dark:bg-amber-500/10 light:bg-amber-200/50 dark:hover:bg-amber-500/20 light:hover:bg-amber-300/60 rounded-lg text-amber-600 dark:text-amber-400 transition-colors border border-amber-500/30 dark:border-amber-500/20 light:border-amber-300/50"
-              >
-                <img src="/boosty.svg" alt="Boosty" class="h-4 w-4" />
-                <span>{m.about_support_boosty()}</span>
-              </a>
-            </div>
+              <span>{m.about_view_github()}</span>
+            </a>
+            
+            <!-- Кнопка Boosty с оранжевым свечением -->
+            <a 
+              href="https://boosty.to/yourusername" 
+              target="_blank"
+              rel="noopener noreferrer"
+              class="boosty-pulse inline-flex items-center gap-2 px-6 py-3 dark:bg-amber-500/10 light:bg-amber-200/50 dark:hover:bg-amber-500/20 light:hover:bg-amber-300/60 rounded-lg text-amber-600 dark:text-amber-400 transition-colors border border-amber-500/30 dark:border-amber-500/20 light:border-amber-300/50"
+            >
+              <img src="/boosty.svg" alt="Boosty" class="h-4 w-4" />
+              <span>{m.about_support_boosty()}</span>
+            </a>
           </div>
+        </div>
+
 
           <div class="text-center mt-8 text-xs dark:text-muted-foreground/40 light:text-purple-700/40">
             {getVersion()}

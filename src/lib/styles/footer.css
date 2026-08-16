@@ -1,0 +1,40 @@
+/* Анимация для GitHub (фиолетовые тона) */
+.github-pulse {
+  animation: github-glow 2.5s infinite ease-in-out;
+}
+
+@keyframes github-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 4px rgba(168, 85, 247, 0.15),
+      inset 0 0 2px rgba(168, 85, 247, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 16px rgba(168, 85, 247, 0.55),
+      inset 0 0 4px rgba(168, 85, 247, 0.25);
+    border-color: rgba(168, 85, 247, 0.5);
+  }
+}
+
+/* Анимация для Boosty (оранжевые тона) */
+.boosty-pulse {
+  /* Убрали задержку, теперь работает полностью синхронно с GitHub */
+  animation: boosty-glow 2.5s infinite ease-in-out;
+}
+
+@keyframes boosty-glow {
+  0%,
+  100% {
+    box-shadow:
+      0 0 4px rgba(245, 158, 11, 0.15),
+      inset 0 0 2px rgba(245, 158, 11, 0.1);
+  }
+  50% {
+    box-shadow:
+      0 0 16px rgba(245, 158, 11, 0.6),
+      inset 0 0 4px rgba(245, 158, 11, 0.3);
+    border-color: rgba(245, 158, 11, 0.55);
+  }
+}
