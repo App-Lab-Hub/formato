@@ -1,8 +1,8 @@
 <!-- Footer.svelte -->
 <script lang="ts">
-  // @ts-ignore
-  import { FaGithub } from 'svelte-icons/fa';
   import { m } from '$lib/paraglide/messages';
+  import GithubBtn from '$lib/components/GithubBtn.svelte';
+  import BoostyBtn from '$lib/components/BoostyBtn.svelte';
   import "$lib/styles/footer.css";
 </script>
 
@@ -43,35 +43,9 @@
     
     <!-- Контейнер для кнопок -->
     <div class="flex items-center gap-3 w-full sm:w-auto justify-center mt-1 sm:mt-0 transform translate-y-[1px]">
-      <!-- GitHub с фиолетовым пульсирующим свечением -->
-      <a 
-        href="https://github.com" 
-        target="_blank"
-        rel="noopener noreferrer"
-        class="github-pulse flex items-center gap-2 px-3.5 py-1.5 sm:py-0.5 rounded-full bg-gradient-to-r from-purple-500/15 to-indigo-500/15 dark:from-purple-500/25 dark:to-indigo-500/25 border border-purple-500/30 dark:text-purple-300 light:text-purple-700 hover:scale-105 hover:shadow-lg transition-all duration-200 font-medium text-xs sm:text-sm"
-      >
-        <div class="h-3.5 w-3.5">
-          <FaGithub />
-        </div>
-        <span>GitHub</span>
-      </a>
-
-      <!-- Boosty с оранжевым пульсирующим свечением -->
-      <a 
-        href="https://boosty.to" 
-        target="_blank"
-        rel="noopener noreferrer"
-        class="boosty-pulse flex items-center gap-2 px-3.5 py-1.5 sm:py-0.5 rounded-full bg-gradient-to-r from-amber-500/15 to-orange-500/15 dark:from-amber-500/25 dark:to-orange-500/25 border border-amber-500/30 dark:text-amber-300 light:text-amber-700 hover:scale-105 hover:shadow-lg transition-all duration-200 font-medium text-xs sm:text-sm"
-      >
-        <img 
-          src="/boosty.svg" 
-          alt="Boosty" 
-          class="h-3.5 w-3.5"
-        />
-        <span>Boosty</span>
-      </a>
+      <GithubBtn />
+      <BoostyBtn />
     </div>
 
   </div>
 </footer>
-

@@ -43,6 +43,8 @@
     getArchiveName,
     filterExistingFiles,
   } from '$lib/utils/convert';
+  import GithubBtn from '$lib/components/GithubBtn.svelte';
+  import BoostyBtn from '$lib/components/BoostyBtn.svelte';
 
   let isAddToList = $state(false);
   
@@ -710,6 +712,7 @@
   }
 </script>
 
+
 <svelte:window on:keydown={handleKeydown} />
 <ScrollContainer>
   {#if isLoading}
@@ -724,7 +727,15 @@
       </button>
     </div>
   {:else if sourceFormat}
-      <div class="flex flex-col bg-background text-foreground min-h-screen">
+      <!-- Добавили класс relative, чтобы иконки позиционировались относительно экрана приложения -->
+      <div class="flex flex-col bg-background text-foreground min-h-screen relative">
+        
+        <!-- Аккуратный блок иконок в верхнем правом углу -->
+        <div class="absolute top-4 right-4 sm:top-6 sm:right-8 flex items-center gap-2.5 z-20">
+          <GithubBtn hideTextOnMobile={false} />
+          <BoostyBtn hideTextOnMobile={false} />
+        </div>
+
         <main class="flex flex-col items-center gap-10 px-8 py-20 max-w-[1700px] mx-auto w-full">
           
           {#if showAIBanner}
