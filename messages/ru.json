@@ -357,5 +357,6 @@
   "settings_show_extensions_show": "Показать расширения",
   "settings_show_extensions_hide": "Скрыть расширения",
   "settings_enable_cache_enable": "Включить кэш",
-  "settings_enable_cache_disable": "Отключить кэш"
+  "settings_enable_cache_disable": "Отключить кэш",
+  "about_support_boosty": "Поддержать на Boosty"
 }

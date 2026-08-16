@@ -359,5 +359,6 @@
   "settings_show_extensions_hide": "Hide extensions",
 
   "settings_enable_cache_enable": "Enable cache",
-  "settings_enable_cache_disable": "Disable cache"
+  "settings_enable_cache_disable": "Disable cache",
+  "about_support_boosty": "Support on Boosty"
 }

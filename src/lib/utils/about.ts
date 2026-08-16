@@ -45,7 +45,7 @@ export function getTechColorClasses(tech: string): string {
 
 /* c8 ignore start */
 export function getGithubUrl(): string {
-  return "https://github.com/yourusername/formato";
+  return "https://github.com/App-Lab-Hub/formato";
 }
 
 export function getVersion(): string {

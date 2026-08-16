@@ -3,8 +3,6 @@ import {
   getFormatCount,
   getTechStack,
   getTechColorClasses,
-  getVersion,
-  getGithubUrl,
 } from "$lib/utils/about";
 
 describe("about utils", () => {
