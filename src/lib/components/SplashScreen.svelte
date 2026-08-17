@@ -231,7 +231,7 @@
       <div bind:this={refs.subtitle} class="splash-subtitle">
         <p class="subtitle-text">Universal Data Converter</p>
         <div class="divider divider-purple"></div>
-        <span class="version-text">v0.1.0</span>
+        <span class="version-text">v1.0.0</span>
         <div class="divider divider-cyan"></div>
       </div>
 

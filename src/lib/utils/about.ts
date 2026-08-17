@@ -49,6 +49,6 @@ export function getGithubUrl(): string {
 }
 
 export function getVersion(): string {
-  return "v0.1.0";
+  return "v1.0.0";
 }
 /* c8 ignore end */

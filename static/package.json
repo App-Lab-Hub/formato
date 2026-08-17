@@ -1,6 +1,6 @@
 {
   "name": "formato",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Modern universal data converter for 60+ formats — JSON, YAML, XML, CSV, images, audio, video and more. Features speech synthesis, speech recognition, and a beautiful modern UI. Built with Rust + Svelte + Tauri. 100% local, no uploads, no limits.",
   "type": "module",
   "scripts": {

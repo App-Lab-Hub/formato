@@ -1,6 +1,6 @@
 [package]
 name = "formato"
-version = "0.1.0"
+version = "1.0.0"
 description = "Universal data converter for 60+ formats with modern UI, speech synthesis, and speech recognition. 100% local, no uploads, no limits. Powered by Rust + Svelte + Tauri."
 authors = ["Sazynek"]
 edition = "2021"
