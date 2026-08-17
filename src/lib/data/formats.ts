@@ -10,9 +10,6 @@ import {
   FaFilePdf,
   FaFileWord,
   FaFileExcel,
-  FaFileAudio,
-  FaFileVideo,
-  FaFileImage,
   FaFileAlt,
   // @ts-ignore
 } from "svelte-icons/fa";
@@ -23,28 +20,8 @@ import {
   MdVideocam,
   MdImage,
   MdDescription,
-  MdTextFields,
   // @ts-ignore
 } from "svelte-icons/md";
-
-// Octicons (GitHub)
-import {
-  GoFile,
-  // @ts-ignore
-} from "svelte-icons/go";
-
-// Typicons
-import {
-  TiDocument,
-  TiDocumentText,
-  // @ts-ignore
-} from "svelte-icons/ti";
-
-// Devicons
-import {
-  DiHtml5,
-  // @ts-ignore
-} from "svelte-icons/di";
 
 const iconMap: Record<string, any> = {
   // ============================================

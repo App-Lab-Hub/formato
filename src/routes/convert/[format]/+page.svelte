@@ -26,7 +26,7 @@
   // Import store
   import { appState, type FileItem } from '$lib/stores/app.svelte';
   import { openPath } from '@tauri-apps/plugin-opener';
-  import { writeFile, writeTextFile } from '@tauri-apps/plugin-fs';
+  import { writeFile } from '@tauri-apps/plugin-fs';
   import { SvelteSet } from 'svelte/reactivity';
   import { loader } from '$lib/stores/loader.svelte';
   
