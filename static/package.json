@@ -76,6 +76,7 @@
   "dependencies": {
     "@melt-ui/svelte": "^0.86.6",
     "@motionone/dom": "^10.18.0",
+    "@splidejs/splide": "^4.1.4",
     "@splidejs/svelte-splide": "^0.2.9",
     "@tailwindcss/vite": "^4.3.0",
     "@tauri-apps/api": "^2",

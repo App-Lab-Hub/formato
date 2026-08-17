@@ -1,6 +1,6 @@
 {
   "name": "formato",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Modern universal data converter for 60+ formats — JSON, YAML, XML, CSV, images, audio, video and more. Features speech synthesis, speech recognition, and a beautiful modern UI. Built with Rust + Svelte + Tauri. 100% local, no uploads, no limits.",
   "type": "module",
   "scripts": {
@@ -76,6 +76,7 @@
   "dependencies": {
     "@melt-ui/svelte": "^0.86.6",
     "@motionone/dom": "^10.18.0",
+    "@splidejs/splide": "^4.1.4",
     "@splidejs/svelte-splide": "^0.2.9",
     "@tailwindcss/vite": "^4.3.0",
     "@tauri-apps/api": "^2",

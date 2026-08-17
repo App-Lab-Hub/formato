@@ -1,3 +1,4 @@
+
 import { paraglideVitePlugin } from "@inlang/paraglide-js";
 import { defineConfig } from "vite"; // ← обычный vite, не vitest/config
 import { sveltekit } from "@sveltejs/kit/vite";

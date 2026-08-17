@@ -1,8 +1,9 @@
 {
-  "$schema": "https://tauri.app",
+  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Formato",
-  "version": "0.1.0",
-  "identifier": "com.sazynek.formato",
+  "version": "1.0.0",
+  "identifier": "com.app-lab-hab.formato",
+
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -17,6 +18,7 @@
         "maximized": true,
         "minWidth": 600,
         "minHeight": 400,
+
         "resizable": true,
         "decorations": true,
         "center": true,
