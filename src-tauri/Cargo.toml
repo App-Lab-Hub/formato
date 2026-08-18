@@ -118,6 +118,7 @@ encoding_rs = "0.8.35"
 tempfile = "3.27.0"
 office_oxide = "0.1.7"
 image = { version = "0.25.5", features = ["avif-native"] }
+# image = "0.25.5"
 ffmpeg-sidecar = "2.5.2"
 base64 = "0.23.0"
 kamadak-exif = "0.6.1"

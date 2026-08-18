@@ -37,11 +37,11 @@
     "linux": {
       "deb": {
         "depends": [
-          "libdav1d7",
           "libwebkit2gtk-4.1-0",
           "libgtk-3-0",
           "ffmpeg",
-          "libreoffice"
+          "libreoffice",
+          "libdav1d7"
         ]
       }
     },
