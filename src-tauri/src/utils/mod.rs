@@ -1,8 +1,8 @@
 use crate::{db, AppState};
 use tauri::Manager;
 pub mod generate_audio;
+pub mod fs;
 use crate::paths::temp_dir;
-use std::fs;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Показывает главное окно (вызывается после загрузки фронтенда)
@@ -115,7 +115,7 @@ pub fn create_temp_file(
     let file_name = format!("{}_{}.{}", name, timestamp, extension);
     let file_path = dir.join(file_name);
 
-    fs::write(&file_path, content).map_err(|e| e.to_string())?;
+    std::fs::write(&file_path, content).map_err(|e| e.to_string())?;
 
     Ok(file_path.to_string_lossy().to_string())
 }

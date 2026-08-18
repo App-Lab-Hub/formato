@@ -59,7 +59,7 @@ pub async fn convert_text_to_audio(path: &str, from: &str, to: &str) -> Result<S
                     .map_err(|e| format!("Cannot create output dir: {}", e))?;
             }
         }
-        tokio::fs::rename(&audio_output, &final_path)
+        crate::utils::fs::move_file_async(&audio_output, &final_path)
             .await
             .map_err(|e| format!("Cannot move file: {}", e))?;
     }

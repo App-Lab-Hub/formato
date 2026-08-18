@@ -75,7 +75,7 @@ pub fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<String
 }
 
 /// Конвертация видео в аудио (извлекает аудио дорожку в WAV, затем использует audio модуль)
-pub fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
+pub async fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
     let temp_wav = extract_audio_to_wav(path)?;
     let audio_output = audio::convert_audio_to_audio(&temp_wav, "wav", to)?;
 
@@ -90,7 +90,9 @@ pub fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String
                     .map_err(|e| format!("Cannot create output dir: {}", e))?;
             }
         }
-        std::fs::rename(&audio_output, &final_path)
+        // ✅ Заменяем rename на move_file_async (синхронная версия)
+        crate::utils::fs::move_file_async(&audio_output, &final_path)
+            .await
             .map_err(|e| format!("Cannot move file: {}", e))?;
     }
 

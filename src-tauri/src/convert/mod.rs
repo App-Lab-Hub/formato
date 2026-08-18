@@ -595,7 +595,7 @@ async fn convert_video_to_video(path: &str, from: &str, to: &str) -> Result<Stri
 }
 /// Video → Audio — извлекаем аудио дорожку и конвертируем в целевой формат
 async fn convert_video_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
-    video::convert_video_to_audio(path, from, to)
+    video::convert_video_to_audio(path, from, to).await
 }
 
 async fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Result<String, String> {
@@ -619,17 +619,11 @@ async fn convert_video_to_text(
     to: &str,
 ) -> Result<String, String> {
     // 1. Извлекаем аудио из видео в WAV
-    let audio_path = video::convert_video_to_audio(path, from, "wav")?;
+    let audio_path = video::convert_video_to_audio(path, from, "wav").await?;
 
     // 2. Распознаем аудио в текст
     let result = audio_to_text::convert_audio_to_text(db, &audio_path, "wav", to).await?;
 
-    // 3. Проверяем кеш перед удалением
-    // if !is_file_cached(db, path, from, "wav").await? {
-    //     if let Err(e) = std::fs::remove_file(&audio_path) {
-    //         eprintln!("Warning: Failed to remove temp audio file: {}", e);
-    //     }
-    // }
 
     Ok(result)
 }
@@ -651,10 +645,6 @@ async fn convert_audio_to_document(
     // 3. Конвертируем текст в документ (используем оригинальный path)
     let result = stringify_document(db, &text, path, from, to).await?;
 
-    // 4. Проверяем кеш перед удалением
-    // if !is_file_cached(db, path, from, "txt").await? {
-    //     let _ = std::fs::remove_file(&text_path);
-    // }
 
     Ok(result)
 }
@@ -667,7 +657,7 @@ async fn convert_video_to_document(
     to: &str,
 ) -> Result<String, String> {
     // 1. Извлекаем аудио из видео в WAV
-    let audio_path = video::convert_video_to_audio(path, from, "wav")?;
+    let audio_path = video::convert_video_to_audio(path, from, "wav").await?;
 
     // 2. Распознаем аудио в текст
     let text_path = audio_to_text::convert_audio_to_text(db, &audio_path, "wav", "txt").await?;
@@ -679,14 +669,6 @@ async fn convert_video_to_document(
     // 4. Конвертируем текст в документ (используем оригинальный path)
     let result = stringify_document(db, &text, path, from, to).await?;
 
-    // 5. Проверяем кеш перед удалением временных файлов
-    // if !is_file_cached(db, path, from, "wav").await? {
-    //     let _ = std::fs::remove_file(&audio_path);
-    // }
-
-    // if !is_file_cached(db, &audio_path, "wav", "txt").await? {
-    //     let _ = std::fs::remove_file(&text_path);
-    // }
 
     Ok(result)
 }
@@ -786,11 +768,7 @@ pub fn get_app_dir_path_with_hash(
     let output_path = output_dir.join(format!("{}@hash@{}.{}", base_name, hash, to));
     let output_path_str = output_path.to_string_lossy().to_string();
 
-    // Если нужно перезаписать и файл существует - удаляем
-    // if overwrite && Path::new(&output_path_str).exists() {
-    //     std::fs::remove_file(&output_path_str)
-    //         .map_err(|e| format!("Cannot remove existing file: {}", e))?;
-    // }
+  
 
     Ok(output_path_str)
 }
@@ -946,11 +924,14 @@ pub async fn convert_file(
 
     // Переименовываем файл только если пути разные
     if output_path_buf != new_output_path {
-        tokio::fs::rename(&output_path_buf, &new_output_path)
-            .await
-            .map_err(|e| format!("Failed to rename file: {e}"))?;
+        crate::utils::fs::move_file_async(
+            output_path_buf.to_str().unwrap(),
+            new_output_path.to_str().unwrap(),
+        )
+        .await
+        .map_err(|e| format!("Failed to move file: {e}"))?;
         println!(
-            "File renamed: {:?} -> {:?}",
+            "File moved: {:?} -> {:?}",
             output_path_buf, new_output_path
         );
     }
@@ -972,7 +953,6 @@ pub async fn convert_file(
         error: None,
     })
 }
-
 #[tauri::command]
 pub async fn read_file_content(path: String) -> Result<String, String> {
     tokio::fs::read_to_string(&path)
@@ -1514,91 +1494,91 @@ mod tests {
         #[tokio::test]
         async fn test_mp4_to_all_audio_formats() {
             test_conversion("mp4", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_mov_to_all_audio_formats() {
             test_conversion("mov", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_avi_to_all_audio_formats() {
             test_conversion("avi", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_mkv_to_all_audio_formats() {
             test_conversion("mkv", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_webm_to_all_audio_formats() {
             test_conversion("webm", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_wmv_to_all_audio_formats() {
             test_conversion("wmv", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_flv_to_all_audio_formats() {
             test_conversion("flv", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_3gp_to_all_audio_formats() {
             test_conversion("3gp", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_m4v_to_all_audio_formats() {
             test_conversion("m4v", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_ts_to_all_audio_formats() {
             test_conversion("ts", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_vob_to_all_audio_formats() {
             test_conversion("vob", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_mpg_to_all_audio_formats() {
             test_conversion("mpg", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
 
         #[tokio::test]
         async fn test_nut_to_all_audio_formats() {
             test_conversion("nut", super::AUDIO_FORMATS, |_db, path, from, to| async move {
-                video::convert_video_to_audio(&path, &from, &to)
+                video::convert_video_to_audio(&path, &from, &to).await
             }, None).await;
         }
     }

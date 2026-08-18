@@ -2,6 +2,7 @@
 
 use crate::convert::audio;
 use crate::convert::{calculate_conversion_hash, get_app_dir_path_with_hash, parse_document};
+use crate::utils::fs::move_file_async;
 use crate::utils::generate_audio;
 use std::fs;
 use std::path::Path;
@@ -71,7 +72,7 @@ pub async fn convert_document_to_audio(path: &str, from: &str, to: &str) -> Resu
                     .map_err(|e| format!("Cannot create output dir: {}", e))?;
             }
         }
-        tokio::fs::rename(&audio_output, &final_path)
+        move_file_async(&audio_output, &final_path)
             .await
             .map_err(|e| format!("Cannot move file: {}", e))?;
     }

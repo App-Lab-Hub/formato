@@ -9,6 +9,7 @@ use uuid::Uuid;
 // Глобальный семафор — только 1 вызов soffice одновременно
 static SOFFICE_SEMAPHORE: LazyLock<Semaphore> = LazyLock::new(|| Semaphore::new(1));
 
+
 /// Конвертация через soffice с явным фильтром (асинхронная)
 pub async fn convert_with_soffice_explicit(
     input_path: &str,
@@ -87,9 +88,13 @@ pub async fn convert_with_soffice_explicit(
     let temp_output = Path::new(&temp_dir_path).join(format!("{}.{}", input_stem, output_ext));
 
     if temp_output.exists() {
-        fs::rename(&temp_output, output_path_obj)
-            .await
-            .map_err(|e| format!("Failed to move to {}: {}", output_path, e))?;
+        // ✅ Заменяем rename на move_file_async
+        crate::utils::fs::move_file_async(
+            temp_output.to_str().unwrap(),
+            output_path_obj.to_str().unwrap(),
+        )
+        .await
+        .map_err(|e| format!("Failed to move to {}: {}", output_path, e))?;
         Ok(())
     } else {
         // 🔄 Если файл не создан, пробуем без фильтра
@@ -143,14 +148,19 @@ async fn fallback_convert(
     let temp_output = Path::new(&temp_dir_path).join(format!("{}.{}", input_stem, output_ext));
 
     if temp_output.exists() {
-        fs::rename(&temp_output, output_path_obj)
-            .await
-            .map_err(|e| format!("Failed to move to {}: {}", output_path, e))?;
+        // ✅ Заменяем rename на move_file_async
+        crate::utils::fs::move_file_async(
+            temp_output.to_str().unwrap(),
+            output_path_obj.to_str().unwrap(),
+        )
+        .await
+        .map_err(|e| format!("Failed to move to {}: {}", output_path, e))?;
         Ok(())
     } else {
         Err("soffice did not create output file".to_string())
     }
 }
+
 
 /// Конвертирует XML в HTML через soffice (LibreOffice) — асинхронная версия
 pub async fn xml_to_html_via_soffice(xml_str: &str) -> Result<String, String> {
@@ -286,13 +296,14 @@ pub async fn convert_docx_to_rtf(
         }
     }
 
-    // Перемещаем
-    tokio::fs::rename(&temp_rtf, &final_path)
+    // ✅ Заменяем rename на move_file_async
+    crate::utils::fs::move_file_async(&temp_rtf, &final_path)
         .await
-        .map_err(|e| format!("Cannot rename RTF file: {}", e))?;
+        .map_err(|e| format!("Cannot move file: {}", e))?;
 
     Ok(final_path)
 }
+
 
 /// Конвертирует XML в RTF через soffice (LibreOffice) — асинхронная версия
 pub async fn xml_to_rtf_via_soffice(xml_str: &str) -> Result<String, String> {

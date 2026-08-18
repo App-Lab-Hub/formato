@@ -6,7 +6,6 @@ use crate::convert::{
     image_utils::{get_image_metadata, open_image, zlib_and_then_base64},
     stringify_document,
 };
-
 /// Конвертация изображения в документ
 pub async fn convert_image_to_document(
     db: &DatabaseConnection,
@@ -57,7 +56,9 @@ pub async fn convert_image_to_document(
                     .map_err(|e| format!("Cannot create output dir: {}", e))?;
             }
         }
-        std::fs::rename(&output_path, &final_path)
+        // ✅ Заменяем rename на move_file_async
+        crate::utils::fs::move_file_async(&output_path, &final_path)
+            .await
             .map_err(|e| format!("Cannot move file: {}", e))?;
     }
 
