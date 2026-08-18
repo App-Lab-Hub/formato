@@ -20,15 +20,27 @@
     sourceFormatId?: string;
   } = $props();
 
-  // Получаем список исключенных форматов (по ID форматов)
-  const excludedFormats = $derived(() => {
-    if (!availability || !availability.exceptions || !sourceFormatId) {
+  // Константы вынесены за пределы компонента
+  const groupOrder = ['text', 'image', 'audio', 'video', 'document'] as const;
+  
+  const groupConfig: Record<string, { label: string; icon: typeof FileText; color: string }> = {
+    text: { label: m.format_group_text(), icon: FileText, color: 'text-blue-500 dark:text-blue-400' },
+    image: { label: m.format_group_image(), icon: Image, color: 'text-emerald-500 dark:text-emerald-400' },
+    audio: { label: m.format_group_audio(), icon: Music, color: 'text-rose-500 dark:text-rose-400' },
+    video: { label: m.format_group_video(), icon: Film, color: 'text-amber-500 dark:text-amber-400' },
+    document: { label: m.format_group_document(), icon: File, color: 'text-violet-500 dark:text-violet-400' },
+  };
+
+  // Кешируем исключённые форматы
+  const excludedFormats = $derived.by(() => {
+    if (!availability?.exceptions || !sourceFormatId) {
       return new Set<string>();
     }
     const ex = availability.exceptions[sourceFormatId] || [];
     return new Set(ex);
   });
 
+  // Группировка форматов
   const groupedFormats = $derived.by(() => {
     const groups: Record<string, Format[]> = {};
     for (const format of formats) {
@@ -39,31 +51,18 @@
     return groups;
   });
 
-  const groupOrder = ['text', 'image', 'audio', 'video', 'document'];
-  
-  const groupConfig: Record<string, { label: string; icon: typeof FileText; color: string }> = {
-    text: { label: m.format_group_text(), icon: FileText, color: 'text-blue-500 dark:text-blue-400' },
-    image: { label: m.format_group_image(), icon: Image, color: 'text-emerald-500 dark:text-emerald-400' },
-    audio: { label: m.format_group_audio(), icon: Music, color: 'text-rose-500 dark:text-rose-400' },
-    video: { label: m.format_group_video(), icon: Film, color: 'text-amber-500 dark:text-amber-400' },
-    document: { label: m.format_group_document(), icon: File, color: 'text-violet-500 dark:text-violet-400' },
-  };
-
-  function getStatusForFormat(format: Format): string {
-    if (!availability) return 'unknown';
-    const type = format.formatType || 'text';
-    
-    // Проверяем, исключен ли этот конкретный формат
-    const excluded = excludedFormats();
-    if (excluded.has(format.id)) {
-      return 'not_available'; // 👈 Помечаем как недоступный
+  // Карта статусов — вычисляется один раз для всех форматов
+  const statusMap = $derived.by(() => {
+    const map = new Map<string, boolean>();
+    const excluded = excludedFormats;
+    for (const f of formats) {
+      const type = f.formatType || 'text';
+      const status = availability?.[type as keyof AvailabilityResponse] as string || 'unknown';
+      map.set(f.id, status === 'available' && !excluded.has(f.id));
     }
-    
-    const key = type as keyof AvailabilityResponse;
-    return availability[key] as string || 'unknown';
-  }
+    return map;
+  });
 </script>
-
 
 <!-- Разделитель "Конвертировать в" -->
 <div class="flex items-center justify-center gap-3 w-full my-1 select-none opacity-60">
@@ -93,13 +92,12 @@
           </span>
         </div>
         
-        <!-- Сетка карточек -->
+        <!-- Сетка карточек с КЛЮЧАМИ -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 mt-1">
-          {#each groupItems as target}
-            {@const status = getStatusForFormat(target)}
+          {#each groupItems as target (target.id)}
             <FormatCard
               format={target}
-              {status}
+              isAvailable={statusMap.get(target.id) ?? false}
               isSelected={selectedTarget?.id === target.id}
               onselect={onselect}
             />
