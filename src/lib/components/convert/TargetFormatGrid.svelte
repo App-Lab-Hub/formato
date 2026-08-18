@@ -19,7 +19,6 @@
     sourceFormatId?: string;
   } = $props();
 
-  // Константы вынесены за пределы компонента
   const groupOrder = ['text', 'image', 'audio', 'video', 'document'] as const;
   
   const groupConfig: Record<string, { label: string; icon: typeof FileText; color: string }> = {
@@ -30,7 +29,6 @@
     document: { label: m.format_group_document(), icon: File, color: 'text-violet-500 dark:text-violet-400' },
   };
 
-  // Кешируем исключённые форматы
   const excludedFormats = $derived.by(() => {
     if (!availability?.exceptions || !sourceFormatId) {
       return new Set<string>();
@@ -38,8 +36,6 @@
     const ex = availability.exceptions[sourceFormatId] || [];
     return new Set(ex);
   });
-
-  // Группировка форматов
   const groupedFormats = $derived.by(() => {
     const groups: Record<string, Format[]> = {};
     for (const format of formats) {
@@ -50,7 +46,6 @@
     return groups;
   });
 
-  // Карта статусов — вычисляется один раз для всех форматов
   const statusMap = $derived.by(() => {
     const map = new Map<string, boolean>();
     const excluded = excludedFormats;
@@ -79,7 +74,6 @@
     {#if groupItems && groupItems.length > 0}
       <div class="w-full flex flex-col gap-3">
         
-        <!-- Заголовок группы -->
         <div class="flex items-center gap-2 select-none h-5">
           <config.icon class="h-4 w-4 flex-shrink-0 {config.color}" />
           <span class="text-xs font-bold dark:text-neutral-400 light:text-neutral-600 whitespace-nowrap">
@@ -91,7 +85,6 @@
           </span>
         </div>
         
-        <!-- Сетка карточек с ЛЕНИВОЙ ЗАГРУЗКОЙ (Svelte 5 синтаксис) -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-5 mt-1">
           {#each groupItems as target (target.id)}
             {#await import('$lib/components/convert/FormatCard.svelte')}
@@ -101,7 +94,6 @@
                 </span>
               </div>
             {:then module}
-              <!-- Svelte 5: используем переменную с большой буквы как компонент -->
               {@const Component = module.default}
               <Component
                 format={target}
@@ -110,7 +102,6 @@
                 onselect={onselect}
               />
             {:catch error}
-              <!-- Ошибка -->
               <div class="aspect-[4/5] w-full rounded-2xl bg-red-500/10 flex items-center justify-center text-red-500 text-xs border border-red-500/20">
                 Error
               </div>
