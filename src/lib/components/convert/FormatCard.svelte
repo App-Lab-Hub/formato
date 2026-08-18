@@ -26,7 +26,7 @@
 {#if isAvailable}
 <button
   onclick={handleCardClick}
-  class="cursor-pointer group relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 p-6 w-full aspect-[4/5] transition-all duration-500 overflow-hidden text-center select-none backdrop-blur-sm
+  class="cursor-pointer group relative flex flex-col items-center justify-center gap-4 rounded-2xl border-2 p-6 w-full aspect-[4/5] transition-all duration-500 overflow-hidden text-center select-none 
          {isSelected 
            ? 'border-primary bg-primary/5 scale-[1.04]' 
            : 'dark:border-border light:border-purple-300/40 dark:bg-card/50 light:bg-purple-200/40 hover:scale-[1.01]'}
@@ -36,10 +36,9 @@
   <!-- Мягкий контур при наведении -->
   <div class="absolute -inset-px bg-gradient-to-b from-current to-transparent rounded-2xl opacity-0 group-hover:opacity-10 transition-opacity duration-500 -z-10 {format.textColor}"></div>
 
-  <!-- Центрированная иконка -->
-  <div class="relative rounded-2xl bg-gradient-to-br p-6 transition-all duration-500 group-hover:scale-110 group-hover:shadow-md {format.color} {format.glow}">
-    <div class="absolute inset-0 rounded-2xl bg-gradient-to-br opacity-20 blur-xl transition-opacity group-hover:opacity-40 {format.color}"></div>
-    <div class="flex-shrink-0 h-14 w-14 relative z-10 flex items-center justify-center">
+  <!-- Иконка с outline вместо тени -->
+  <div class="relative rounded-2xl bg-gradient-to-br p-6 transition-all duration-500 group-hover:scale-110 {format.color} group-hover:outline group-hover:outline-2 group-hover:outline-offset-4 {format.glow}">
+    <div class="flex-shrink-0 h-14 w-14 flex items-center justify-center">
       <format.icon class="w-full h-full transition-transform duration-500 group-hover:rotate-12 {format.textColor}" />
     </div>
   </div>
@@ -75,7 +74,7 @@
 
   <!-- Иконка -->
   <div class="relative rounded-2xl bg-gradient-to-br from-neutral-200/50 via-neutral-100/40 to-neutral-200/20 dark:from-neutral-900/60 dark:to-neutral-950/40 p-6 grayscale opacity-40 border dark:border-neutral-800/50 light:border-red-200/30">
-    <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-500/10 to-transparent opacity-20 blur-xl"></div>
+    <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-red-500/10 to-transparent opacity-20 "></div>
     <div class="flex-shrink-0 h-14 w-14 relative z-10 flex items-center justify-center">
       <format.icon class="w-full h-full dark:text-neutral-500 light:text-neutral-400" />
     </div>

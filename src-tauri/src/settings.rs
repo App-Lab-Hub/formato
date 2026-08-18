@@ -39,7 +39,7 @@ fn default_theme() -> String {
     "system".into()
 }
 fn default_language() -> String {
-    "ru".into()
+    "en".into()
 }
 fn default_archive_format() -> String {
     "zip".into()
@@ -201,7 +201,7 @@ mod tests {
     #[test]
     fn test_default_functions() {
         assert_eq!(default_theme(), "system");
-        assert_eq!(default_language(), "ru");
+        assert_eq!(default_language(), "en");
         assert_eq!(default_archive_format(), "zip");
         assert!(default_true());
         assert_eq!(default_max_preview_size(), 1.0);
