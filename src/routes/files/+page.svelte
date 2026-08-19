@@ -1,5 +1,5 @@
 <!-- src/routes/files/+page.svelte -->
- <script lang="ts">
+<script lang="ts">
   import type { PageProps } from './$types';
   import { goto, invalidateAll } from '$app/navigation';
   import { formatFileSize } from '$lib/utils/format';
@@ -50,10 +50,12 @@
   const ITEMS_PER_PAGE = 20;
   let totalPages = $derived(getTotalPages(filteredFiles.length, ITEMS_PER_PAGE));
   
-  // [OK] Явно указываем тип FileInfo[]
   let currentPageFiles: FileInfo[] = $derived(
     getCurrentPageFiles(filteredFiles, currentPage, ITEMS_PER_PAGE)
   );
+  
+  // ✅ paginationInfo — просто вычисляем в шаблоне через {@const}, а не через $derived
+  // Убираем $derived для paginationInfo, чтобы не было предупреждения derived_inert
   
   let deletingFilePath = $state<string | null>(null);
   let deletingFileIds = $state<Set<string>>(new Set());
@@ -520,7 +522,7 @@
           </div>
         {/if}
         
-        <!-- Информация о количестве -->
+        <!-- Информация о количестве (через {@const}, а не $derived) -->
         {@const paginationInfo = getPaginationInfo(currentPage, ITEMS_PER_PAGE, filteredFiles.length)}
         <div class="text-center text-xs dark:text-muted-foreground/50 light:text-purple-600/50 py-1">
           {m.files_showing({ from: paginationInfo.from, to: paginationInfo.to, total: filteredFiles.length })}

@@ -37,10 +37,10 @@
     "linux": {
       "deb": {
         "depends": [
-          "libwebkit2gtk-4.1-0",
-          "libgtk-3-0",
           "ffmpeg",
-          "libreoffice",
+          "libreoffice-core",
+          "libreoffice-writer",
+          "libreoffice-calc",
           "libdav1d7"
         ]
       }
@@ -54,3 +54,4 @@
     ]
   }
 }
+
