@@ -14,91 +14,61 @@ pub async fn archive_file(
     let source_full = PathBuf::from(&source_path);
     let output = PathBuf::from(&output_path);
 
-    let file_name = name_in_archive;
+    // Создаем временную директорию, которая автоматически удалится в конце функции
+    let temp_dir = tempfile::Builder::new()
+        .prefix("tauri_archive_")
+        .tempdir()
+        .map_err(|e| format!("Failed to create temp dir: {}", e))?;
 
-    // Для TAR форматов копируем файл с новым именем в текущую директорию
-    let temp_file = match format.as_str() {
-        "tar.gz" | "tar.xz" => {
-            let current_dir =
-                std::env::current_dir().map_err(|e| format!("Failed to get current dir: {}", e))?;
-            let local_path = current_dir.join(&file_name);
+    let local_path = temp_dir.path().join(&name_in_archive);
 
-            fs::copy(&source_full, &local_path)
-                .await
-                .map_err(|e| format!("Failed to copy file: {}", e))?;
+    // Копируем исходный файл во временную директорию с новым именем
+    fs::copy(&source_full, &local_path)
+        .await
+        .map_err(|e| format!("Failed to copy file: {}", e))?;
 
-            Some(local_path)
-        }
-        "zip" => {
-            let current_dir =
-                std::env::current_dir().map_err(|e| format!("Failed to get current dir: {}", e))?;
-            let temp_dir = current_dir.join("temp_zip_file");
-            std::fs::create_dir_all(&temp_dir)
-                .map_err(|e| format!("Failed to create temp dir: {}", e))?;
-
-            let local_path = temp_dir.join(&file_name);
-
-            fs::copy(&source_full, &local_path)
-                .await
-                .map_err(|e| format!("Failed to copy file: {}", e))?;
-
-            Some(local_path)
-        }
-        _ => None,
-    };
-
-    let result = async_runtime::spawn_blocking(move || {
-        let files = match format.as_str() {
+    let format_clone = format.clone();
+    
+    async_runtime::spawn_blocking(move || {
+        let result = match format_clone.as_str() {
             "zip" => {
-                if let Some(ref path) = temp_file {
-                    vec![path.clone()]
-                } else {
-                    vec![source_full]
-                }
+                // Для ZIP передаем полный путь к временному файлу
+                create_zip_archive(&[local_path], output)
+                    .map_err(|e| format!("Zip error: {}", e))
             }
             "tar.gz" | "tar.xz" => {
-                if let Some(ref path) = temp_file {
-                    // Для TAR используем только имя файла (относительный путь)
-                    let name = path
-                        .file_name()
-                        .and_then(|n| n.to_str())
-                        .map(PathBuf::from)
-                        .unwrap_or_default();
-                    vec![name]
-                } else {
-                    vec![source_full]
+                // Для TAR используем только относительное имя файла внутри архива.
+                // Чтобы библиотека zippylib нашла файл, временно меняем текущую директорию процесса.
+                let _dir_guard = std::env::current_dir()
+                    .and_then(|old_dir| {
+                        std::env::set_current_dir(temp_dir.path())?;
+                        Ok(old_dir)
+                    });
+
+                let relative_name = PathBuf::from(name_in_archive);
+                let files = vec![relative_name];
+
+                let res = match format_clone.as_str() {
+                    "tar.gz" => create_tar_gz_archive(&files, output).map_err(|e| format!("Tar.gz error: {}", e)),
+                    "tar.xz" => create_tar_xz_archive(&files, output).map_err(|e| format!("Tar.xz error: {}", e)),
+                    _ => unreachable!(),
+                };
+
+                // Возвращаем рабочую директорию назад, если guard успешно создался
+                if let Ok(old_dir) = _dir_guard {
+                    let _ = std::env::set_current_dir(old_dir);
                 }
+                res
             }
-            _ => return Err(format!("Unsupported format: {}", format)),
+            _ => Err(format!("Unsupported format: {}", format_clone)),
         };
 
-        let result = match format.as_str() {
-            "zip" => create_zip_archive(&files, output).map_err(|e| format!("Zip error: {}", e)),
-            "tar.gz" => {
-                create_tar_gz_archive(&files, output).map_err(|e| format!("Tar.gz error: {}", e))
-            }
-            "tar.xz" => {
-                create_tar_xz_archive(&files, output).map_err(|e| format!("Tar.xz error: {}", e))
-            }
-            _ => Err(format!("Unsupported format: {}", format)),
-        };
-
-        if let Some(path) = temp_file {
-            let _ = std::fs::remove_file(&path);
-            // Удаляем временную директорию для ZIP
-            if format == "zip" {
-                if let Some(parent) = path.parent() {
-                    let _ = std::fs::remove_dir(parent);
-                }
-            }
-        }
-
+        // Явно перемещаем temp_dir внутрь потока, чтобы она жила до конца его выполнения
+        drop(temp_dir);
         result
     })
     .await
-    .map_err(|e| format!("Background task failed: {}", e))?;
-
-    result
+    .map_err(|e| format!("Background task failed: {}", e))?
 }
 
 #[tauri::command]
@@ -122,127 +92,84 @@ pub async fn archive_multiple_files(
         files_with_names.push((PathBuf::from(path), name.to_string()));
     }
 
-    // Для ZIP и TAR форматов копируем файлы с новыми именами
-    let temp_files: Option<Vec<PathBuf>> = match format.as_str() {
-        "zip" | "tar.gz" | "tar.xz" => {
-            let current_dir =
-                std::env::current_dir().map_err(|e| format!("Failed to get current dir: {}", e))?;
+    // Создаем временную директорию для всех файлов
+    let temp_dir = tempfile::Builder::new()
+        .prefix("tauri_multiarchive_")
+        .tempdir()
+        .map_err(|e| format!("Failed to create temp dir: {}", e))?;
 
-            // Для ZIP создаём временную директорию
-            let temp_dir = if format == "zip" {
-                let dir = current_dir.join("temp_zip");
-                std::fs::create_dir_all(&dir)
-                    .map_err(|e| format!("Failed to create temp dir: {}", e))?;
-                Some(dir)
-            } else {
-                None
-            };
+    let mut temp_paths = Vec::new();
+    let mut relative_names = Vec::new();
 
-            let mut temp_paths = Vec::new();
-            for (source_path, new_name) in &files_with_names {
-                let local_path = if let Some(ref dir) = temp_dir {
-                    dir.join(new_name)
-                } else {
-                    current_dir.join(new_name)
-                };
+    for (source_path, new_name) in files_with_names {
+        let local_path = temp_dir.path().join(&new_name);
+        fs::copy(source_path, &local_path)
+            .await
+            .map_err(|e| format!("Failed to copy file: {}", e))?;
+        
+        temp_paths.push(local_path);
+        relative_names.push(PathBuf::from(new_name));
+    }
 
-                fs::copy(source_path, &local_path)
-                    .await
-                    .map_err(|e| format!("Failed to copy file: {}", e))?;
-                temp_paths.push(local_path);
-            }
-            Some(temp_paths)
-        }
-        _ => None,
-    };
+    let format_clone = format.clone();
 
-    let result = async_runtime::spawn_blocking(move || {
-        let result = match format.as_str() {
+    async_runtime::spawn_blocking(move || {
+        let result = match format_clone.as_str() {
             "zip" => {
-                let paths: Vec<PathBuf> = if let Some(ref temps) = temp_files {
-                    temps.clone()
-                } else {
-                    files_with_names
-                        .iter()
-                        .map(|(path, _)| path.clone())
-                        .collect()
-                };
-                create_zip_archive(&paths, output).map_err(|e| format!("Zip error: {}", e))
+                create_zip_archive(&temp_paths, output)
+                    .map_err(|e| format!("Zip error: {}", e))
             }
-            "tar.gz" => {
-                let names: Vec<PathBuf> = if let Some(ref temps) = temp_files {
-                    temps
-                        .iter()
-                        .map(|p| {
-                            p.file_name()
-                                .and_then(|n| n.to_str())
-                                .map(PathBuf::from)
-                                .unwrap_or_default()
-                        })
-                        .collect()
-                } else {
-                    files_with_names
-                        .iter()
-                        .map(|(_, name)| PathBuf::from(name))
-                        .collect()
+            "tar.gz" | "tar.xz" => {
+                let _dir_guard = std::env::current_dir()
+                    .and_then(|old_dir| {
+                        std::env::set_current_dir(temp_dir.path())?;
+                        Ok(old_dir)
+                    });
+
+                let res = match format_clone.as_str() {
+                    "tar.gz" => create_tar_gz_archive(&relative_names, output).map_err(|e| format!("Tar.gz error: {}", e)),
+                    "tar.xz" => create_tar_xz_archive(&relative_names, output).map_err(|e| format!("Tar.xz error: {}", e)),
+                    _ => unreachable!(),
                 };
-                create_tar_gz_archive(&names, output).map_err(|e| format!("Tar.gz error: {}", e))
+
+                if let Ok(old_dir) = _dir_guard {
+                    let _ = std::env::set_current_dir(old_dir);
+                }
+                res
             }
-            "tar.xz" => {
-                let names: Vec<PathBuf> = if let Some(ref temps) = temp_files {
-                    temps
-                        .iter()
-                        .map(|p| {
-                            p.file_name()
-                                .and_then(|n| n.to_str())
-                                .map(PathBuf::from)
-                                .unwrap_or_default()
-                        })
-                        .collect()
-                } else {
-                    files_with_names
-                        .iter()
-                        .map(|(_, name)| PathBuf::from(name))
-                        .collect()
-                };
-                create_tar_xz_archive(&names, output).map_err(|e| format!("Tar.xz error: {}", e))
-            }
-            _ => Err(format!("Unsupported format: {}", format)),
+            _ => Err(format!("Unsupported format: {}", format_clone)),
         };
 
-        if let Some(paths) = temp_files {
-            for path in &paths {
-                let _ = std::fs::remove_file(path);
-            }
-            // Удаляем временную директорию для ZIP
-            if format == "zip" {
-                if let Some(parent) = paths.first().and_then(|p| p.parent()) {
-                    let _ = std::fs::remove_dir(parent);
-                }
-            }
-        }
-
+        // temp_dir уничтожается здесь, удаляя всю папку со всем содержимым
+        drop(temp_dir);
         result
     })
     .await
-    .map_err(|e| format!("Background task failed: {}", e))?;
-
-    result
+    .map_err(|e| format!("Background task failed: {}", e))?
 }
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::fs;
     use std::path::{Path, PathBuf};
+    use std::sync::OnceLock;
     use tempfile::tempdir;
+
+    static TEST_MUTEX: OnceLock<tokio::sync::Mutex<()>> = OnceLock::new();
+
+    async fn get_test_mutex() -> &'static tokio::sync::Mutex<()> {
+        TEST_MUTEX.get_or_init(|| tokio::sync::Mutex::new(()))
+    }
 
     // ============================================================
     // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
     // ============================================================
 
     fn get_fixture_files(ext: &str) -> Vec<PathBuf> {
-        let fixtures_dir = PathBuf::from("../fixtures");
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let fixtures_dir = manifest_dir.join("../fixtures");
         if !fixtures_dir.exists() {
             return vec![];
         }
@@ -267,7 +194,6 @@ mod tests {
         !get_fixture_files(ext).is_empty()
     }
 
-    /// Проверяет, что архив существует и не пустой
     fn verify_archive_exists(archive_path: &Path) -> Result<(), String> {
         if !archive_path.exists() {
             return Err(format!("Archive not found: {:?}", archive_path));
@@ -289,6 +215,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_file_zip_from_fixtures() {
+        let _lock = get_test_mutex().await.lock().await;
+
         if !has_fixtures("html") {
             println!("⚠️ Skipping test: no HTML fixtures found");
             return;
@@ -321,6 +249,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_file_tar_gz_from_fixtures() {
+        let _lock = get_test_mutex().await.lock().await;
+
         if !has_fixtures("docx") {
             println!("⚠️ Skipping test: no DOCX fixtures found");
             return;
@@ -331,11 +261,17 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let output = temp_dir.path().join("archive.tar.gz");
 
+        let file_name = source
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("document.docx")
+            .to_string();
+
         let result = archive_file(
             source.to_string_lossy().to_string(),
             output.to_string_lossy().to_string(),
             "tar.gz".to_string(),
-            "document.docx".to_string(),
+            file_name,
         )
         .await;
 
@@ -353,6 +289,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_file_tar_xz_from_fixtures() {
+        let _lock = get_test_mutex().await.lock().await;
+
         if !has_fixtures("pdf") {
             println!("⚠️ Skipping test: no PDF fixtures found");
             return;
@@ -363,11 +301,17 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let output = temp_dir.path().join("archive.tar.xz");
 
+        let file_name = source
+            .file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("document.pdf")
+            .to_string();
+
         let result = archive_file(
             source.to_string_lossy().to_string(),
             output.to_string_lossy().to_string(),
             "tar.xz".to_string(),
-            "document.pdf".to_string(),
+            file_name,
         )
         .await;
 
@@ -389,6 +333,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_multiple_files_zip_from_fixtures() {
+        let _lock = get_test_mutex().await.lock().await;
+
         if !has_fixtures("json") || !has_fixtures("csv") {
             println!("⚠️ Skipping test: need JSON and CSV fixtures");
             return;
@@ -436,6 +382,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_multiple_files_tar_gz_from_fixtures() {
+        let _lock = get_test_mutex().await.lock().await;
+
         if !has_fixtures("ini") || get_fixture_files("ini").len() < 2 {
             println!("⚠️ Skipping test: need at least 2 INI fixtures");
             return;
@@ -446,8 +394,22 @@ mod tests {
         let output = temp_dir.path().join("multiple.tar.gz");
 
         let files_data = vec![
-            (ini_files[0].clone(), "config1.ini".to_string()),
-            (ini_files[1].clone(), "config2.ini".to_string()),
+            (
+                ini_files[0].clone(),
+                ini_files[0]
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("config1.ini")
+                    .to_string(),
+            ),
+            (
+                ini_files[1].clone(),
+                ini_files[1]
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .unwrap_or("config2.ini")
+                    .to_string(),
+            ),
         ];
 
         let files_json: Vec<serde_json::Value> = files_data
@@ -481,6 +443,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_multiple_files_mixed_from_fixtures() {
+        let _lock = get_test_mutex().await.lock().await;
+
         let extensions = ["json", "yaml", "csv", "xml", "toml"];
         let mut files = Vec::new();
 
@@ -503,7 +467,11 @@ mod tests {
             .iter()
             .enumerate()
             .map(|(i, path)| {
-                let name = format!("file_{}.{}", i, path.extension().unwrap().to_string_lossy());
+                let name = format!(
+                    "file_{}.{}",
+                    i,
+                    path.extension().unwrap_or_default().to_string_lossy()
+                );
                 (path.clone(), name)
             })
             .collect();
@@ -543,6 +511,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_file_zip() {
+        let _lock = get_test_mutex().await.lock().await;
+
         let temp_dir = tempdir().unwrap();
         let source = temp_dir.path().join("source.txt");
         fs::write(&source, "Test content for ZIP").unwrap();
@@ -570,6 +540,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_file_tar_gz() {
+        let _lock = get_test_mutex().await.lock().await;
+
         let temp_dir = tempdir().unwrap();
         let source = temp_dir.path().join("source.txt");
         fs::write(&source, "Test content for TAR.GZ").unwrap();
@@ -597,6 +569,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_file_tar_xz() {
+        let _lock = get_test_mutex().await.lock().await;
+
         let temp_dir = tempdir().unwrap();
         let source = temp_dir.path().join("source.txt");
         fs::write(&source, "Test content for TAR.XZ").unwrap();
@@ -624,6 +598,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_multiple_files_zip() {
+        let _lock = get_test_mutex().await.lock().await;
+
         let temp_dir = tempdir().unwrap();
         let file1 = temp_dir.path().join("file1.txt");
         let file2 = temp_dir.path().join("file2.txt");
@@ -668,6 +644,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_multiple_files_tar_gz() {
+        let _lock = get_test_mutex().await.lock().await;
+
         let temp_dir = tempdir().unwrap();
         let file1 = temp_dir.path().join("file1.txt");
         let file2 = temp_dir.path().join("file2.txt");
@@ -711,11 +689,13 @@ mod tests {
     }
 
     // ============================================================
-    // ТЕСТЫ: Ошибки (должны падать, если ошибка НЕ ожидаема)
+    // ТЕСТЫ: Ошибки
     // ============================================================
 
     #[tokio::test]
     async fn test_archive_file_source_not_exists() {
+        let _lock = get_test_mutex().await.lock().await;
+
         let temp_dir = tempdir().unwrap();
         let output = temp_dir.path().join("output.zip");
 
@@ -727,7 +707,6 @@ mod tests {
         )
         .await;
 
-        // 🔥 Ожидаем ошибку — тест должен упасть, если ошибки нет
         assert!(result.is_err(), "Expected error but got success");
         let err = result.err().unwrap();
         println!("✅ Expected error: {}", err);
@@ -735,6 +714,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_multiple_files_missing_field() {
+        let _lock = get_test_mutex().await.lock().await;
+
         let temp_dir = tempdir().unwrap();
         let output = temp_dir.path().join("output.zip");
 
@@ -749,7 +730,6 @@ mod tests {
         )
         .await;
 
-        // 🔥 Ожидаем ошибку — тест должен упасть, если ошибки нет
         assert!(result.is_err(), "Expected error but got success");
         let err = result.err().unwrap();
         assert!(err.contains("Missing name") || err.contains("Missing path"));
@@ -758,6 +738,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_multiple_files_empty_list() {
+        let _lock = get_test_mutex().await.lock().await;
+
         let temp_dir = tempdir().unwrap();
         let output = temp_dir.path().join("empty.zip");
 
@@ -768,7 +750,6 @@ mod tests {
         )
         .await;
 
-        // 🔥 Пустой список — может быть ошибка или успех, проверяем оба варианта
         if let Ok(_) = result {
             if let Err(e) = verify_archive_exists(&output) {
                 panic!("Archive verification failed: {}", e);

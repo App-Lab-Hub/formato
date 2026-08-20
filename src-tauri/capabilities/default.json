@@ -13,16 +13,22 @@
     "dialog:allow-open",
     "fs:allow-write-text-file",
     "fs:allow-read-text-file",
+    "fs:allow-write-file",
+    "fs:allow-download-write",
     {
       "identifier": "opener:allow-open-path",
       "allow": [
         {
-          "path": "$HOME/.local/share/formato/converted/*"
+          "path": "$APPLOCALDATA/*"
         },
         {
-          "path": "$HOME/.cache/formato/*"
+          "path": "$APPCACHE/*"
+        },
+        {
+          "path": "$APPROAMINGDATA/*"
         }
       ]
     }
   ]
 }
+
