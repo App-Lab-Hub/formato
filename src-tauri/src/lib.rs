@@ -38,10 +38,10 @@ pub fn run() {
     });
 
     // Инициализация FFmpeg в отдельном потоке (не блокируем запуск)
-    std::thread::spawn(|| match utils::init_ffmpeg() {
-        Ok(_) => println!("✅ [Rust] FFmpeg initialized successfully!"),
-        Err(e) => eprintln!("⚠️ [Rust] FFmpeg init failed: {}", e),
-    });
+    // std::thread::spawn(|| match utils::init_ffmpeg() {
+    //     Ok(_) => println!("✅ [Rust] FFmpeg initialized successfully!"),
+    //     Err(e) => eprintln!("⚠️ [Rust] FFmpeg init failed: {}", e),
+    // });
 
     tauri::Builder::default()
         // Plugins

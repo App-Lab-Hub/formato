@@ -244,7 +244,7 @@ pub fn get_availability(from_type: String) -> AvailabilityResponse {
 
 use ffmpeg_sidecar::download::auto_download;
 
-pub fn init_ffmpeg() -> Result<(), String> {
+pub fn _init_ffmpeg() -> Result<(), String> {
     // auto_download сам проверит, есть ли FFmpeg
     // Если есть - ничего не сделает
     // Если нет - скачает

@@ -33,16 +33,15 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["deb"],
+    "targets": ["deb", "rpm"],
+    "category": "Utility",
+    "externalBin": ["bin/ffmpeg", "bin/ffprobe"],
     "linux": {
       "deb": {
-        "depends": [
-          "ffmpeg",
-          "libreoffice-core",
-          "libreoffice-writer",
-          "libreoffice-calc",
-          "libdav1d7"
-        ]
+        "depends": ["libreoffice-writer", "libreoffice-calc"]
+      },
+      "rpm": {
+        "depends": ["libreoffice-writer", "libreoffice-calc"]
       }
     },
     "icon": [
@@ -54,4 +53,3 @@
     ]
   }
 }
-

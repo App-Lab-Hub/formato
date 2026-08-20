@@ -63,7 +63,6 @@ pub async fn archive_file(
             _ => Err(format!("Unsupported format: {}", format_clone)),
         };
 
-        // Явно перемещаем temp_dir внутрь потока, чтобы она жила до конца его выполнения
         drop(temp_dir);
         result
     })
@@ -140,7 +139,6 @@ pub async fn archive_multiple_files(
             _ => Err(format!("Unsupported format: {}", format_clone)),
         };
 
-        // temp_dir уничтожается здесь, удаляя всю папку со всем содержимым
         drop(temp_dir);
         result
     })
@@ -346,7 +344,7 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let output = temp_dir.path().join("multiple.zip");
 
-        let files_data = vec![
+        let files_data = [
             (json_files[0].clone(), "test.json".to_string()),
             (csv_files[0].clone(), "config.csv".to_string()),
         ];
@@ -393,7 +391,7 @@ mod tests {
         let temp_dir = tempdir().unwrap();
         let output = temp_dir.path().join("multiple.tar.gz");
 
-        let files_data = vec![
+        let files_data = [
             (
                 ini_files[0].clone(),
                 ini_files[0]
@@ -608,7 +606,7 @@ mod tests {
 
         let output = temp_dir.path().join("multiple.zip");
 
-        let files = vec![
+        let files = [
             (file1, "renamed1.txt".to_string()),
             (file2, "renamed2.txt".to_string()),
         ];
@@ -654,7 +652,7 @@ mod tests {
 
         let output = temp_dir.path().join("multiple.tar.gz");
 
-        let files = vec![
+        let files = [
             (file1, "renamed1.txt".to_string()),
             (file2, "renamed2.txt".to_string()),
         ];
@@ -750,7 +748,7 @@ mod tests {
         )
         .await;
 
-        if let Ok(_) = result {
+        if result.is_ok() {
             if let Err(e) = verify_archive_exists(&output) {
                 panic!("Archive verification failed: {}", e);
             }
