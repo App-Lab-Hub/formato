@@ -1,4 +1,12 @@
 {
   "svelte.enable-ts-plugin": true,
-  "cSpell.words": ["чанкер", "Formato", "SPLIDE", "tauri"]
+  "cSpell.words": [
+    "чанкер",
+    "appimage",
+    "ffprobe",
+    "Formato",
+    "soffice",
+    "SPLIDE",
+    "tauri"
+  ]
 }
