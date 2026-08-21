@@ -2,7 +2,7 @@
 name = "formato"
 version = "1.0.0"
 description = "Universal data converter for 60+ formats with modern UI, speech synthesis, and speech recognition. 100% local, no uploads, no limits. Powered by Rust + Svelte + Tauri."
-authors = ["Sazynek"]
+authors = ["app-lab-hub"]
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/sazynek/formato"
