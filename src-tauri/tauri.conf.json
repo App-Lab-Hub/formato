@@ -35,13 +35,12 @@
     "active": true,
     "targets": ["deb", "rpm"],
     "category": "Utility",
-    "externalBin": ["bin/ffmpeg", "bin/ffprobe"],
     "linux": {
       "deb": {
-        "depends": ["libreoffice-writer", "libreoffice-calc"]
+        "depends": ["ffmpeg", "libreoffice-writer", "libreoffice-calc"]
       },
       "rpm": {
-        "depends": ["libreoffice-writer", "libreoffice-calc"]
+        "depends": ["ffmpeg", "libreoffice-writer", "libreoffice-calc"]
       }
     },
     "icon": [
