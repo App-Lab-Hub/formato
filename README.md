@@ -115,6 +115,12 @@ Formato is an open-source, universal data converter designed for speed and priva
 <br>
 
 <div align="center">
+  <img src="data/screenshots/synthesis+recognition_ai_model.png" alt="AI Models" style="width: 900px; max-width: 90%;" />
+</div>
+
+<br>
+
+<div align="center">
   <img src="data/screenshots/archive_support_settings.png" alt="Archive Settings" style="width: 900px; max-width: 90%;" />
 </div>
 
@@ -122,12 +128,6 @@ Formato is an open-source, universal data converter designed for speed and priva
 
 <div align="center">
   <img src="data/screenshots/cache_results.png" alt="Cache Results" style="width: 900px; max-width: 90%;" />
-</div>
-
-<br>
-
-<div align="center">
-  <img src="data/screenshots/synthesis+recognition_ai_model.png" alt="AI Models" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
