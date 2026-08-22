@@ -209,9 +209,8 @@ Formato is developed by **[App Lab Hub](https://boosty.to/applabhub)** — a dev
 If Formato has been useful to you, consider supporting our development. Your contribution helps us fix bugs faster, improve performance, and keep building great features.
 
 <p align="center">
-  <a href="https://boosty.to/applabhub" target="_blank" style="text-decoration: none;">
-    <img src="data/icons/boosty.svg" alt="Boosty" width="40" style="vertical-align: middle; margin-right: 10px;" />
-    <span style="font-size: 18px; font-weight: bold; color: #f5a623;">Support us on Boosty</span>
+  <a href="https://boosty.to/applabhub" target="_blank">
+    <img src="data/icons/boosty.svg" alt="Support us on Boosty" width="200" />
   </a>
 </p>
 
