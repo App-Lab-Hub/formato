@@ -210,7 +210,7 @@ If Formato has been useful to you, consider supporting our development. Your con
 
 <p align="center">
   <a href="https://boosty.to/applabhub" target="_blank">
-    <img src="data/icons/boosty.svg" alt="Support us on Boosty" width="200" />
+    <img src="data/icons/boosty.svg" alt="Support us on Boosty" style="width: 200px; height: auto; max-height: 200px;" />
   </a>
 </p>
 
