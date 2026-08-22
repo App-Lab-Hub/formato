@@ -76,8 +76,6 @@ You can report a vulnerability by:
    - Click on **"Report a vulnerability"**
    - Fill out the form with details about the vulnerability
 
-2. **Sending an email** to: [your-email@example.com]
-
 Please include the following information in your report:
 - A description of the vulnerability
 - Steps to reproduce it
