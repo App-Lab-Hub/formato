@@ -1,12 +1,8 @@
-## 📸 Screenshots
-
 <div align="center">
   <img src="data/screenshots/main_page.png" alt="Main Page" width="80%"/>
 </div>
 
 <br>
-
-### 🎨 Themes & Localization
 
 <div align="center">
   <img src="data/screenshots/main_page_white_theme.png" alt="Light Theme" width="45%"/>
@@ -14,8 +10,6 @@
 </div>
 
 <br>
-
-### 🔄 Conversion
 
 <div align="center">
   <img src="data/screenshots/convert_page.png" alt="Convert Page" width="45%"/>
@@ -31,8 +25,6 @@
 
 <br>
 
-### ⚙️ Settings
-
 <div align="center">
   <img src="data/screenshots/settings_page.png" alt="Settings Page" width="45%"/>
   <img src="data/screenshots/ru+en_support_theme_and_system+dark+light_theme_support_settings.png" alt="Theme and Language Settings" width="45%"/>
@@ -47,15 +39,11 @@
 
 <br>
 
-### 🧠 AI & Speech Recognition
-
 <div align="center">
   <img src="data/screenshots/synthesis+recognition_ai_model.png" alt="AI Models" width="80%"/>
 </div>
 
 <br>
-
-### 🗂️ File Management
 
 <div align="center">
   <img src="data/screenshots/file_manager_page.png" alt="File Manager" width="45%"/>
@@ -64,16 +52,12 @@
 
 <br>
 
-### 📦 Info & Dependencies
-
 <div align="center">
   <img src="data/screenshots/about_page.png" alt="About Page" width="45%"/>
   <img src="data/screenshots/dependencies_page.png" alt="Dependencies" width="45%"/>
 </div>
 
 <br>
-
-### 👀 Preview
 
 <div align="center">
   <img src="data/screenshots/preview.png" alt="Preview" width="80%"/>
