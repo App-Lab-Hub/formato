@@ -60,97 +60,97 @@ Formato is an open-source, universal data converter designed for speed and priva
 ## Screenshots
 
 <div align="center">
-  <img src="data/screenshots/main_page_white_theme.png" alt="Light Theme" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/main_page_white_theme.png" alt="Light Theme" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/main_page_ru_lang_support.png" alt="Russian Language" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/main_page_ru_lang_support.png" alt="Russian Language" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/convert_page.png" alt="Convert Page" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/convert_page.png" alt="Convert Page" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/text_mode.png" alt="Text Mode" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/text_mode.png" alt="Text Mode" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/ready_convert_files+toast_message.png" alt="Ready Convert Files" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/ready_convert_files+toast_message.png" alt="Ready Convert Files" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/file+drag_drop_mode.png" alt="Drag and Drop Mode" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/file+drag_drop_mode.png" alt="Drag and Drop Mode" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/settings_page.png" alt="Settings Page" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/settings_page.png" alt="Settings Page" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/ru+en_support_theme_and_system+dark+light_theme_support_settings.png" alt="Theme and Language Settings" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/ru+en_support_theme_and_system+dark+light_theme_support_settings.png" alt="Theme and Language Settings" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/archive_support_settings.png" alt="Archive Settings" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/archive_support_settings.png" alt="Archive Settings" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/cache_results.png" alt="Cache Results" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/cache_results.png" alt="Cache Results" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/synthesis+recognition_ai_model.png" alt="AI Models" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/synthesis+recognition_ai_model.png" alt="AI Models" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/file_manager_page.png" alt="File Manager" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/file_manager_page.png" alt="File Manager" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/del_file_reset_db_on_fm_page.png" alt="Delete and Reset Database" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/del_file_reset_db_on_fm_page.png" alt="Delete and Reset Database" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/about_page.png" alt="About Page" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/about_page.png" alt="About Page" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/dependencies_page.png" alt="Dependencies" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/dependencies_page.png" alt="Dependencies" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
 
 <div align="center">
-  <img src="data/screenshots/preview.png" alt="Preview" style="width: 900px; height: auto; max-width: 90%;" />
+  <img src="data/screenshots/preview.png" alt="Preview" style="width: 900px; max-width: 90%;" />
 </div>
 
 ---
