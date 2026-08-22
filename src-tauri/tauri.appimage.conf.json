@@ -35,13 +35,10 @@
     "active": true,
     "targets": ["appimage"],
     "category": "Utility",
-    "externalBin": ["bin/ffmpeg", "bin/ffprobe", "bin/soffice"],
+    "externalBin": ["bin/ffmpeg", "bin/ffprobe"],
     "linux": {
       "appimage": {
-        "bundleMediaFramework": false,
-        "files": {
-          "/opt/libreoffice26.2": "bin/libreoffice-files"
-        }
+        "bundleMediaFramework": false
       }
     },
     "icon": [
