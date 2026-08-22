@@ -40,6 +40,7 @@ Formato is an open-source, universal data converter designed for speed and priva
 ## Features
 
 <div align="left">✅ Implemented</div>
+<br/>
 
 | **Feature**                                | **Description**                                                                                                        | **Status** |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------- |
