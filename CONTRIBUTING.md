@@ -10,7 +10,6 @@ Consistency is key to keeping the codebase maintainable. Since Formato is built 
 
 ### Frontend (Svelte / TypeScript)
 - **Language**: Modern TypeScript. Avoid `any` where possible; use proper type definitions.
-- **Indentation**: 2 spaces. No tabs.
 - **Naming Conventions**:
   - `camelCase` for variables and functions.
   - `PascalCase` for Svelte components and classes.
@@ -20,7 +19,6 @@ Consistency is key to keeping the codebase maintainable. Since Formato is built 
 
 ### Backend (Rust)
 - **Language**: Modern Rust (2021 edition). Use `cargo fmt` and `cargo clippy` before submitting.
-- **Indentation**: 4 spaces.
 - **Naming Conventions**:
   - `snake_case` for variables and functions.
   - `PascalCase` for structs and enums.
