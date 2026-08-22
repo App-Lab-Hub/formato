@@ -68,13 +68,6 @@ Formato is an open-source, universal data converter designed for speed and priva
 
 <div align="center">
   <img src="data/screenshots/convert_page.png" alt="Convert Page" width="48%" style="vertical-align: top;" />
-  <img src="data/screenshots/text_mode.png" alt="Text Mode" width="48%" style="vertical-align: top;" />
-</div>
-
-<br>
-
-<div align="center">
-  <img src="data/screenshots/ready_convert_files+toast_message.png" alt="Ready Convert Files" width="48%" style="vertical-align: top;" />
   <img src="data/screenshots/file+drag_drop_mode.png" alt="Drag and Drop Mode" width="48%" style="vertical-align: top;" />
 </div>
 
@@ -82,20 +75,7 @@ Formato is an open-source, universal data converter designed for speed and priva
 
 <div align="center">
   <img src="data/screenshots/settings_page.png" alt="Settings Page" width="48%" style="vertical-align: top;" />
-  <img src="data/screenshots/ru+en_support_theme_and_system+dark+light_theme_support_settings.png" alt="Theme and Language Settings" width="48%" style="vertical-align: top;" />
-</div>
-
-<br>
-
-<div align="center">
-  <img src="data/screenshots/archive_support_settings.png" alt="Archive Settings" width="48%" style="vertical-align: top;" />
-  <img src="data/screenshots/cache_results.png" alt="Cache Results" width="48%" style="vertical-align: top;" />
-</div>
-
-<br>
-
-<div align="center">
-  <img src="data/screenshots/synthesis+recognition_ai_model.png" alt="AI Models" width="80%" />
+  <img src="data/screenshots/main_page.png" alt="Main Page" width="48%" style="vertical-align: top;" />
 </div>
 
 <br>
