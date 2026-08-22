@@ -1,7 +1,6 @@
 <div align="center">
   <a href="https://github.com/App-Lab-Hub" target="_blank">
-    <img src="data/icons/logo.png" alt="Formato Logo" style="width: 180px; height: auto; max-height: 180px;" />
-  </a>
+    <img src="data/icons/logo.png" alt=" Formato Logo" width="180" height="180" />  </a>
   <h1>Formato</h1>
   <br>
 
