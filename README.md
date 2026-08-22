@@ -40,7 +40,7 @@ Formato is an open-source, universal data converter designed for speed and priva
 ## Features
 
 <div align="left">✅ Implemented</div>
-<br/>
+<br>
 
 | **Feature**                                | **Description**                                                                                                        | **Status** |
 | ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- | ---------- |
@@ -73,7 +73,19 @@ Formato is an open-source, universal data converter designed for speed and priva
 <br>
 
 <div align="center">
+  <img src="data/screenshots/main_page_white_theme.png" alt="Light Theme" style="width: 900px; max-width: 90%;" />
+</div>
+
+<br>
+
+<div align="center">
   <img src="data/screenshots/convert_page.png" alt="Convert Page" style="width: 900px; max-width: 90%;" />
+</div>
+
+<br>
+
+<div align="center">
+  <img src="data/screenshots/file+drag_drop_mode.png" alt="Drag and Drop Mode" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
@@ -86,12 +98,6 @@ Formato is an open-source, universal data converter designed for speed and priva
 
 <div align="center">
   <img src="data/screenshots/ready_convert_files+toast_message.png" alt="Ready Convert Files" style="width: 900px; max-width: 90%;" />
-</div>
-
-<br>
-
-<div align="center">
-  <img src="data/screenshots/file+drag_drop_mode.png" alt="Drag and Drop Mode" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
@@ -148,11 +154,6 @@ Formato is an open-source, universal data converter designed for speed and priva
   <img src="data/screenshots/dependencies_page.png" alt="Dependencies" style="width: 900px; max-width: 90%;" />
 </div>
 
-<br>
-
-<div align="center">
-  <img src="data/screenshots/main_page_white_theme.png" alt="Light Theme" style="width: 900px; max-width: 90%;" />
-</div>
 
 ---
 
