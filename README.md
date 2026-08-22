@@ -61,7 +61,7 @@ Formato is an open-source, universal data converter designed for speed and priva
 ## Screenshots
 
 <div align="center">
-  <img src="data/screenshots/main_page_white_theme.png" alt="Light Theme" style="width: 900px; max-width: 90%;" />
+  <img src="data/screenshots/preview.png" alt="Preview" style="width: 900px; max-width: 90%;" />
 </div>
 
 <br>
@@ -151,7 +151,7 @@ Formato is an open-source, universal data converter designed for speed and priva
 <br>
 
 <div align="center">
-  <img src="data/screenshots/preview.png" alt="Preview" style="width: 900px; max-width: 90%;" />
+  <img src="data/screenshots/main_page_white_theme.png" alt="Light Theme" style="width: 900px; max-width: 90%;" />
 </div>
 
 ---
