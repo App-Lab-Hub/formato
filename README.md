@@ -283,7 +283,28 @@ npm run tauri build
 
 ## License
 
-Formato is released under the [MIT License](LICENSE).
+Formato is released under the [MIT License](LICENSE). See the [LICENSE](LICENSE) file for details.
+
+---
+
+### Third-Party Libraries
+
+The following libraries and frameworks are used in this software:
+
+- [Svelte](https://svelte.dev/), which is MIT licensed.
+- [Tailwind CSS](https://tailwindcss.com/), which is MIT licensed.
+- [Tauri](https://github.com/tauri-apps/tauri), which is MIT / Apache-2.0 licensed.
+- [Serde](https://github.com/serde-rs/serde), which is MIT / Apache-2.0 licensed.
+- [ffmpeg-sidecar](https://github.com/ffmpeg-sidecar/ffmpeg-sidecar), which is MIT licensed (uses FFmpeg compiled under LGPL/GPL).
+
+---
+
+### Fonts
+
+The following fonts are utilized in this software, either bundled within the application or provided through web fonts:
+
+[Montserrat Variable](https://fonts.google.com/specimen/Montserrat) — SIL Open Font License 1.1  
+[Inter](https://fonts.google.com/specimen/Inter) — SIL Open Font License 1.1
 
 ---
 
