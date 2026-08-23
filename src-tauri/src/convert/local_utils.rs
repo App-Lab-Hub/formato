@@ -9,7 +9,6 @@ use uuid::Uuid;
 // Глобальный семафор — только 1 вызов soffice одновременно
 static SOFFICE_SEMAPHORE: LazyLock<Semaphore> = LazyLock::new(|| Semaphore::new(1));
 
-
 /// Конвертация через soffice с явным фильтром (асинхронная)
 pub async fn convert_with_soffice_explicit(
     input_path: &str,
@@ -161,7 +160,6 @@ async fn fallback_convert(
     }
 }
 
-
 /// Конвертирует XML в HTML через soffice (LibreOffice) — асинхронная версия
 pub async fn xml_to_html_via_soffice(xml_str: &str) -> Result<String, String> {
     // Захватываем семафор
@@ -303,7 +301,6 @@ pub async fn convert_docx_to_rtf(
 
     Ok(final_path)
 }
-
 
 /// Конвертирует XML в RTF через soffice (LibreOffice) — асинхронная версия
 pub async fn xml_to_rtf_via_soffice(xml_str: &str) -> Result<String, String> {

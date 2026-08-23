@@ -28,29 +28,29 @@ pub async fn archive_file(
         .map_err(|e| format!("Failed to copy file: {}", e))?;
 
     let format_clone = format.clone();
-    
+
     async_runtime::spawn_blocking(move || {
         let result = match format_clone.as_str() {
             "zip" => {
                 // Для ZIP передаем полный путь к временному файлу
-                create_zip_archive(&[local_path], output)
-                    .map_err(|e| format!("Zip error: {}", e))
+                create_zip_archive(&[local_path], output).map_err(|e| format!("Zip error: {}", e))
             }
             "tar.gz" | "tar.xz" => {
                 // Для TAR используем только относительное имя файла внутри архива.
                 // Чтобы библиотека zippylib нашла файл, временно меняем текущую директорию процесса.
-                let _dir_guard = std::env::current_dir()
-                    .and_then(|old_dir| {
-                        std::env::set_current_dir(temp_dir.path())?;
-                        Ok(old_dir)
-                    });
+                let _dir_guard = std::env::current_dir().and_then(|old_dir| {
+                    std::env::set_current_dir(temp_dir.path())?;
+                    Ok(old_dir)
+                });
 
                 let relative_name = PathBuf::from(name_in_archive);
                 let files = vec![relative_name];
 
                 let res = match format_clone.as_str() {
-                    "tar.gz" => create_tar_gz_archive(&files, output).map_err(|e| format!("Tar.gz error: {}", e)),
-                    "tar.xz" => create_tar_xz_archive(&files, output).map_err(|e| format!("Tar.xz error: {}", e)),
+                    "tar.gz" => create_tar_gz_archive(&files, output)
+                        .map_err(|e| format!("Tar.gz error: {}", e)),
+                    "tar.xz" => create_tar_xz_archive(&files, output)
+                        .map_err(|e| format!("Tar.xz error: {}", e)),
                     _ => unreachable!(),
                 };
 
@@ -105,7 +105,7 @@ pub async fn archive_multiple_files(
         fs::copy(source_path, &local_path)
             .await
             .map_err(|e| format!("Failed to copy file: {}", e))?;
-        
+
         temp_paths.push(local_path);
         relative_names.push(PathBuf::from(new_name));
     }
@@ -115,19 +115,19 @@ pub async fn archive_multiple_files(
     async_runtime::spawn_blocking(move || {
         let result = match format_clone.as_str() {
             "zip" => {
-                create_zip_archive(&temp_paths, output)
-                    .map_err(|e| format!("Zip error: {}", e))
+                create_zip_archive(&temp_paths, output).map_err(|e| format!("Zip error: {}", e))
             }
             "tar.gz" | "tar.xz" => {
-                let _dir_guard = std::env::current_dir()
-                    .and_then(|old_dir| {
-                        std::env::set_current_dir(temp_dir.path())?;
-                        Ok(old_dir)
-                    });
+                let _dir_guard = std::env::current_dir().and_then(|old_dir| {
+                    std::env::set_current_dir(temp_dir.path())?;
+                    Ok(old_dir)
+                });
 
                 let res = match format_clone.as_str() {
-                    "tar.gz" => create_tar_gz_archive(&relative_names, output).map_err(|e| format!("Tar.gz error: {}", e)),
-                    "tar.xz" => create_tar_xz_archive(&relative_names, output).map_err(|e| format!("Tar.xz error: {}", e)),
+                    "tar.gz" => create_tar_gz_archive(&relative_names, output)
+                        .map_err(|e| format!("Tar.gz error: {}", e)),
+                    "tar.xz" => create_tar_xz_archive(&relative_names, output)
+                        .map_err(|e| format!("Tar.xz error: {}", e)),
                     _ => unreachable!(),
                 };
 
@@ -145,7 +145,6 @@ pub async fn archive_multiple_files(
     .await
     .map_err(|e| format!("Background task failed: {}", e))?
 }
-
 
 #[cfg(test)]
 mod tests {

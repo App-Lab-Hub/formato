@@ -1,7 +1,7 @@
 use crate::{db, AppState};
 use tauri::Manager;
-pub mod generate_audio;
 pub mod fs;
+pub mod generate_audio;
 use crate::paths::temp_dir;
 use std::time::{SystemTime, UNIX_EPOCH};
 

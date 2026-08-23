@@ -6,7 +6,7 @@ Formato is a cross-platform desktop app. This guide covers installation on Linux
 
 ## Dependencies
 
-> **Note:** Formato uses LibreOffice for document-to-document conversion (e.g., PDF → DOCX, ODT → XLSX).  
+> **Note:** Formato uses LibreOffice for document-to-document conversion (e.g., PDF → DOCX, ODT → XLSX).
 > **If LibreOffice is not installed, document conversion will not work.**
 
 ### Ubuntu / Debian Family
@@ -39,7 +39,7 @@ Could not create default EGL display: EGL_BAD_PARAMETER. Aborting...
 To fix this, preload the system Wayland library:
 
 ```bash
-LD_PRELOAD=$(ldconfig -p | grep "libwayland-client.so" | grep -E "x86-64|libc6,AArch64" | awk '{print $4}' | head -1) /path/to/Formato_1.0.0_amd64.AppImage
+LD_PRELOAD=$(ldconfig -p | grep "libwayland-client.so" | grep -E "x86-64|libc6,AArch64" | awk '{print $4}' | head -1)  /path/to/Formato_1.0.0_amd64.AppImage
 ```
 
 > **Tip:** This command automatically finds the correct Wayland library on your system.
