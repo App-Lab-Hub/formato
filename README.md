@@ -206,32 +206,21 @@ Formato intelligently determines which conversions are possible based on the inp
 
 ---
 
-## Installing on Fedora
+## Installation
 
-If you are using Fedora, you can install Formato directly from the RPM package. 
+### AppImage
 
-**Why do you need the extra setup commands?** Formato uses FFmpeg internally for audio and video processing. On Fedora, some codecs are not available by default due to licensing restrictions. The following commands install the **RPM Fusion** repositories, which provide these essential codecs, and disable the Cisco OpenH264 codec to ensure compatibility.
+Formato is available as an AppImage for Linux. Follow the guide below to install and launch it.
 
-##### 1. Download the RPM package from [GitHub Releases](https://github.com/App-Lab-Hub/formato/releases)
+See the full guide: **[appimage.install.md](appimage.install.md)**
 
-##### 2. Open a terminal in the folder where the package was downloaded
+---
 
-##### 3. Run the following command to prepare the system:
+### Fedora (RPM)
 
-```bash
-sudo dnf install -y \
-  https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm \
-  https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm && \
-sudo dnf upgrade --refresh -y && \
-sudo dnf config-manager setopt fedora-cisco-openh264.enabled=0
-```
+If you are using Fedora, you can install Formato directly from the RPM package. See the full guide:
 
-##### 4. Install the package:
-
-```bash
-sudo dnf install path/to/file/Formato*.rpm
-```
-Done. Launch it from the app menu or by running `formato` in the terminal.
+**[fedora.install.md](fedora.install.md)**
 
 ---
 
