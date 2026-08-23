@@ -23,7 +23,7 @@ Formato is an open-source, universal data converter designed for speed and priva
   <a href="#screenshots">Screenshots</a> •
   <a href="#supported-formats">Supported Formats</a> •
   <a href="#conversion-matrix">Conversion Matrix</a> •
-  <a href="#installing-on-fedora">Installing on Fedora</a> •
+  <a href="#installation">Installation</a> •
   <a href="#about-us">About Us</a> •
   <a href="#support">Support</a> •
   <a href="#getting-started">Getting Started</a> •
