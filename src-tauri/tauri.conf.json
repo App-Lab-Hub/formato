@@ -33,7 +33,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["deb"],
+    "targets": ["deb", "rpm"],
     "category": "Utility",
     "linux": {
       "deb": {

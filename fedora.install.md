@@ -20,4 +20,6 @@ sudo dnf config-manager setopt fedora-cisco-openh264.enabled=0
 sudo dnf install path/to/file/Formato*.rpm
 ```
 
+> **Tip:** If you downloaded it to `~/Downloads`, run `sudo dnf install ~/Downloads/Formato*.rpm`
+
 Done. Launch it from the app menu or by running `formato` in the terminal.

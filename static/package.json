@@ -20,7 +20,7 @@
     "test:run": "vitest run"
   },
   "license": "MIT",
-  "author": "Sazynek",
+  "author": "app-lab-hub",
   "repository": {
     "type": "git",
     "url": "https://github.com/sazynek/formato"

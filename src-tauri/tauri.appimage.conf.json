@@ -36,11 +36,6 @@
     "targets": ["appimage"],
     "category": "Utility",
     "externalBin": ["bin/ffmpeg", "bin/ffprobe"],
-    "linux": {
-      "appimage": {
-        "bundleMediaFramework": false
-      }
-    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
