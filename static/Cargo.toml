@@ -5,9 +5,9 @@ description = "Universal data converter for 60+ formats with modern UI, speech s
 authors = ["app-lab-hub"]
 edition = "2021"
 license = "MIT"
-repository = "https://github.com/sazynek/formato"
-homepage = "https://github.com/sazynek/formato#readme"
-documentation = "https://github.com/sazynek/formato#readme"
+repository = "https://github.com/App-Lab-Hub/formato"
+homepage = "https://github.com/App-Lab-Hub/formato#readme"
+documentation = "https://github.com/App-Lab-Hub/formato#readme"
 readme = "../README.md"
 keywords = [
     "converter",

@@ -23,7 +23,7 @@
   "author": "app-lab-hub",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sazynek/formato"
+    "url": "https://github.com/App-Lab-Hub/formato"
   },
   "keywords": [
     "converter",
@@ -70,9 +70,9 @@
     "no-cloud"
   ],
   "bugs": {
-    "url": "https://github.com/sazynek/formato/issues"
+      "url": "https://github.com/App-Lab-Hub/formato/issues"
   },
-  "homepage": "https://github.com/sazynek/formato#readme",
+  "homepage": "https://github.com/App-Lab-Hub/formato#readme",
   "dependencies": {
     "@fontsource-variable/montserrat": "^5.3.0",
     "@melt-ui/svelte": "^0.86.6",
