@@ -295,7 +295,7 @@ The following libraries and frameworks are used in this software:
 - [Tailwind CSS](https://tailwindcss.com/), which is MIT licensed.
 - [Tauri](https://github.com/tauri-apps/tauri), which is MIT / Apache-2.0 licensed.
 - [Serde](https://github.com/serde-rs/serde), which is MIT / Apache-2.0 licensed.
-- [ffmpeg-sidecar](https://github.com/ffmpeg-sidecar/ffmpeg-sidecar), which is MIT licensed (uses FFmpeg compiled under LGPL/GPL).
+- [ffmpeg-sidecar](https://github.com/nathanbabcock/ffmpeg-sidecar), which is MIT licensed (uses FFmpeg compiled under LGPL/GPL).
 
 ---
 
