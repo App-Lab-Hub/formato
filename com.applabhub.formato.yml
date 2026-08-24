@@ -1,6 +1,6 @@
 id: com.applabhub.formato
 runtime: org.gnome.Platform
-runtime-version: '47'
+runtime-version: "47"
 sdk: org.gnome.Sdk
 command: formato
 finish-args:
@@ -33,7 +33,7 @@ modules:
     build-commands:
       - mkdir -p src-tauri/.cargo
       - cp cargo-sources.json src-tauri/.cargo/config.toml
-      - npm ci --no-audit --no-fund
+      - npm ci --offline
       - npm run tauri build -- -b deb
       - ar -x src-tauri/target/release/bundle/deb/*.deb
       - tar -xf data.tar.gz
