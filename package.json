@@ -77,6 +77,7 @@
     "@fontsource-variable/montserrat": "^5.3.0",
     "@inlang/plugin-m-function-matcher": "^2.2.12",
     "@inlang/plugin-message-format": "^4.4.3",
+    "@lix-js/sdk-linux-x64": "^0.0.1",
     "@melt-ui/svelte": "^0.86.6",
     "@motionone/dom": "^10.18.0",
     "@splidejs/splide": "^4.1.4",

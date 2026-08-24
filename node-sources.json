@@ -503,6 +503,13 @@
     },
     {
         "type": "file",
+        "url": "https://registry.npmmirror.com/@lix-js/sdk-linux-x64/-/sdk-linux-x64-0.0.1.tgz",
+        "sha512": "cb4e3be796223eadeaded69dd474c3b73b100a067796376e7f99206531a467bfb193e06ee402d3ddbca99195b7635c13e1ed5f599c1ab2ba869873fcd0ee0e40",
+        "dest-filename": "3be796223eadeaded69dd474c3b73b100a067796376e7f99206531a467bfb193e06ee402d3ddbca99195b7635c13e1ed5f599c1ab2ba869873fcd0ee0e40",
+        "dest": "flatpak-node/npm-cache/_cacache/content-v2/sha512/cb/4e"
+    },
+    {
+        "type": "file",
         "url": "https://registry.npmmirror.com/@lix-js/sdk/-/sdk-0.12.3.tgz",
         "sha512": "4f6d7de32a19b0cd92f64c91988f14b4424bd1f81760091e63d8d9fcf5720b42bbf3fc2606faea392b7d49dbe0631339aa7679eeb7b734b3a356557e5f9856c5",
         "dest-filename": "7de32a19b0cd92f64c91988f14b4424bd1f81760091e63d8d9fcf5720b42bbf3fc2606faea392b7d49dbe0631339aa7679eeb7b734b3a356557e5f9856c5",
@@ -2388,6 +2395,12 @@
         "contents": "0256dca480ec096da4361cd6f36c0c742e667b08\t{\"key\": \"make-fetch-happen:request-cache:https://registry.npmmirror.com/@exodus/bytes/-/bytes-1.15.1.tgz\", \"integrity\": \"sha512-S6mL0yNB/Abt9Ei4tq8gDhcczc4S3+vQ4ra7vxnAf+YHC02srtqxKKZghx2Dq6p0e66THKwR6r8N6P95wEty7Q==\", \"time\": 0, \"size\": 144468, \"metadata\": {\"url\": \"https://registry.npmmirror.com/@exodus/bytes/-/bytes-1.15.1.tgz\", \"reqHeaders\": {}, \"resHeaders\": {}}}",
         "dest-filename": "467d8814730ee8b40acff888f7b1150fc758d52c91b84b730228047b7a8d",
         "dest": "flatpak-node/npm-cache/_cacache/index-v5/5c/be"
+    },
+    {
+        "type": "inline",
+        "contents": "037a140f3d6e484864f14e64a65afb90a1f745c5\t{\"key\": \"make-fetch-happen:request-cache:https://registry.npmmirror.com/@lix-js/sdk-linux-x64/-/sdk-linux-x64-0.0.1.tgz\", \"integrity\": \"sha512-y04755YiPq3q3tad1HTDtzsQCgZ3ljduf5kgZTGkZ7+xk+Bu5ALT3bypkZW3Y1wT4e1fWZwasrqGmHP80O4OQA==\", \"time\": 0, \"size\": 347, \"metadata\": {\"url\": \"https://registry.npmmirror.com/@lix-js/sdk-linux-x64/-/sdk-linux-x64-0.0.1.tgz\", \"reqHeaders\": {}, \"resHeaders\": {}}}",
+        "dest-filename": "ed038838a23d4f655fa462e6eeff15b094cf1f8ecb36092fe86b80dad494",
+        "dest": "flatpak-node/npm-cache/_cacache/index-v5/0c/a1"
     },
     {
         "type": "inline",
