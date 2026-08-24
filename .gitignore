@@ -65,6 +65,7 @@ temp/
 *.tgz
 *.tar.gz
 *.zip
+*.rar
 
 # Flatpak
 flatpak-builder-tools/
