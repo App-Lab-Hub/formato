@@ -71,3 +71,6 @@ flatpak-builder-tools/
 flatpak-node/cache/
 build/
 *.flatpak
+
+# Virtual environments
+venv/
