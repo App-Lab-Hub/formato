@@ -36,7 +36,7 @@
     },
     {
         "type": "archive",
-        "url": "https://registry.npmmirror.com/@esbuild/linux-arm/-/linux-arm-0.25.12.tgz",
+        "url": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.25.12.tgz",
         "strip-components": 1,
         "sha512": "94f0c6c82d493c3a2ef2419ccb06346082f35a58619d18dda1fdd495ca2a6264bd125f35f0b2df2497373d75e0647ac70802acfd9d92799b4326be4cae4c6d3b",
         "dest": "flatpak-node/cache/esbuild/.package/@esbuild/linux-arm@0.25.12",
@@ -46,7 +46,7 @@
     },
     {
         "type": "archive",
-        "url": "https://registry.npmmirror.com/@esbuild/linux-arm64/-/linux-arm64-0.25.12.tgz",
+        "url": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.25.12.tgz",
         "strip-components": 1,
         "sha512": "f1bc17edaf05821220aeea5cc5be1a5266032e9f295f4eab1a1e47a834fb6c1fbc45d7a596cea61efac51c75b624038f6546e78d4a4a4cb83a102cb3bdab3601",
         "dest": "flatpak-node/cache/esbuild/.package/@esbuild/linux-arm64@0.25.12",
@@ -56,7 +56,7 @@
     },
     {
         "type": "archive",
-        "url": "https://registry.npmmirror.com/@esbuild/linux-ia32/-/linux-ia32-0.25.12.tgz",
+        "url": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.25.12.tgz",
         "strip-components": 1,
         "sha512": "d32f4aadd5676cc336fef1bc29f5346f285437e1050a7cbdfbc836d36818a924953289dbb027cb8d43beac2722ee933458112dcfea0afcf2301e4cf193285aac",
         "dest": "flatpak-node/cache/esbuild/.package/@esbuild/linux-ia32@0.25.12",
@@ -66,7 +66,7 @@
     },
     {
         "type": "archive",
-        "url": "https://registry.npmmirror.com/@esbuild/linux-x64/-/linux-x64-0.25.12.tgz",
+        "url": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.25.12.tgz",
         "strip-components": 1,
         "sha512": "baa64c4cbaffcd1fde7788c81a7c122e468798f8ce8c9be79ba4d5562b406b4f122d2f59d1533cc08471ee059b241e7f279e18b883089c3aae5b262f40b66483",
         "dest": "flatpak-node/cache/esbuild/.package/@esbuild/linux-x64@0.25.12",
