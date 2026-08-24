@@ -1,0 +1,40 @@
+id: com.applabhub.formato
+runtime: org.gnome.Platform
+runtime-version: '46'
+sdk: org.gnome.Sdk
+command: formato
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --share=ipc
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node20
+  - org.freedesktop.Sdk.Extension.rust-stable
+build-options:
+  append-path: /usr/lib/sdk/node20/bin:/usr/lib/sdk/rust-stable/bin
+modules:
+  - name: formato
+    buildsystem: simple
+    env:
+      HOME: /run/build/formato
+      CARGO_HOME: /run/build/formato/src-tauri
+      XDG_CACHE_HOME: /run/build/formato/flatpak-node/cache
+      npm_config_cache: /run/build/formato/flatpak-node/npm-cache
+    sources:
+      - type: git
+        url: https://github.com/App-Lab-Hub/formato.git
+        tag: 1.0.0
+      - cargo-sources.json
+      - node-sources.json
+    build-commands:
+      - npm ci --offline
+      - npm run tauri build -- -b deb
+      - ar -x src-tauri/target/release/bundle/deb/*.deb
+      - tar -xf data.tar.gz
+      - install -Dm755 usr/bin/formato /app/bin/formato
+      - install -Dm644 usr/share/applications/Formato.desktop /app/share/applications/com.applabhub.formato.desktop
+      - install -Dm644 usr/share/icons/hicolor/128x128/apps/formato.png /app/share/icons/hicolor/128x128/apps/com.applabhub.formato.png
+      - install -Dm644 usr/share/icons/hicolor/32x32/apps/formato.png /app/share/icons/hicolor/32x32/apps/com.applabhub.formato.png
+      - install -Dm644 usr/share/icons/hicolor/256x256@2/apps/formato.png /app/share/icons/hicolor/512x512/apps/com.applabhub.formato.png
+      - install -Dm644 usr/share/metainfo/com.applabhub.formato.metainfo.xml /app/share/metainfo/com.applabhub.formato.metainfo.xml

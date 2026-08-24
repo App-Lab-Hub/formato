@@ -37,7 +37,10 @@
     "category": "Utility",
     "linux": {
       "deb": {
-        "depends": ["ffmpeg", "libreoffice-writer", "libreoffice-calc"]
+        "depends": ["ffmpeg", "libreoffice-writer", "libreoffice-calc"],
+        "files": {
+          "/usr/share/metainfo/com.applabhub.formato.metainfo.xml": "../data/metainfo/com.applabhub.formato.metainfo.xml"
+        }
       },
       "rpm": {
         "depends": ["ffmpeg", "libreoffice-writer", "libreoffice-calc"]

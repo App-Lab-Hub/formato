@@ -65,3 +65,9 @@ temp/
 *.tgz
 *.tar.gz
 *.zip
+
+# Flatpak
+flatpak-builder-tools/
+flatpak-node/cache/
+build/
+*.flatpak
