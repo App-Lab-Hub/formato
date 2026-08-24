@@ -1,6 +1,6 @@
 id: com.applabhub.formato
 runtime: org.gnome.Platform
-runtime-version: "47"
+runtime-version: '48'
 sdk: org.gnome.Sdk
 command: formato
 finish-args:
@@ -9,19 +9,18 @@ finish-args:
   - --device=dri
   - --share=ipc
 sdk-extensions:
-  - org.freedesktop.Sdk.Extension.node20
+  - org.freedesktop.Sdk.Extension.node24
   - org.freedesktop.Sdk.Extension.rust-stable
 build-options:
-  append-path: /usr/lib/sdk/node20/bin:/usr/lib/sdk/rust-stable/bin
+  append-path: /usr/lib/sdk/node24/bin:/usr/lib/sdk/rust-stable/bin
 modules:
   - name: formato
     buildsystem: simple
-    build-options:
-      env:
-        HOME: /run/build/formato
-        CARGO_HOME: /run/build/formato/src-tauri
-        XDG_CACHE_HOME: /run/build/formato/flatpak-node/cache
-        npm_config_cache: /run/build/formato/flatpak-node/npm-cache
+    env:
+      HOME: /run/build/formato
+      CARGO_HOME: /run/build/formato/src-tauri
+      XDG_CACHE_HOME: /run/build/formato/flatpak-node/cache
+      npm_config_cache: /run/build/formato/flatpak-node/npm-cache
     sources:
       - type: git
         url: https://github.com/App-Lab-Hub/formato.git
