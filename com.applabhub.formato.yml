@@ -31,7 +31,7 @@ modules:
     build-commands:
       - mkdir -p src-tauri/.cargo
       - echo -e '[source.crates-io]\nreplace-with = "vendored-sources"\n\n[source.vendored-sources]\ndirectory = "/run/build/formato/cargo/vendor"' > src-tauri/.cargo/config.toml
-      - npm ci --offline
+      - npm install --offline --no-audit --no-fund --allow-remote=all
       - npm run tauri build -- -b deb
       - ar -x src-tauri/target/release/bundle/deb/*.deb
       - tar -xf data.tar.gz
