@@ -1,6 +1,6 @@
 id: com.applabhub.formato
 runtime: org.gnome.Platform
-runtime-version: '46'
+runtime-version: '47'
 sdk: org.gnome.Sdk
 command: formato
 finish-args:
@@ -16,11 +16,12 @@ build-options:
 modules:
   - name: formato
     buildsystem: simple
-    env:
-      HOME: /run/build/formato
-      CARGO_HOME: /run/build/formato/src-tauri
-      XDG_CACHE_HOME: /run/build/formato/flatpak-node/cache
-      npm_config_cache: /run/build/formato/flatpak-node/npm-cache
+    build-options:
+      env:
+        HOME: /run/build/formato
+        CARGO_HOME: /run/build/formato/src-tauri
+        XDG_CACHE_HOME: /run/build/formato/flatpak-node/cache
+        npm_config_cache: /run/build/formato/flatpak-node/npm-cache
     sources:
       - type: git
         url: https://github.com/App-Lab-Hub/formato.git
