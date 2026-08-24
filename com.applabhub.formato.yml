@@ -30,8 +30,7 @@ modules:
       - node-sources.json
     build-commands:
       - mkdir -p src-tauri/.cargo
-      - cp cargo-sources.json src-tauri/.cargo/config.toml
-      - npm config get offline
+      - echo -e '[source.crates-io]\nreplace-with = "vendored-sources"\n\n[source.vendored-sources]\ndirectory = "/run/build/formato/cargo/vendor"' > src-tauri/.cargo/config.toml
       - npm ci --offline
       - npm run tauri build -- -b deb
       - ar -x src-tauri/target/release/bundle/deb/*.deb
