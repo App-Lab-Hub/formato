@@ -2,13 +2,83 @@
 
 use crate::paths;
 use crate::settings::get_settings;
-use piper_rs::Piper;
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
 use std::panic::AssertUnwindSafe;
 use tempfile::Builder;
-
 use unicode_segmentation::UnicodeSegmentation;
+
+// Условный импорт для piper-rs (ТОЛЬКО если НЕ flatpak)
+#[cfg(not(flatpak))]
+use piper_rs::Piper;
+
+// Функция для piper-rs (используется в DEB/RPM)
+#[cfg(not(flatpak))]
+fn generate_piper_audio(text: &str, onnx_path: &str, config_path: &str) -> Result<Vec<u8>, String> {
+    let mut piper = Piper::new(
+        &std::path::Path::new(onnx_path),
+        &std::path::Path::new(config_path)
+    ).map_err(|e| format!("Failed to load Piper model: {}", e))?;
+
+    let (samples, _rate) = piper.create(text, false, None, Some(1.0), None, None)
+        .map_err(|e| format!("TTS failed: {}", e))?;
+
+    // Конвертируем f32 в i16
+    let mut output = Vec::with_capacity(samples.len() * 2);
+    for &s in &samples {
+        let sample = (s.clamp(-1.0, 1.0) * i16::MAX as f32) as i16;
+        output.extend_from_slice(&sample.to_le_bytes());
+    }
+
+    Ok(output)
+}
+
+// Функция для бинарника (используется в Flatpak)
+#[cfg(flatpak)]
+fn generate_piper_audio(text: &str, onnx_path: &str, config_path: &str) -> Result<Vec<u8>, String> {
+    use std::io::{Read, Write};
+    use std::process::{Command, Stdio};
+
+    let mut child = Command::new("piper")
+        .args([
+            "--model", onnx_path,
+            "--config", config_path,
+            "--output_raw",
+            "--sentence_silence", "0.5"
+        ])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()
+        .map_err(|e| format!("Failed to start piper: {}", e))?;
+
+    // Пишем текст в stdin
+    if let Some(mut stdin) = child.stdin.take() {
+        stdin.write_all(text.as_bytes())
+            .map_err(|e| format!("Write to stdin failed: {}", e))?;
+    }
+
+    // Читаем аудио из stdout
+    let mut output = Vec::new();
+    if let Some(mut stdout) = child.stdout.take() {
+        stdout.read_to_end(&mut output)
+            .map_err(|e| format!("Read from stdout failed: {}", e))?;
+    }
+
+    // Проверяем статус
+    let status = child.wait()
+        .map_err(|e| format!("Wait for child failed: {}", e))?;
+    
+    if !status.success() {
+        let mut stderr = String::new();
+        if let Some(mut child_stderr) = child.stderr.take() {
+            child_stderr.read_to_string(&mut stderr).ok();
+        }
+        return Err(format!("Piper exited with error: {}", stderr));
+    }
+
+    Ok(output)
+}
 
 fn split_text_into_chunks(text: &str, max_chars: usize) -> Vec<String> {
     let mut chunks = Vec::new();
@@ -131,7 +201,7 @@ fn finalize_wav_header(
     Ok(())
 }
 
-/// Генерация речи через Piper с поточной записью чанков на диск без аллокаций памяти
+/// Генерация речи через Piper с поточной записью чанков на диск
 pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
     if text.trim().is_empty() {
         return Err("Text is empty for TTS generation".to_string());
@@ -154,15 +224,12 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
         return Err("Model files not found. Please download them in settings.".to_string());
     }
 
-    println!("🔄 Загружаем модель Piper...");
-    let piper_result =
-        std::panic::catch_unwind(AssertUnwindSafe(|| Piper::new(&onnx_path, &config_path)));
+    // Определяем, какую функцию использовать
+    #[cfg(not(flatpak))]
+    println!("🔄 Использую piper-rs (Rust крейт)");
 
-    let mut piper = match piper_result {
-        Ok(Ok(piper)) => piper,
-        Ok(Err(e)) => return Err(format!("Failed to load Piper model: {}", e)),
-        Err(_) => return Err("Fatal error while loading TTS model".to_string()),
-    };
+    #[cfg(flatpak)]
+    println!("🔄 Использую системный бинарник piper");
 
     let temp_file = Builder::new()
         .suffix(".wav")
@@ -176,14 +243,14 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
         .ok_or("Invalid temp path")?
         .to_string();
 
-    // Открываем файл и оборачиваем в буферизированную запись для оптимизации I/O операций
+    // Открываем файл и оборачиваем в буферизированную запись
     let mut file = File::create(&temp_path).map_err(|e| format!("File error: {}", e))?;
     let mut buf_writer = std::io::BufWriter::new(&mut file);
 
     // Записываем заготовку заголовка
     write_wav_header_placeholder(&mut buf_writer).map_err(|e| format!("Header error: {}", e))?;
 
-    let mut sample_rate = 22050;
+    let sample_rate = 22050;
     let mut total_bytes = 0u32;
 
     for (i, chunk) in chunks.iter().enumerate() {
@@ -194,49 +261,35 @@ pub fn generate_speech_with_piper(text: &str) -> Result<String, String> {
             chunk.len()
         );
 
-        let synthesis_result = std::panic::catch_unwind(AssertUnwindSafe(|| {
-            piper.create(chunk, false, None, Some(1.0), None, None)
-        }));
+        let onnx_path_str = onnx_path.to_str().ok_or("Invalid model path")?;
+        let config_path_str = config_path.to_str().ok_or("Invalid config path")?;
 
-        let (samples, rate) = match synthesis_result {
-            Ok(Ok(result)) => result,
-            Ok(Err(e)) => return Err(format!("TTS failed for chunk {}: {}", i + 1, e)),
-            Err(_) => return Err(format!("Fatal error during synthesis of chunk {}", i + 1)),
-        };
+        // Используем выбранную функцию
+        let pcm_data = generate_piper_audio(chunk, onnx_path_str, config_path_str)?;
 
-        if i == 0 {
-            sample_rate = rate;
-        }
+        // Записываем PCM данные в WAV файл
+        buf_writer.write_all(&pcm_data).map_err(|e| format!("Write PCM error: {}", e))?;
+        total_bytes += pcm_data.len() as u32;
 
-        // Поточно обрабатываем f32 сэмплы из памяти, конвертируя их в байты i16 на лету
-        for &s in &samples {
-            let sample_i16 = (s.clamp(-1.0, 1.0) * i16::MAX as f32) as i16;
-            buf_writer
-                .write_all(&sample_i16.to_le_bytes())
-                .map_err(|e| format!("Write sample error: {}", e))?;
-            total_bytes += 2; // 2 байта на один сэмпл i16
-        }
-
-        // Мгновенное принудительное уничтожение вектора сэмплов текущего чанка
-        drop(samples);
         println!(
-            "✅ [{}/{}] Чанк успешно записан на диск.",
+            "✅ [{}/{}] Чанк успешно записан на диск ({} байт)",
             i + 1,
-            total_chunks
+            total_chunks,
+            pcm_data.len()
         );
     }
 
-    // 🔥 Уничтожаем буфер, сбрасывая данные на диск и возвращая владение над `file`
+    // Сбрасываем буфер
     let file = buf_writer
         .into_inner()
         .map_err(|e| format!("Buffer unwrap error: {}", e))?;
 
-    // Финализируем заголовок WAV файла, вписывая итоговые размеры
+    // Финализируем заголовок WAV файла
     finalize_wav_header(file, total_bytes, sample_rate)
         .map_err(|e| format!("Finalize header error: {}", e))?;
 
     let _ = temp_file.keep();
-    let duration_sec = (total_bytes / 2) as f32 / sample_rate as f32;
+    let duration_sec = total_bytes as f32 / (sample_rate * 2) as f32;
     println!("✅ Speech generated: {} ({} сек)", temp_path, duration_sec);
 
     Ok(temp_path)

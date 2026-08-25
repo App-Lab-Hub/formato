@@ -28,6 +28,7 @@ export default defineConfig({
         "**/src-tauri/**",
         "**/.svelte-kit/**",
         "**/coverage/**",
+        "**/.flatpak-builder/**",
       ],
     },
   },

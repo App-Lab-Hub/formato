@@ -15,6 +15,25 @@ sdk-extensions:
 build-options:
   append-path: /usr/lib/sdk/llvm/bin:/usr/lib/sdk/node24/bin:/usr/lib/sdk/rust-stable/bin
 modules:
+  - name: piper-binary
+    buildsystem: simple
+    sources:
+      - type: archive
+        url: https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz
+        sha256: a50cb45f355b7af1f6d758c1b360717877ba0a398cc8cbe6d2a7a3a26e225992
+    build-commands:
+      - mkdir -p /app/bin /app/lib /app/share
+      - echo "📦 Установка Piper..."
+      - install -Dm755 piper /app/bin/piper
+      - install -m755 libonnxruntime.so.1.14.1 /app/lib/
+      - install -m755 libpiper_phonemize.so.1.2.0 /app/lib/
+      - install -m755 libespeak-ng.so.1.52.0.1 /app/lib/
+      - ln -sf libonnxruntime.so.1.14.1 /app/lib/libonnxruntime.so
+      - ln -sf libpiper_phonemize.so.1.2.0 /app/lib/libpiper_phonemize.so
+      - ln -sf libespeak-ng.so.1.52.0.1 /app/lib/libespeak-ng.so
+      - cp -r espeak-ng-data /app/share/
+      - echo "✅ Piper установлен"
+
   - name: formato
     buildsystem: simple
     build-options:
@@ -32,15 +51,34 @@ modules:
       - cargo-sources.json
       - node-sources.json
     build-commands:
+      - echo "🔍 Проверка конфигурации..."
+      - echo "📁 Текущая директория: $(pwd)"
+      - echo "📄 Проверка Cargo.toml..."
+      - cat src-tauri/Cargo.toml | grep -A 5 "\[features\]" || echo "⚠️ Секция [features] не найдена!"
+      
       - mkdir -p src-tauri/.cargo
       - echo -e '[source.crates-io]\nreplace-with = "vendored-sources"\n\n[source.vendored-sources]\ndirectory = "/run/build/formato/cargo/vendor"' > src-tauri/.cargo/config.toml
-      - npm install --offline --no-audit --no-fund --allow-remote=all
+      
+      - echo "📦 Установка npm зависимостей..."
+      - npm install --offline --no-audit --no-fund
+      
+      - echo "🦀 Сборка Rust (Flatpak режим, БЕЗ piper-rs)..."
+      - echo "🔧 Используем: cargo build --release --no-default-features --features flatpak"
+      - cd src-tauri && cargo build --release --no-default-features --features flatpak && cd ..
+      
+      - echo "📦 Сборка Tauri..."
       - npm run tauri build -- -b deb
+      
+      - echo "📦 Распаковка .deb пакета..."
       - ar -x src-tauri/target/release/bundle/deb/*.deb
       - tar -xf data.tar.gz
+      
+      - echo "📦 Установка бинарников в /app..."
       - install -Dm755 usr/bin/formato /app/bin/formato
       - install -Dm644 usr/share/applications/Formato.desktop /app/share/applications/com.applabhub.formato.desktop
       - install -Dm644 usr/share/icons/hicolor/128x128/apps/formato.png /app/share/icons/hicolor/128x128/apps/com.applabhub.formato.png
       - install -Dm644 usr/share/icons/hicolor/32x32/apps/formato.png /app/share/icons/hicolor/32x32/apps/com.applabhub.formato.png
       - install -Dm644 usr/share/icons/hicolor/256x256@2/apps/formato.png /app/share/icons/hicolor/512x512/apps/com.applabhub.formato.png
       - install -Dm644 usr/share/metainfo/com.applabhub.formato.metainfo.xml /app/share/metainfo/com.applabhub.formato.metainfo.xml
+      
+      - echo "✅ Сборка завершена!"
