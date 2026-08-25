@@ -1,7 +1,7 @@
 id: com.applabhub.formato
-runtime: org.freedesktop.Platform
-runtime-version: '25.08'
-sdk: org.freedesktop.Sdk
+runtime: org.gnome.Platform
+runtime-version: '49'
+sdk: org.gnome.Sdk  
 command: formato
 finish-args:
   - --socket=wayland
@@ -11,8 +11,9 @@ finish-args:
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.node24
   - org.freedesktop.Sdk.Extension.rust-stable
+  - org.freedesktop.Sdk.Extension.llvm20
 build-options:
-  append-path: /usr/lib/sdk/node24/bin:/usr/lib/sdk/rust-stable/bin
+  append-path: /usr/lib/sdk/llvm/bin:/usr/lib/sdk/node24/bin:/usr/lib/sdk/rust-stable/bin
 modules:
   - name: formato
     buildsystem: simple
@@ -22,6 +23,8 @@ modules:
         CARGO_HOME: /run/build/formato/src-tauri
         XDG_CACHE_HOME: /run/build/formato/flatpak-node/cache
         npm_config_cache: /run/build/formato/flatpak-node/npm-cache
+        LIBCLANG_PATH: /usr/lib/sdk/llvm20/lib
+        BINDGEN_EXTRA_CLANG_ARGS: "-idirafter /usr/lib/sdk/llvm20/lib/clang/20/include"
     sources:
       - type: git
         url: https://github.com/App-Lab-Hub/formato.git
