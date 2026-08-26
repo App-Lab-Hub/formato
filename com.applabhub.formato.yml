@@ -8,10 +8,11 @@ finish-args:
   - --socket=fallback-x11
   - --device=dri
   - --share=ipc
-  - --filesystem=host
-  - --filesystem=xdg-documents:rw
+  - --share=network             # Разрешаем скачивание ONNX-моделей из интернета
+  - --filesystem=xdg-documents:rw # Оставляем доступ к Документам для LibreOffice и работы с файлами
   - --env=WEBKIT_DISABLE_COMPOSITING_MODE=1
   - --env=WEBKIT_DISABLE_DMABUF_RENDERER=1
+  - --env=ESPEAK_DATA_PATH=/app/share/espeak-ng-data
 
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.node24
@@ -23,7 +24,7 @@ build-options:
 
 modules:
   # ============================================================
-  # Чистая и стабильная интеграция LibreOffice (App-Extension)
+  #  LibreOffice (App-Extension)
   # ============================================================
   - name: libreoffice-app-ext
     buildsystem: simple
@@ -40,9 +41,6 @@ modules:
       - mkdir -p /app/bin
       - ln -sf /app/libreoffice/opt/libreoffice*/program/soffice /app/bin/soffice
 
-
-
-
   # ============================================================
   # Piper TTS
   # ============================================================
@@ -53,22 +51,24 @@ modules:
         url: https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_linux_x86_64.tar.gz
         sha256: a50cb45f355b7af1f6d758c1b360717877ba0a398cc8cbe6d2a7a3a26e225992
     build-commands:
-      # 1. Создаем необходимые директории
+      # 1. Создаем структуру директорий
       - mkdir -p /app/bin /app/lib /app/share/espeak-ng-data
       
-      # 2. Устанавливаем бинарник
+      # 2. Устанавливаем исполняемые файлы
       - install -Dm755 piper /app/bin/piper
+      - install -Dm755 piper_phonemize /app/bin/piper_phonemize
       
-      # 3. Копируем библиотеки напрямую в стандартный системный /app/lib
+      # 3. Копируем библиотеки (.so файлы) с сохранением символических ссылок
       - cp -P *.so* /app/lib/
       
-      # 4. Копируем данные фонемизатора espeak-ng в правильное место
+      # 4. Копируем ВСЁ содержимое espeak-ng-data (включая phontab, phondata и папки языков)
       - cp -r espeak-ng-data/* /app/share/espeak-ng-data/
 
-    # 5. Говорим приложению искать библиотеки в папке /app/lib при запуске
+    # 5. Путь для поиска библиотек во время сборки
     build-options:
       env:
         - LD_LIBRARY_PATH: /app/lib
+
 
   # ============================================================
   # Основное приложение
@@ -107,11 +107,13 @@ modules:
       - echo "🦀 СБОРКА RUST (FLATPAK РЕЖИМ)"
       - echo "=================================================="
       - echo "🔧 Используем: RUSTFLAGS=\"--cfg flatpak\" npm run tauri build -- -b deb"
-      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- -b deb
+#      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- -b deb 
+      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- --debug -b deb
       - echo "=================================================="
       - echo "📦 РАСПАКОВКА .DEB ПАКЕТА"
       - echo "=================================================="
-      - ar -x src-tauri/target/release/bundle/deb/*.deb
+#      - ar -x src-tauri/target/release/bundle/deb/*.deb
+      - ar -x src-tauri/target/debug/bundle/deb/*.deb
       - tar -xf data.tar.gz
       - echo "=================================================="
       - echo "📦 ПАТЧИНГ .DESKTOP ФАЙЛА"
