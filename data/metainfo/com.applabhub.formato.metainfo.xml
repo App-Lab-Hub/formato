@@ -6,6 +6,9 @@
     <metadata_license>MIT</metadata_license>
     <project_license>MIT</project_license>
     
+    <!-- ИСПРАВЛЕНО: stock + полный ID -->
+    <icon type="stock">com.applabhub.formato</icon>
+    
     <developer id="io.github.applabhub">
         <name>App Lab Hub</name>
     </developer>

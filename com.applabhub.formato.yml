@@ -44,6 +44,8 @@ modules:
         npm_config_cache: /run/build/formato/flatpak-node/npm-cache
         LIBCLANG_PATH: /usr/lib/sdk/llvm20/lib
         BINDGEN_EXTRA_CLANG_ARGS: "-idirafter /usr/lib/sdk/llvm20/lib/clang/20/include"
+        WEBKIT_DISABLE_DMABUF_RENDERER: "1"
+        WEBKIT_DISABLE_COMPOSITING_MODE: "1"
     sources:
       - type: git
         url: https://github.com/App-Lab-Hub/formato.git
@@ -51,34 +53,78 @@ modules:
       - cargo-sources.json
       - node-sources.json
     build-commands:
-      - echo "🔍 Проверка конфигурации..."
+      - echo "=================================================="
+      - echo "🔍 ПРОВЕРКА КОНФИГУРАЦИИ"
+      - echo "=================================================="
       - echo "📁 Текущая директория: $(pwd)"
-      - echo "📄 Проверка Cargo.toml..."
-      - cat src-tauri/Cargo.toml | grep -A 5 "\[features\]" || echo "⚠️ Секция [features] не найдена!"
       
+      - echo "=================================================="
+      - echo "📦 НАСТРОЙКА CARGO"
+      - echo "=================================================="
       - mkdir -p src-tauri/.cargo
       - echo -e '[source.crates-io]\nreplace-with = "vendored-sources"\n\n[source.vendored-sources]\ndirectory = "/run/build/formato/cargo/vendor"' > src-tauri/.cargo/config.toml
       
-      - echo "📦 Установка npm зависимостей..."
+      - echo "=================================================="
+      - echo "📦 УСТАНОВКА NPM ЗАВИСИМОСТЕЙ"
+      - echo "=================================================="
       - npm install --offline --no-audit --no-fund
       
-      - echo "🦀 Сборка Rust (Flatpak режим, БЕЗ piper-rs)..."
-      - echo "🔧 Используем: cargo build --release --no-default-features --features flatpak"
-      - cd src-tauri && cargo build --release --no-default-features --features flatpak && cd ..
+      - echo "=================================================="
+      - echo "🦀 СБОРКА RUST (FLATPAK РЕЖИМ)"
+      - echo "=================================================="
+      - echo "🔧 Используем: RUSTFLAGS=\"--cfg flatpak\" npm run tauri build -- -b deb"
+      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- -b deb
       
-      - echo "📦 Сборка Tauri..."
-      - npm run tauri build -- -b deb
-      
-      - echo "📦 Распаковка .deb пакета..."
+      - echo "=================================================="
+      - echo "📦 РАСПАКОВКА .DEB ПАКЕТА"
+      - echo "=================================================="
       - ar -x src-tauri/target/release/bundle/deb/*.deb
       - tar -xf data.tar.gz
       
-      - echo "📦 Установка бинарников в /app..."
+      - echo "=================================================="
+      - echo "📦 ПАТЧИНГ .DESKTOP ФАЙЛА"
+      - echo "=================================================="
+      - # Исправляем Icon в .desktop файле
+      - sed -i 's/Icon=formato/Icon=com.applabhub.formato/g' usr/share/applications/Formato.desktop
+      - echo "✅ .desktop файл исправлен"
+      
+      - echo "=================================================="
+      - echo "📦 УСТАНОВКА БИНАРНИКОВ В /app"
+      - echo "=================================================="
       - install -Dm755 usr/bin/formato /app/bin/formato
       - install -Dm644 usr/share/applications/Formato.desktop /app/share/applications/com.applabhub.formato.desktop
-      - install -Dm644 usr/share/icons/hicolor/128x128/apps/formato.png /app/share/icons/hicolor/128x128/apps/com.applabhub.formato.png
-      - install -Dm644 usr/share/icons/hicolor/32x32/apps/formato.png /app/share/icons/hicolor/32x32/apps/com.applabhub.formato.png
-      - install -Dm644 usr/share/icons/hicolor/256x256@2/apps/formato.png /app/share/icons/hicolor/512x512/apps/com.applabhub.formato.png
+      
+      - echo "=================================================="
+      - echo "📦 УСТАНОВКА ИКОНОК"
+      - echo "=================================================="
+      - # Создаем папки для всех размеров
+      - mkdir -p /app/share/icons/hicolor/32x32/apps
+      - mkdir -p /app/share/icons/hicolor/128x128/apps
+      - mkdir -p /app/share/icons/hicolor/256x256@2/apps
+      
+      - # Устанавливаем иконки, переименовывая их в App ID
+      - install -m644 usr/share/icons/hicolor/32x32/apps/formato.png /app/share/icons/hicolor/32x32/apps/com.applabhub.formato.png
+      - install -m644 usr/share/icons/hicolor/128x128/apps/formato.png /app/share/icons/hicolor/128x128/apps/com.applabhub.formato.png
+      - install -m644 usr/share/icons/hicolor/256x256@2/apps/formato.png /app/share/icons/hicolor/256x256@2/apps/com.applabhub.formato.png
+      - echo "✅ Иконки установлены с правильными именами"
+
+      - echo "=================================================="
+      - echo "📦 УСТАНОВКА METAINFO"
+      - echo "=================================================="
       - install -Dm644 usr/share/metainfo/com.applabhub.formato.metainfo.xml /app/share/metainfo/com.applabhub.formato.metainfo.xml
       
-      - echo "✅ Сборка завершена!"
+      - echo "=================================================="
+      - echo "📁 ПРОВЕРКА УСТАНОВЛЕННЫХ ФАЙЛОВ"
+      - echo "=================================================="
+      - echo "📁 /app/bin/:"
+      - ls -la /app/bin/ 2>/dev/null || echo "⚠️ Папка /app/bin/ не найдена!"
+      - echo "📁 /app/share/applications/:"
+      - ls -la /app/share/applications/ 2>/dev/null || echo "⚠️ Папка /app/share/applications/ не найдена!"
+      - echo "📁 /app/share/icons/hicolor/128x128/apps/:"
+      - ls -la /app/share/icons/hicolor/128x128/apps/ 2>/dev/null || echo "⚠️ Папка не найдена!"
+      - echo "📁 /app/share/metainfo/:"
+      - ls -la /app/share/metainfo/ 2>/dev/null || echo "⚠️ Папка /app/share/metainfo/ не найдена!"
+      
+      - echo "=================================================="
+      - echo "✅ СБОРКА ЗАВЕРШЕНА"
+      - echo "=================================================="
