@@ -29,7 +29,8 @@
   import { writeFile } from '@tauri-apps/plugin-fs';
   import { SvelteSet } from 'svelte/reactivity';
   import { loader } from '$lib/stores/loader.svelte';
-  
+  import { appDataDir } from '@tauri-apps/api/path';
+
   // [OK] Импорт утилит
   import {
     getTargetFormats,
@@ -550,6 +551,8 @@
   // ============================================================
 
   async function previewFileFn(fileId: string) {
+
+    
     const converted = appState.getConvertedFile(sourceFormatId, fileId);
     if (!converted) {
       toast.warning(m.convert_first_download());

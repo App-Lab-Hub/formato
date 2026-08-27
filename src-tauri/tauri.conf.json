@@ -2,7 +2,7 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Formato",
   "version": "1.0.0",
-  "identifier": "com.app-lab-hab.formato",
+  "identifier": "com.applabhub.formato",
 
   "build": {
     "beforeDevCommand": "npm run dev",

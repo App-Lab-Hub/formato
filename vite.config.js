@@ -29,6 +29,8 @@ export default defineConfig({
         "**/.svelte-kit/**",
         "**/coverage/**",
         "**/.flatpak-builder/**",
+        "**/build/**",
+        "**/var/run/**",
       ],
     },
   },
