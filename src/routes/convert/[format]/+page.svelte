@@ -43,6 +43,7 @@
     getUniqueFileName,
     getArchiveName,
     filterExistingFiles,
+    fileExists,
   } from '$lib/utils/convert';
   import GithubBtn from '$lib/components/GithubBtn.svelte';
   import BoostyBtn from '$lib/components/BoostyBtn.svelte';
@@ -221,92 +222,156 @@
   // ИНИЦИАЛИЗАЦИЯ И ВОССТАНОВЛЕНИЕ СОСТОЯНИЯ
   // ============================================================
 
-  onMount(() => {
-    const init = async () => {
-      if (sourceFormat) {
-        targetFormats = getTargetFormats(getFormats(), sourceFormatId);
-        
-        const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
-        if (savedTargetId && targetFormats.length > 0) {
-          const found = targetFormats.find(f => f.id === savedTargetId);
-          if (found) {
-            selectedTarget = found;
-          }
+onMount(() => {
+  const init = async () => {
+    if (sourceFormat) {
+      targetFormats = getTargetFormats(getFormats(), sourceFormatId);
+      
+      const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
+      if (savedTargetId && targetFormats.length > 0) {
+        const found = targetFormats.find(f => f.id === savedTargetId);
+        if (found) {
+          selectedTarget = found;
         }
-        
-        isLoading = false;
-        
-        // Проверяем несуществующие файлы
-        const currentFiles = appState.getFilesForFormat(sourceFormatId);
-        const { missing } = await filterExistingFiles(
-          currentFiles.map(f => ({ path: f.path, id: f.id }))
-        );
-        
-        // Удаляем с анимацией
-        if (missing.length > 0) {
-          for (const missingFile of missing) {
-            const fullFile = currentFiles.find(f => f.id === missingFile.id);
-            if (fullFile) {
-              await removeFileWithoutConfirm(fullFile);
-            }
-          }
-          toast.warning(m.files_removed_pending({ count: missing.length }));
-        }
-        
-        return;
       }
+      
+      isLoading = false;
+      
+      // ============================================================
+      // 🔍 ПРОВЕРКА ИСХОДНЫХ ФАЙЛОВ
+      // ============================================================
+      const currentFiles = appState.getFilesForFormat(sourceFormatId);
+      const { missing } = await filterExistingFiles(
+        currentFiles.map(f => ({ path: f.path, id: f.id }))
+      );
+      
+      // Удаляем отсутствующие исходные файлы
+      if (missing.length > 0) {
+        for (const missingFile of missing) {
+          const fullFile = currentFiles.find(f => f.id === missingFile.id);
+          if (fullFile) {
+            await removeFileWithoutConfirm(fullFile);
+          }
+        }
+        toast.warning(m.files_removed_pending({ count: missing.length }));
+      }
+      
+      // ============================================================
+      // 🆕 ПРОВЕРКА КОНВЕРТИРОВАННЫХ ФАЙЛОВ
+      // ============================================================
+      const convertedFilesMap = appState.getConvertedFilesForFormat(sourceFormatId);
+      const convertedEntries = Array.from(convertedFilesMap.entries());
+      const convertedMissing: string[] = [];
+      
+      for (const [fileId, convertedFile] of convertedEntries) {
+        // Проверяем, существует ли исходный файл (если нет — удаляем конвертированный)
+        const originalFile = currentFiles.find(f => f.id === fileId);
+        if (!originalFile) {
+          // Исходный файл удалён — удаляем и конвертированный
+          convertedMissing.push(fileId);
+          continue;
+        }
+        
+        // Проверяем, существует ли сам конвертированный файл
+        const exists = await fileExists(convertedFile.path);
+        if (!exists) {
+          convertedMissing.push(fileId);
+        }
+      }
+      
+      // Удаляем отсутствующие конвертированные файлы
+      if (convertedMissing.length > 0) {
+        for (const fileId of convertedMissing) {
+          appState.removeConvertedFile(sourceFormatId, fileId);
+        }
+        toast.warning(m.converted_files_removed({ count: convertedMissing.length }));
+      }
+      
+      return;
+    }
 
-      if (!isFormatsLoaded()) {
-        const checkFormats = setInterval(async () => {
-          if (isFormatsLoaded()) {
-            const f = getFormatById(sourceFormatId);
-            if (f) {
-              sourceFormat = f;
-              targetFormats = getTargetFormats(getFormats(), sourceFormatId);
-              appState.currentFormatId = sourceFormatId;
-              
-              const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
-              if (savedTargetId && targetFormats.length > 0) {
-                const found = targetFormats.find(f => f.id === savedTargetId);
-                if (found) {
-                  selectedTarget = found;
-                }
+    if (!isFormatsLoaded()) {
+      const checkFormats = setInterval(async () => {
+        if (isFormatsLoaded()) {
+          const f = getFormatById(sourceFormatId);
+          if (f) {
+            sourceFormat = f;
+            targetFormats = getTargetFormats(getFormats(), sourceFormatId);
+            appState.currentFormatId = sourceFormatId;
+            
+            const savedTargetId = appState.getSelectedTargetForFormat(sourceFormatId);
+            if (savedTargetId && targetFormats.length > 0) {
+              const found = targetFormats.find(f => f.id === savedTargetId);
+              if (found) {
+                selectedTarget = found;
               }
-              
-              isLoading = false;
-              
-              // Проверяем несуществующие файлы
-              const currentFiles = appState.getFilesForFormat(sourceFormatId);
-              const { missing } = await filterExistingFiles(
-                currentFiles.map(f => ({ path: f.path, id: f.id }))
-              );
-              
-              // Удаляем с анимацией
-              if (missing.length > 0) {
-                for (const missingFile of missing) {
-                  const fullFile = currentFiles.find(f => f.id === missingFile.id);
-                  if (fullFile) {
-                    await removeFileWithoutConfirm(fullFile);
-                  }
-                }
-                toast.warning(m.files_removed_pending({ count: missing.length }));
-              }
-            } else {
-              loadError = m.format_not_found() + ` "${sourceFormatId}"`;
-              isLoading = false;
             }
-            clearInterval(checkFormats);
+            
+            isLoading = false;
+            
+            // ============================================================
+            // 🔍 ПРОВЕРКА ИСХОДНЫХ ФАЙЛОВ
+            // ============================================================
+            const currentFiles = appState.getFilesForFormat(sourceFormatId);
+            const { missing } = await filterExistingFiles(
+              currentFiles.map(f => ({ path: f.path, id: f.id }))
+            );
+            
+            if (missing.length > 0) {
+              for (const missingFile of missing) {
+                const fullFile = currentFiles.find(f => f.id === missingFile.id);
+                if (fullFile) {
+                  await removeFileWithoutConfirm(fullFile);
+                }
+              }
+              toast.warning(m.files_removed_pending({ count: missing.length }));
+            }
+            
+            // ============================================================
+            // 🆕 ПРОВЕРКА КОНВЕРТИРОВАННЫХ ФАЙЛОВ
+            // ============================================================
+            const convertedFilesMap = appState.getConvertedFilesForFormat(sourceFormatId);
+            const convertedEntries = Array.from(convertedFilesMap.entries());
+            const convertedMissing: string[] = [];
+            
+            for (const [fileId, convertedFile] of convertedEntries) {
+              // Проверяем, существует ли исходный файл
+              const originalFile = currentFiles.find(f => f.id === fileId);
+              if (!originalFile) {
+                convertedMissing.push(fileId);
+                continue;
+              }
+              
+              // Проверяем, существует ли сам конвертированный файл
+              const exists = await fileExists(convertedFile.path);
+              if (!exists) {
+                convertedMissing.push(fileId);
+              }
+            }
+            
+            if (convertedMissing.length > 0) {
+              for (const fileId of convertedMissing) {
+                appState.removeConvertedFile(sourceFormatId, fileId);
+              }
+              toast.warning(m.converted_files_removed({ count: convertedMissing.length }));
+            }
+            
+          } else {
+            loadError = m.format_not_found() + ` "${sourceFormatId}"`;
+            isLoading = false;
           }
-        }, 100);
-        return () => clearInterval(checkFormats);
-      } else {
-        loadError = m.format_not_found() + ` "${sourceFormatId}"`;
-        isLoading = false;
-      }
-    };
-    
-    init();
-  });
+          clearInterval(checkFormats);
+        }
+      }, 100);
+      return () => clearInterval(checkFormats);
+    } else {
+      loadError = m.format_not_found() + ` "${sourceFormatId}"`;
+      isLoading = false;
+    }
+  };
+  
+  init();
+});
 
   function goBack() { 
     if (isAddToList) {

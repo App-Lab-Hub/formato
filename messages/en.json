@@ -360,5 +360,7 @@
 
   "settings_enable_cache_enable": "Enable cache",
   "settings_enable_cache_disable": "Disable cache",
-  "about_support_boosty": "Support on Boosty"
+  "about_support_boosty": "Support on Boosty",
+
+  "converted_files_removed": "Removed {count} converted files (original files not found)"
 }

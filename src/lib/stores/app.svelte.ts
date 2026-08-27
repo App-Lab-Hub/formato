@@ -110,7 +110,7 @@ export const appState = {
     }
   },
 
-  // [OK] НОВЫЙ МЕТОД: удаляет несколько файлов по id
+  // [OK] Удаляет несколько файлов по id
   removeFilesById(formatId: string, ids: string[]) {
     const current = this.getFilesForFormat(formatId);
     const idSet = new Set(ids);
@@ -123,6 +123,16 @@ export const appState = {
       for (const id of ids) {
         newMap.delete(id);
       }
+      convertedFilesMap.set(formatId, newMap);
+    }
+  },
+
+  // 🆕 Удаляет конвертированный файл по id
+  removeConvertedFile(formatId: string, fileId: string) {
+    const converted = convertedFilesMap.get(formatId);
+    if (converted) {
+      const newMap = new Map(converted);
+      newMap.delete(fileId);
       convertedFilesMap.set(formatId, newMap);
     }
   },
