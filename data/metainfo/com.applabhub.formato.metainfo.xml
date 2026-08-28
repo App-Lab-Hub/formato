@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <component type="desktop-application">
     <id>com.applabhub.formato</id>
-    <name>Formato</name>
-    <summary>Universal data converter for 60+ formats</summary>
     <metadata_license>MIT</metadata_license>
     <project_license>MIT</project_license>
+    <name>Formato</name>
+    <summary>Universal data converter for 60+ formats</summary>
     
-    <!-- ИСПРАВЛЕНО: stock + полный ID -->
     <icon type="stock">com.applabhub.formato</icon>
     
     <developer id="io.github.applabhub">
@@ -16,6 +15,7 @@
     <description>
         <p>Formato is a powerful, open-source universal data converter designed for speed and privacy. It supports over 60 formats, including JSON, YAML, XML, CSV, TOML, INI, Markdown, HTML, DOCX, ODT, XLSX, PDF, images, audio, and video. All data is processed locally on your device — no uploads, no limits.</p>
         <p>Whether you're a developer, analyst, or just someone who works with data daily, Formato adapts to your needs with a clean, modern interface and powerful conversion capabilities.</p>
+        <p>Formato is the only converter you'll ever need, combining powerful conversion capabilities with speech synthesis and recognition in a single, privacy-first desktop application.</p>
         <p>Key features include:</p>
         <ul>
             <li>Convert between 60+ formats (text, documents, images, audio, video)</li>
@@ -69,6 +69,11 @@
         <control>pointing</control>
     </supports>
 
+    <branding>
+        <color type="primary" scheme_preference="light">#a855f7</color>
+        <color type="primary" scheme_preference="dark">#7c3aed</color>
+    </branding>
+
     <screenshots>
         <screenshot type="default">
             <caption>Formato main interface</caption>
@@ -93,7 +98,7 @@
     </screenshots>
 
     <releases>
-        <release version="1.0.0" date="2026-08-23">
+        <release version="1.0.0" date="2026-08-28">
             <description>
                 <ul>
                     <li>First stable release</li>
@@ -108,11 +113,6 @@
     </releases>
 
     <content_rating type="oars-1.1" />
-
-    <branding>
-        <color type="primary" scheme_preference="light">#a855f7</color>
-        <color type="primary" scheme_preference="dark">#7c3aed</color>
-    </branding>
 
     <update_contact>alesandr2021@gmail.com</update_contact>
 </component>
