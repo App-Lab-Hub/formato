@@ -127,7 +127,7 @@ export async function loadDependencies(): Promise<DependenciesData> {
       },
     };
   } catch (e) {
-    console.error("Failed to load dependencies:", e);
+    // console.error("Failed to load dependencies:", e);
     return getFallbackDependencies();
   }
 }

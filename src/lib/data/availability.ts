@@ -20,7 +20,7 @@ export async function getAvailability(
       fromType: formatType,
     });
   } catch (error) {
-    console.error("Failed to get availability:", error);
+    // console.error("Failed to get availability:", error);
     return {
       text: "not_available",
       image: "not_available",

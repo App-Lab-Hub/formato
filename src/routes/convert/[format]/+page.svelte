@@ -25,7 +25,7 @@
   
   // Import store
   import { appState, type FileItem } from '$lib/stores/app.svelte';
-  import { openPath } from '@tauri-apps/plugin-opener';
+  // import { openPath } from '@tauri-apps/plugin-opener';
   import { writeFile } from '@tauri-apps/plugin-fs';
   import { SvelteSet } from 'svelte/reactivity';
   import { loader } from '$lib/stores/loader.svelte';
@@ -571,7 +571,7 @@ onMount(() => {
         toast.error(m.convert_error({ name: file.name, error: errorMsg }));
       }
     } catch (e) { 
-      console.error(`Conversion failed: ${file.name}`, e);
+      // console.error(`Conversion failed: ${file.name}`, e);
       const errorMsg = e instanceof Error ? e.message : m.backend_connection_error();
       toast.error(m.convert_error({ name: file.name, error: errorMsg }));
     } finally { 
@@ -697,7 +697,7 @@ onMount(() => {
       const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'file';
       toast.success(m.file_saved({ name: fileName }));
     } catch (e) { 
-      console.error('[Download] Failed:', e);
+      // console.error('[Download] Failed:', e);
       toast.error(m.save_error());
     }
   }
@@ -770,7 +770,7 @@ onMount(() => {
       const fileName = filePath.split('/').pop() || filePath.split('\\').pop() || 'archive';
       toast.success(m.archive_saved({ name: fileName }));
     } catch (e) {
-      console.error('[Download All Archive] Failed:', e);
+      // console.error('[Download All Archive] Failed:', e);
       toast.error(m.archive_error());
     }
   }

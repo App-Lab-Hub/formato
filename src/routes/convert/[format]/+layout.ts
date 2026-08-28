@@ -19,7 +19,7 @@ export const load: LayoutLoad = async ({ params, parent }) => {
       availability = await getAvailability(format.formatType);
       // console.log(availability);
     } catch (e) {
-      console.error("Failed to get availability:", e);
+      // console.error("Failed to get availability:", e);
     }
   }
 

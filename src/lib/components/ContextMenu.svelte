@@ -24,7 +24,7 @@
     event.preventDefault();
     event.stopPropagation();
 
-    console.log('🖱️ Открываем контекстное меню:', event.clientX, event.clientY);
+    // console.log('🖱️ Открываем контекстное меню:', event.clientX, event.clientY);
     
     context = ctx;
     position = { 
@@ -66,7 +66,7 @@
   onMount(() => {
     if (!browser) return;
 
-    console.log('[OK] ContextMenu mounted');
+    // console.log('[OK] ContextMenu mounted');
     
     // Отключаем системное контекстное меню
     const preventContextMenu = (e: Event) => {

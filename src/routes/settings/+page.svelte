@@ -61,7 +61,7 @@
     try {
       await invalidateAll();
     } catch (e) {
-      console.error('Failed to reload models status:', e);
+      // console.error('Failed to reload models status:', e);
     }
   }
 
@@ -101,7 +101,7 @@
       await reloadModelsStatus();
     } catch (e) {
       toast.error(m.model_download_error());
-      console.error(e);
+      // console.error(e);
     } finally {
       const elapsed = Date.now() - startTime;
       const minDelay = 500;
@@ -124,7 +124,7 @@
       await reloadModelsStatus();
     } catch (e) {
       toast.error(m.model_download_error());
-      console.error(e);
+      // console.error(e);
     } finally {
       const elapsed = Date.now() - startTime;
       const minDelay = 500;

@@ -134,12 +134,12 @@ export function isFormatsLoaded(): boolean {
 
 export async function loadFormatsData(): Promise<void> {
   if (_loaded) {
-    console.log("ℹ️ Formats already loaded, skipping");
+    // console.log("ℹ️ Formats already loaded, skipping");
     return;
   }
 
   if (_loadingPromise) {
-    console.log("ℹ️ Formats loading in progress, waiting...");
+    // console.log("ℹ️ Formats loading in progress, waiting...");
     return _loadingPromise;
   }
 
@@ -161,9 +161,9 @@ export async function loadFormatsData(): Promise<void> {
       }));
 
       _loaded = true;
-      console.log("[OK] Formats loaded from DB:", _formats.length);
+      // console.log("[OK] Formats loaded from DB:", _formats.length);
     } catch (error) {
-      console.error("❌ Failed to load formats:", error);
+      // console.error("❌ Failed to load formats:", error);
       _formats = [];
       _loaded = false;
     } finally {

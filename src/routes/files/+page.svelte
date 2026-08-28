@@ -6,7 +6,7 @@
   import { FileText, Trash2, FolderOpen, Database, Clock, HardDrive, X, LoaderCircle, ChevronLeft, ChevronRight } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import type { FileInfo } from '$lib/types/files';
-  import { openPath } from "@tauri-apps/plugin-opener";
+  // import { openPath } from "@tauri-apps/plugin-opener";
   import { invoke } from '@tauri-apps/api/core';
   import { toast } from '$lib/utils/toast';
   import { animate } from '@motionone/dom';
@@ -104,7 +104,7 @@
       await invalidateAll();
       toast.success(m.database_reset_success());
     } catch (error) {
-      console.error('Failed to reset database:', error);
+      // console.error('Failed to reset database:', error);
       toast.error(m.database_reset_error());
     } finally {
       loader.stopResetting();
@@ -167,7 +167,7 @@
         selectedFile = null;
       }
     } catch (error) {
-      console.error('Failed to delete file:', error);
+      // console.error('Failed to delete file:', error);
       toast.error(m.delete_error());
     } finally {
       deletingFilePath = null;
@@ -201,7 +201,7 @@
           await invoke('delete_file', { path: file.path });
           deletedCount++;
         } catch (e) {
-          console.error(`Failed to delete ${file.path}:`, e);
+          // console.error(`Failed to delete ${file.path}:`, e);
         }
       }
       
@@ -210,7 +210,7 @@
       goToPage(currentPage);
       toast.success(m.files_deleted({ count: deletedCount }));
     } catch (error) {
-      console.error('Failed to delete files:', error);
+      // console.error('Failed to delete files:', error);
       toast.error(m.delete_error());
     } finally {
       loader.stopDeletingAll();
@@ -242,7 +242,7 @@
           await invoke('delete_file', { path: file.path });
           deletedCount++;
         } catch (e) {
-          console.error(`Failed to delete ${file.path}:`, e);
+          // console.error(`Failed to delete ${file.path}:`, e);
         }
       }
       
@@ -251,7 +251,7 @@
       goToPage(currentPage);
       toast.success(m.files_deleted({ count: deletedCount }));
     } catch (error) {
-      console.error('Failed to delete files:', error);
+      // console.error('Failed to delete files:', error);
       toast.error(m.delete_error());
     } finally {
       loader.stopDeletingAll();

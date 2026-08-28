@@ -32,9 +32,9 @@ export const load: LayoutLoad = async ({ url }) => {
   let modelsStatus = null;
   try {
     modelsStatus = await getModelsStatus();
-    console.log("[OK] Models status loaded in root layout:", modelsStatus);
+    // console.log("[OK] Models status loaded in root layout:", modelsStatus);
   } catch (e) {
-    console.error("❌ Failed to load models status in root layout:", e);
+    // console.error("❌ Failed to load models status in root layout:", e);
   }
 
   return {

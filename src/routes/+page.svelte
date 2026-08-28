@@ -108,7 +108,7 @@
             }}
           >
             {#each formats as format, index}
-            {console.log(format.id)}
+            <!-- {console.log(format.id)} -->
               {@const Icon = format.icon}
               <SplideSlide>
                 <div

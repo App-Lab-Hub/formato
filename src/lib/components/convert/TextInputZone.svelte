@@ -59,7 +59,7 @@
       fileName = 'input';
       error = null;
     } catch (e) {
-      console.error('Failed to create text file:', e);
+      // console.error('Failed to create text file:', e);
       error = m.text_convert_error();
     } finally {
       isAddToList = false;

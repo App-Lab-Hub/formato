@@ -56,7 +56,7 @@ function getSystemTheme(): "dark" | "light" {
     if (isDark) return "dark";
     if (isLight) return "light";
 
-    console.log("⚠️ Unknown system theme, falling back to dark");
+    // console.log("⚠️ Unknown system theme, falling back to dark");
     return "dark";
   } catch (error) {
     console.warn("Failed to detect system theme, falling back to dark:", error);
@@ -149,20 +149,20 @@ export function watchSystemTheme(
   const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
   const handler = (e: MediaQueryListEvent) => {
     const isDark = getSystemTheme() === "dark";
-    console.log("🔄 System theme changed:", isDark ? "dark" : "light");
+    // console.log("🔄 System theme changed:", isDark ? "dark" : "light");
     callback(isDark);
   };
 
   mediaQuery.addEventListener("change", handler);
 
   const initialIsDark = getSystemTheme() === "dark";
-  console.log(
-    "👀 Watching system theme, initial:",
-    initialIsDark ? "dark" : "light",
-  );
+  // console.log(
+  //   "👀 Watching system theme, initial:",
+  //   initialIsDark ? "dark" : "light",
+  // );
 
   return () => {
-    console.log("👋 Stopped watching system theme");
+    // console.log("👋 Stopped watching system theme");
     mediaQuery.removeEventListener("change", handler);
   };
 }
