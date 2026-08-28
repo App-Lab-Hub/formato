@@ -191,7 +191,7 @@
   "file_saved": "File {name} saved",
   "save_error": "Error saving file",
   "file_not_found": "File not found",
-  "preview_error": "Failed to open preview",
+  "preview_error": "Preview opening canceled",
 
   "preview_too_large_with_max": "File too large for preview ({size}). Maximum size: {limit}.",
 

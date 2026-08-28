@@ -3,19 +3,19 @@
   import { goto, invalidateAll } from '$app/navigation';
   import { 
     Sun, Moon, Monitor, Languages, Palette, Eye, Database, 
-    FolderOpen, FileCheck, Shield, Archive, ShieldCheck, 
+    FileCheck, Shield, Archive, ShieldCheck, 
     Mic, Speaker, CheckCircle, XCircle, 
     Download, LoaderCircle, Globe, User, UserRound,
-    Cpu, Check, AlertTriangle
+    Cpu, Check, TriangleAlert
   } from 'lucide-svelte';
   import ScrollContainer from '$lib/components/ScrollContainer.svelte';
   import { onMount } from 'svelte';
   import { getSettings, saveSettings, type AppSettings } from '$lib/data/settings';
-  import { formatSize } from '$lib/utils/format';
+  // import { formatSize } from '$lib/utils/format';
   import { m } from '$lib/paraglide/messages';
   import BackButton from '$lib/components/BackButton.svelte';
   import { toast } from '$lib/utils/toast';
-  import { getModelsStatus, type ModelsStatus } from '$lib/data/models';
+  import { type ModelsStatus } from '$lib/data/models';
   import { invoke } from '@tauri-apps/api/core';
   import { loader } from '$lib/stores/loader.svelte';
   import { 
@@ -246,7 +246,7 @@
                       </span>
                     {:else}
                       <span class="text-amber-400 inline-flex items-center gap-1">
-                        <AlertTriangle class="h-3.5 w-3.5" />
+                        <TriangleAlert class="h-3.5 w-3.5" />
                         {m.models_not_downloaded()}
                       </span>
                     {/if}
@@ -357,7 +357,7 @@
                       </span>
                     {:else}
                       <span class="text-amber-400 inline-flex items-center gap-1">
-                        <AlertTriangle class="h-3.5 w-3.5" />
+                        <TriangleAlert class="h-3.5 w-3.5" />
                         {m.models_not_downloaded()}
                       </span>
                     {/if}
@@ -406,7 +406,7 @@
           </div>
 
           <!-- Авто-превью -->
-          <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
+          <!-- <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-3">
                 <FolderOpen class="h-5 w-5 text-purple-600 dark:text-purple-400" />
@@ -423,7 +423,7 @@
                 <span class="absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-md transition-all {autoPreview ? 'left-6' : 'left-0.5'}"></span>
               </button>
             </div>
-          </div>
+          </div> -->
 
           <!-- Архивация -->
           <div class="dark:bg-card/50 light:bg-purple-200/50 backdrop-blur-sm rounded-2xl border dark:border-border light:border-purple-300/50 p-6">

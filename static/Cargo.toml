@@ -64,6 +64,7 @@ unicode-segmentation = "1.13.3"
 uuid = { version = "1.24.0", features = ["v4"] }
 flate2 = "1.1.9"
 libc = "0.2.189"
+ashpd = { version = "0.13.13", features = [ "open_uri", "tokio", "documents"] }
 
 [target.'cfg(not(flatpak))'.dependencies]
 piper-rs = "0.2.0"

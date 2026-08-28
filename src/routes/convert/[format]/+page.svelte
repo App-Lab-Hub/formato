@@ -636,12 +636,12 @@ onMount(() => {
         }));
         return;
       }
-
-      await openPath(converted.path);
+      await invoke('open_file', { path: converted.path });
+      // await openPath(converted.path);
       
     } catch (e) {
-      console.error('Preview failed:', e);
-      toast.error(m.preview_error());
+      // console.error('Preview failed:', e);
+      toast.info(m.preview_error());
     }
   }
 

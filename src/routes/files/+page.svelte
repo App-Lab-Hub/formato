@@ -654,7 +654,8 @@
             class="dark:bg-background/50 light:bg-purple-200/50 p-3 rounded-xl border dark:border-border/30 light:border-purple-300/30 cursor-pointer transition-colors hover:dark:bg-background/70 hover:light:bg-purple-200/70 group"
             onclick={async () => {
               if (!selectedFile) return;
-              await openPath(selectedFile.path);
+                await invoke('open_file', { path: selectedFile.path});
+              // await openPath(selectedFile.path);
             }}
             role="button"
             tabindex="0"
@@ -662,7 +663,8 @@
               if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
                 if (!selectedFile) return;
-                await openPath(selectedFile.path);
+                    await invoke('open_file', { path: selectedFile.path });
+                // await openPath(selectedFile.path);
               }
             }}
           >

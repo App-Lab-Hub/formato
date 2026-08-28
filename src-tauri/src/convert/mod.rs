@@ -52,6 +52,8 @@ use crate::db;
 use crate::html_convert::parse_html;
 use crate::paths::converted_dir;
 use memmap2::Mmap;
+
+// use tokio::process::Command;
 // ============================================================
 // ТИПЫ
 // ============================================================
@@ -959,10 +961,51 @@ pub async fn read_file_bytes(path: String) -> Result<Vec<u8>, String> {
         .map_err(|e| format!("Cannot read file: {e}"))
 }
 
+// #[tauri::command]
+// pub async fn open_file(path: String) -> Result<(), String> {
+//     opener::open(&path).map_err(|e| format!("Cannot open file: {e}"))
+// }
+use ashpd::desktop::open_uri::OpenFileRequest;
+use std::os::fd::AsFd;
+
 #[tauri::command]
 pub async fn open_file(path: String) -> Result<(), String> {
-    opener::open(&path).map_err(|e| format!("Cannot open file: {e}"))
+    println!("📂 Открытие файла: {}", path);
+
+    // 1. Проверяем существование файла
+    if !Path::new(&path).exists() {
+        return Err(format!("Файл не найден: {}", path));
+    }
+
+    // 2. Пробуем сначала стандартный opener (для хоста / обычного окружения)
+    // if let Err(e) = opener::open(&path) {
+        // println!("⚠️ opener не сработал ({}), пробуем open_via_flatpak...", e);
+        open_via_flatpak_portal(&path).await?;
+    // } else {
+        // println!("✅ Файл открыт через opener");
+    // }
+
+    Ok(())
 }
+
+/// Открытие файла через встроенный OpenURI портал Flatpak
+async fn open_via_flatpak_portal(path: &str) -> Result<(), String> {
+    // Открываем файл, чтобы получить его дескриптор
+    let file = File::open(path)
+        .map_err(|e| format!("Не удалось открыть файл: {}", e))?;
+
+    // Используем OpenFileRequest для открытия файла
+    OpenFileRequest::default()
+        .ask(false)  // Спрашивать пользователя, чем открыть
+        .send_file(&file.as_fd())
+        .await
+        .map_err(|e| format!("Ошибка Flatpak портала OpenURI: {}", e))?;
+
+    println!("✅ Файл успешно передан хосту для открытия");
+    Ok(())
+}
+
+
 
 // src-tauri/src/convert/mod.rs
 

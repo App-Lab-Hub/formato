@@ -4,7 +4,7 @@ use crate::paths;
 use crate::settings::get_settings;
 use std::fs::File;
 use std::io::{Seek, SeekFrom, Write};
-use std::panic::AssertUnwindSafe;
+// use std::panic::AssertUnwindSafe;
 use tempfile::Builder;
 use unicode_segmentation::UnicodeSegmentation;
 

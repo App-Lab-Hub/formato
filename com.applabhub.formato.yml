@@ -9,10 +9,10 @@ finish-args:
   - --device=dri
   - --share=ipc
   - --share=network             # Разрешаем скачивание ONNX-моделей из интернета
-  - --filesystem=xdg-documents:rw # Оставляем доступ к Документам для LibreOffice и работы с файлами
   - --env=WEBKIT_DISABLE_COMPOSITING_MODE=1
   - --env=WEBKIT_DISABLE_DMABUF_RENDERER=1
   - --env=ESPEAK_DATA_PATH=/app/share/espeak-ng-data
+  - --talk-name=org.freedesktop.portal.Desktop
 
 sdk-extensions:
   - org.freedesktop.Sdk.Extension.node24
