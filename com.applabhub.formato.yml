@@ -24,7 +24,7 @@ build-options:
 
 modules:
   # ============================================================
-  #  LibreOffice (App-Extension)
+  #  LibreOffice (Only Writer и Calc)
   # ============================================================
   - name: libreoffice-app-ext
     buildsystem: simple
@@ -33,11 +33,23 @@ modules:
         url: https://download.documentfoundation.org/libreoffice/stable/26.8.0/deb/x86_64/LibreOffice_26.8.0_Linux_x86-64_deb.tar.gz
         sha256: d0a6031a3837e48f9854e6d2da6489b9fadbd814afa4741fa32a197741663a22
     build-commands:
+      # 1. Create target dir
       - mkdir -p /app/libreoffice
-      - for f in DEBS/*.deb; do ar x "$f" data.tar.xz && tar -xf data.tar.xz -C /app/libreoffice && rm data.tar.xz; done
+      
+      # 2. Writer и Calc
+      - |
+        for p in core images ooofonts en-us writer calc ure libreoffice26.8_; do
+          for f in DEBS/*"$p"*.deb; do
+            if [ -f "$f" ]; then
+              ar x "$f" data.tar.xz && tar -xf data.tar.xz -C /app/libreoffice && rm data.tar.xz
+            fi
+          done
+        done
 
+      # 3. simplinks PATH
       - mkdir -p /app/bin
       - ln -sf /app/libreoffice/opt/libreoffice*/program/soffice /app/bin/soffice
+
 
   # ============================================================
   # Piper TTS
@@ -82,66 +94,27 @@ modules:
       - cargo-sources.json
       - node-sources.json
     build-commands:
-      - echo "=================================================="
-      - echo "🔍 ПРОВЕРКА КОНФИГУРАЦИИ"
-      - echo "=================================================="
-      - echo "📁 Текущая директория: $(pwd)"
-      - echo "=================================================="
-      - echo "📦 НАСТРОЙКА CARGO"
-      - echo "=================================================="
+
       - mkdir -p src-tauri/.cargo
-      - echo -e '[source.crates-io]\nreplace-with = "vendored-sources"\n\n[source.vendored-sources]\ndirectory = "/run/build/formato/cargo/vendor"' > src-tauri/.cargo/config.toml
-      - echo "=================================================="
-      - echo "📦 УСТАНОВКА NPM ЗАВИСИМОСТЕЙ"
-      - echo "=================================================="
+
       - npm install --offline --no-audit --no-fund
-      - echo "=================================================="
-      - echo "🦀 СБОРКА RUST (FLATPAK РЕЖИМ)"
-      - echo "=================================================="
-      - echo "🔧 Используем: RUSTFLAGS=\"--cfg flatpak\" npm run tauri build -- -b deb"
       #      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- -b deb
       - RUSTFLAGS="--cfg flatpak" npm run tauri build -- --debug -b deb
-      - echo "=================================================="
-      - echo "📦 РАСПАКОВКА .DEB ПАКЕТА"
-      - echo "=================================================="
       #      - ar -x src-tauri/target/release/bundle/deb/*.deb
       - ar -x src-tauri/target/debug/bundle/deb/*.deb
       - tar -xf data.tar.gz
-      - echo "=================================================="
-      - echo "📦 ПАТЧИНГ .DESKTOP ФАЙЛА"
-      - echo "=================================================="
+
       - sed -i 's/Icon=formato/Icon=com.applabhub.formato/g' usr/share/applications/Formato.desktop
-      - echo "✅ .desktop файл исправлен"
-      - echo "=================================================="
-      - echo "📦 УСТАНОВКА БИНАРНИКОВ В /app"
-      - echo "=================================================="
+
       - install -Dm755 usr/bin/formato /app/bin/formato
       - install -Dm644 usr/share/applications/Formato.desktop /app/share/applications/com.applabhub.formato.desktop
-      - echo "=================================================="
-      - echo "📦 УСТАНОВКА ИКОНОК"
-      - echo "=================================================="
+
       - mkdir -p /app/share/icons/hicolor/32x32/apps
       - mkdir -p /app/share/icons/hicolor/128x128/apps
       - mkdir -p /app/share/icons/hicolor/256x256@2/apps
       - install -m644 usr/share/icons/hicolor/32x32/apps/formato.png /app/share/icons/hicolor/32x32/apps/com.applabhub.formato.png
       - install -m644 usr/share/icons/hicolor/128x128/apps/formato.png /app/share/icons/hicolor/128x128/apps/com.applabhub.formato.png
       - install -m644 usr/share/icons/hicolor/256x256@2/apps/formato.png /app/share/icons/hicolor/256x256@2/apps/com.applabhub.formato.png
-      - echo "✅ Иконки установлены с правильными именами"
-      - echo "=================================================="
-      - echo "📦 УСТАНОВКА METAINFO"
-      - echo "=================================================="
+
       - install -Dm644 usr/share/metainfo/com.applabhub.formato.metainfo.xml /app/share/metainfo/com.applabhub.formato.metainfo.xml
-      - echo "=================================================="
-      - echo "📁 ПРОВЕРКА УСТАНОВЛЕННЫХ ФАЙЛОВ"
-      - echo "=================================================="
-      - echo "📁 /app/bin/:"
-      - ls -la /app/bin/ 2>/dev/null || echo "⚠️ Папка /app/bin/ не найдена!"
-      - echo "📁 /app/share/applications/:"
-      - ls -la /app/share/applications/ 2>/dev/null || echo "⚠️ Папка /app/share/applications/ не найдена!"
-      - echo "📁 /app/share/icons/hicolor/128x128/apps/:"
-      - ls -la /app/share/icons/hicolor/128x128/apps/ 2>/dev/null || echo "⚠️ Папка не найдена!"
-      - echo "📁 /app/share/metainfo/:"
-      - ls -la /app/share/metainfo/ 2>/dev/null || echo "⚠️ Папка /app/share/metainfo/ не найдена!"
-      - echo "=================================================="
-      - echo "✅ СБОРКА ЗАВЕРШЕНА"
-      - echo "=================================================="
+
