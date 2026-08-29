@@ -8,7 +8,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-
 # Build
 /build
 /dist
@@ -23,7 +22,6 @@ yarn-error.log*
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 *.timestamp-*
-
 
 # Paraglide (i18n)
 src/lib/paraglide/
@@ -40,6 +38,7 @@ coverage/
 src-tauri/target/
 src-tauri/gen/
 src-tauri/.tauri/
+src-tauri/.cargo/
 
 # IDE
 .vscode/
@@ -67,12 +66,50 @@ temp/
 *.zip
 *.rar
 
-# Flatpak
+# Flatpak (локальная сборка)
 flatpak-builder-tools/
 flatpak-node/cache/
 build/
 *.flatpak
 .flatpak-builder/
 
+# Клонированный репозиторий Flathub (внутри проекта)
+flatpak/
+flathub/
+flatpak-builder/
+
 # Virtual environments
 venv/
+env/
+.venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Packages (локальные)
+*.deb
+*.rpm
+*.AppImage
+*.snap
+
+# Cargo / Rust
+Cargo.lock
+!src-tauri/Cargo.lock
+
+# Скриншоты и артефакты сборки
+data/screenshots/*.png
+!data/screenshots/README.md
+
+# Секретные ключи
+*.key
+*.pem
+*.crt
+
+# Локальные настройки
+.local/
+.cache/

@@ -96,13 +96,16 @@ modules:
     build-commands:
 
       - mkdir -p src-tauri/.cargo
+      - echo -e '[source.crates-io]\nreplace-with = "vendored-sources"\n\n[source.vendored-sources]\ndirectory = "/run/build/formato/cargo/vendor"' > src-tauri/.cargo/config.toml
 
       - npm install --offline --no-audit --no-fund
-      #      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- -b deb
+
+      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- -b deb
 #      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- --debug -b deb
-      - RUSTFLAGS="--cfg flatpak" CARGO_NET_OFFLINE=true npm run tauri build -- --debug -b deb
-      #      - ar -x src-tauri/target/release/bundle/deb/*.deb
-      - ar -x src-tauri/target/debug/bundle/deb/*.deb
+
+      - ar -x src-tauri/target/release/bundle/deb/*.deb
+#      - ar -x src-tauri/target/debug/bundle/deb/*.deb
+
       - tar -xf data.tar.gz
 
       - sed -i 's/Icon=formato/Icon=com.applabhub.formato/g' usr/share/applications/Formato.desktop
