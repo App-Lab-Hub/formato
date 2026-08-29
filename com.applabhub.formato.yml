@@ -99,7 +99,8 @@ modules:
 
       - npm install --offline --no-audit --no-fund
       #      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- -b deb
-      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- --debug -b deb
+#      - RUSTFLAGS="--cfg flatpak" npm run tauri build -- --debug -b deb
+      - RUSTFLAGS="--cfg flatpak" CARGO_NET_OFFLINE=true npm run tauri build -- --debug -b deb
       #      - ar -x src-tauri/target/release/bundle/deb/*.deb
       - ar -x src-tauri/target/debug/bundle/deb/*.deb
       - tar -xf data.tar.gz
