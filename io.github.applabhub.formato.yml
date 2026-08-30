@@ -74,7 +74,7 @@ modules:
       - type: git
         url: https://github.com/App-Lab-Hub/formato.git
         tag: 1.0.0
-        commit: e0c4edc27e9faf33cfc3f340c2565e1f413dd136
+        commit: 601ce9a399fa23d85ee0288ca1e6ac7eece47d67
       - cargo-sources.json
       - node-sources.json
     build-commands:
@@ -85,6 +85,10 @@ modules:
       - npm install --offline --no-audit --no-fund
 
       - RUSTFLAGS="--cfg flatpak" npm run tauri build -- -b deb
+
+#      - ar -x src-tauri/target/release/bundle/deb/*.deb
+
+#      - tar -xf src-tauri/target/release/bundle/deb/Formato_1.0.0_amd64/data.tar.gz
 
       - install -Dm755 src-tauri/target/release/bundle/deb/Formato_1.0.0_amd64/data/usr/bin/formato /app/bin/formato
       - install -Dm644 src-tauri/target/release/bundle/deb/Formato_1.0.0_amd64/data/usr/share/applications/Formato.desktop /app/share/applications/io.github.applabhub.formato.desktop
