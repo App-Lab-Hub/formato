@@ -86,10 +86,6 @@ modules:
 
       - RUSTFLAGS="--cfg flatpak" npm run tauri build -- -b deb
 
-#      - ar -x src-tauri/target/release/bundle/deb/*.deb
-
-#      - tar -xf src-tauri/target/release/bundle/deb/Formato_1.0.0_amd64/data.tar.gz
-
       - install -Dm755 src-tauri/target/release/bundle/deb/Formato_1.0.0_amd64/data/usr/bin/formato /app/bin/formato
       - install -Dm644 src-tauri/target/release/bundle/deb/Formato_1.0.0_amd64/data/usr/share/applications/Formato.desktop /app/share/applications/io.github.applabhub.formato.desktop
       - install -Dm644 src-tauri/target/release/bundle/deb/Formato_1.0.0_amd64/data/usr/share/icons/hicolor/128x128/apps/formato.png /app/share/icons/hicolor/128x128/apps/io.github.applabhub.formato.png

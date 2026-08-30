@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-const APP_NAME: &str = "com.applabhub.formato";
+const APP_NAME: &str = "io.github.applabhub.formato";
 
 // Постоянные данные (БД, конфиги)
 pub fn app_root() -> PathBuf {
