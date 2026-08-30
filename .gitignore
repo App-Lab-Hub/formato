@@ -113,3 +113,4 @@ data/screenshots/*.png
 # Локальные настройки
 .local/
 .cache/
+repo/
