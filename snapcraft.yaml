@@ -1,0 +1,55 @@
+name: formato
+base: core22
+version: '1.0.0'
+summary: Universal data converter for 60+ formats
+description: |
+  Formato is a powerful, open-source universal data converter designed for speed and privacy.
+  It supports over 60 formats, including JSON, YAML, XML, CSV, TOML, INI, Markdown, HTML, DOCX, ODT, XLSX, PDF, images, audio, and video.
+  All data is processed locally on your device — no uploads, no limits.
+
+grade: stable
+confinement: strict
+
+layout:
+  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1:
+    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1
+
+apps:
+  formato:
+    command: usr/bin/formato
+    desktop: usr/share/applications/formato.desktop
+    extensions: [gnome]
+    plugs:
+      - network
+      - network-bind
+
+parts:
+  build-app:
+    plugin: dump
+    build-snaps:
+      - node/20/stable
+      - rustup/latest/stable
+    build-packages:
+      - libwebkit2gtk-4.1-dev
+      - build-essential
+      - curl
+      - wget
+      - file
+      - libxdo-dev
+      - libssl-dev
+      - libayatana-appindicator3-dev
+      - librsvg2-dev
+      - dpkg
+    stage-packages:
+      - libwebkit2gtk-4.1-0
+      - libayatana-appindicator3-1
+    source: https://github.com/App-Lab-Hub/formato.git
+    source-type: git
+    source-tag: '1.0.0'
+    override-build: |
+      set -eu
+      rustup default stable
+      npm install
+      npm run tauri build -- --bundles deb
+      dpkg -x src-tauri/target/release/bundle/deb/*.deb $SNAPCRAFT_PART_INSTALL/
+      sed -i -e "s|Icon=formato|Icon=/usr/share/icons/hicolor/32x32/apps/formato.png|g" $SNAPCRAFT_PART_INSTALL/usr/share/applications/formato.desktop
