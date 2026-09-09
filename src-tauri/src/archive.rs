@@ -1,8 +1,21 @@
 // src-tauri/src/archive.rs
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::async_runtime;
 use tokio::fs;
 use zippylib::{create_tar_gz_archive, create_tar_xz_archive, create_zip_archive};
+
+
+fn get_snap_safe_temp_dir() -> PathBuf {
+    // SNAP_USER_DATA (обычно ~/snap/formato/current)
+    if let Ok(snap_user_data) = std::env::var("SNAP_USER_DATA") {
+        let path = PathBuf::from(snap_user_data).join("tmp");
+        // Создаем локальную tmp, если её еще нет
+        let _ = std::fs::create_dir_all(&path);
+        path
+    } else {
+        std::env::temp_dir() // Фолбэк
+    }
+}
 
 #[tauri::command]
 pub async fn archive_file(
@@ -14,60 +27,57 @@ pub async fn archive_file(
     let source_full = PathBuf::from(&source_path);
     let output = PathBuf::from(&output_path);
 
-    // Создаем временную директорию, которая автоматически удалится в конце функции
+    let base_temp = get_snap_safe_temp_dir();
+
     let temp_dir = tempfile::Builder::new()
         .prefix("tauri_archive_")
-        .tempdir()
+        .tempdir_in(base_temp) 
         .map_err(|e| format!("Failed to create temp dir: {}", e))?;
 
-    let local_path = temp_dir.path().join(&name_in_archive);
-
-    // Копируем исходный файл во временную директорию с новым именем
-    fs::copy(&source_full, &local_path)
-        .await
-        .map_err(|e| format!("Failed to copy file: {}", e))?;
-
     let format_clone = format.clone();
+    let temp_path_ctx = temp_dir.path().to_path_buf();
 
-    async_runtime::spawn_blocking(move || {
-        let result = match format_clone.as_str() {
-            "zip" => {
-                // Для ZIP передаем полный путь к временному файлу
-                create_zip_archive(&[local_path], output).map_err(|e| format!("Zip error: {}", e))
+    if format_clone == "zip" {
+        async_runtime::spawn_blocking(move || {
+            create_zip_archive(&[source_full], output).map_err(|e| format!("Zip error: {}", e))
+        })
+        .await
+        .map_err(|e| format!("Background task failed: {}", e))??;
+    } else {
+        // Для tar.gz и tar.xz копирование необходимо, чтобы задать файлу "name_in_archive"
+        let local_path = temp_dir.path().join(&name_in_archive);
+        fs::copy(&source_full, &local_path)
+            .await
+            .map_err(|e| format!("Failed to copy file: {}", e))?;
+
+        async_runtime::spawn_blocking(move || {
+            let relative_name = PathBuf::from(name_in_archive);
+            let files = vec![relative_name];
+
+            let _dir_guard = std::env::current_dir().and_then(|old_dir| {
+                std::env::set_current_dir(&temp_path_ctx)?;
+                Ok(old_dir)
+            });
+
+            let res = match format_clone.as_str() {
+                "tar.gz" => create_tar_gz_archive(&files, output)
+                    .map_err(|e| format!("Tar.gz error: {}", e)),
+                "tar.xz" => create_tar_xz_archive(&files, output)
+                    .map_err(|e| format!("Tar.xz error: {}", e)),
+                _ => Err(format!("Unsupported format: {}", format_clone)),
+            };
+
+            if let Ok(old_dir) = _dir_guard {
+                let _ = std::env::set_current_dir(old_dir);
             }
-            "tar.gz" | "tar.xz" => {
-                // Для TAR используем только относительное имя файла внутри архива.
-                // Чтобы библиотека zippylib нашла файл, временно меняем текущую директорию процесса.
-                let _dir_guard = std::env::current_dir().and_then(|old_dir| {
-                    std::env::set_current_dir(temp_dir.path())?;
-                    Ok(old_dir)
-                });
+            res
+        })
+        .await
+        .map_err(|e| format!("Background task failed: {}", e))??;
+    }
 
-                let relative_name = PathBuf::from(name_in_archive);
-                let files = vec![relative_name];
-
-                let res = match format_clone.as_str() {
-                    "tar.gz" => create_tar_gz_archive(&files, output)
-                        .map_err(|e| format!("Tar.gz error: {}", e)),
-                    "tar.xz" => create_tar_xz_archive(&files, output)
-                        .map_err(|e| format!("Tar.xz error: {}", e)),
-                    _ => unreachable!(),
-                };
-
-                // Возвращаем рабочую директорию назад, если guard успешно создался
-                if let Ok(old_dir) = _dir_guard {
-                    let _ = std::env::set_current_dir(old_dir);
-                }
-                res
-            }
-            _ => Err(format!("Unsupported format: {}", format_clone)),
-        };
-
-        drop(temp_dir);
-        result
-    })
-    .await
-    .map_err(|e| format!("Background task failed: {}", e))?
+    drop(temp_dir);
+    Ok(())
 }
 
 #[tauri::command]
@@ -77,6 +87,7 @@ pub async fn archive_multiple_files(
     format: String,
 ) -> Result<(), String> {
     let output = PathBuf::from(&output_path);
+    let base_temp = get_snap_safe_temp_dir();
 
     let mut files_with_names: Vec<(PathBuf, String)> = Vec::new();
     for item in files {
@@ -91,60 +102,61 @@ pub async fn archive_multiple_files(
         files_with_names.push((PathBuf::from(path), name.to_string()));
     }
 
-    // Создаем временную директорию для всех файлов
     let temp_dir = tempfile::Builder::new()
         .prefix("tauri_multiarchive_")
-        .tempdir()
+        .tempdir_in(base_temp)
         .map_err(|e| format!("Failed to create temp dir: {}", e))?;
 
-    let mut temp_paths = Vec::new();
-    let mut relative_names = Vec::new();
+    let format_clone = format.clone();
+    let temp_path_ctx = temp_dir.path().to_path_buf();
 
-    for (source_path, new_name) in files_with_names {
-        let local_path = temp_dir.path().join(&new_name);
-        fs::copy(source_path, &local_path)
-            .await
-            .map_err(|e| format!("Failed to copy file: {}", e))?;
+    if format_clone == "zip" {
+        // Для ZIP передаем оригинальные пути массивом без создания дубликатов на диске
+        let original_paths: Vec<PathBuf> = files_with_names.into_iter().map(|(p, _)| p).collect();
+        async_runtime::spawn_blocking(move || {
+            create_zip_archive(&original_paths, output).map_err(|e| format!("Zip error: {}", e))
+        })
+        .await
+        .map_err(|e| format!("Background task failed: {}", e))??;
+    } else {
+        // Для TAR-форматов разворачиваем структуру папок
+        let mut relative_names = Vec::new();
 
-        temp_paths.push(local_path);
-        relative_names.push(PathBuf::from(new_name));
+        for (source_path, new_name) in files_with_names {
+            let local_path = temp_dir.path().join(&new_name);
+            fs::copy(source_path, &local_path)
+                .await
+                .map_err(|e| format!("Failed to copy file: {}", e))?;
+            relative_names.push(PathBuf::from(new_name));
+        }
+
+        async_runtime::spawn_blocking(move || {
+            let _dir_guard = std::env::current_dir().and_then(|old_dir| {
+                std::env::set_current_dir(&temp_path_ctx)?;
+                Ok(old_dir)
+            });
+
+            let res = match format_clone.as_str() {
+                "tar.gz" => create_tar_gz_archive(&relative_names, output)
+                    .map_err(|e| format!("Tar.gz error: {}", e)),
+                "tar.xz" => create_tar_xz_archive(&relative_names, output)
+                    .map_err(|e| format!("Tar.xz error: {}", e)),
+                _ => Err(format!("Unsupported format: {}", format_clone)),
+            };
+
+            if let Ok(old_dir) = _dir_guard {
+                let _ = std::env::set_current_dir(old_dir);
+            }
+            res
+        })
+        .await
+        .map_err(|e| format!("Background task failed: {}", e))??;
     }
 
-    let format_clone = format.clone();
-
-    async_runtime::spawn_blocking(move || {
-        let result = match format_clone.as_str() {
-            "zip" => {
-                create_zip_archive(&temp_paths, output).map_err(|e| format!("Zip error: {}", e))
-            }
-            "tar.gz" | "tar.xz" => {
-                let _dir_guard = std::env::current_dir().and_then(|old_dir| {
-                    std::env::set_current_dir(temp_dir.path())?;
-                    Ok(old_dir)
-                });
-
-                let res = match format_clone.as_str() {
-                    "tar.gz" => create_tar_gz_archive(&relative_names, output)
-                        .map_err(|e| format!("Tar.gz error: {}", e)),
-                    "tar.xz" => create_tar_xz_archive(&relative_names, output)
-                        .map_err(|e| format!("Tar.xz error: {}", e)),
-                    _ => unreachable!(),
-                };
-
-                if let Ok(old_dir) = _dir_guard {
-                    let _ = std::env::set_current_dir(old_dir);
-                }
-                res
-            }
-            _ => Err(format!("Unsupported format: {}", format_clone)),
-        };
-
-        drop(temp_dir);
-        result
-    })
-    .await
-    .map_err(|e| format!("Background task failed: {}", e))?
+    drop(temp_dir);
+    Ok(())
 }
+
 
 #[cfg(test)]
 mod tests {

@@ -1,35 +1,68 @@
 name: formato
-base: core22
 version: '1.0.0'
 summary: Universal data converter for 60+ formats
 description: |
   Formato is a powerful, open-source universal data converter designed for speed and privacy.
-  It supports over 60 formats, including JSON, YAML, XML, CSV, TOML, INI, Markdown, HTML, DOCX, ODT, XLSX, PDF, images, audio, and video.
+  Supports over 60 formats via Rust + Tauri v2 + FFmpeg + LibreOffice AppImage.
   All data is processed locally on your device — no uploads, no limits.
 
 grade: stable
 confinement: strict
-
-layout:
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1:
-    bind: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/webkit2gtk-4.1
+base: core24
 
 apps:
   formato:
     command: usr/bin/formato
-    desktop: usr/share/applications/formato.desktop
-    extensions: [gnome]
+    desktop: usr/share/applications/Formato.desktop
+    extensions: [gnome, gpu]  # GNOME для тем/иконок, GPU для ускорения
+    environment:
+      SAL_USE_VCLPLUGIN: headless
+      APPIMAGE_EXTRACT_AND_RUN: "1"
+      PATH: $SNAP/usr/bin:$PATH
+      LD_LIBRARY_PATH: $SNAP/usr/lib/libreoffice_app/opt/libreoffice26.8/program:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio:$SNAP/usr/lib/x86_64-linux-gnu/oss4-libsalsa:$SNAP/usr/lib/x86_64-linux-gnu/blas:$SNAP/usr/lib/x86_64-linux-gnu/lapack:$SNAP/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
     plugs:
+      - home
       - network
-      - network-bind
+      - opengl
+      - audio-playback
+
+  soffice:
+    command: usr/lib/libreoffice_app/AppRun
+    environment:
+      SAL_USE_VCLPLUGIN: headless
+      APPIMAGE_EXTRACT_AND_RUN: "1"
+      LD_LIBRARY_PATH: $SNAP/usr/lib/libreoffice_app/opt/libreoffice26.8/program:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio:$SNAP/usr/lib/x86_64-linux-gnu/oss4-libsalsa:$SNAP/usr/lib/x86_64-linux-gnu/blas:$SNAP/usr/lib/x86_64-linux-gnu/lapack:$SNAP/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+    plugs:
+      - home
+      - audio-playback
+      - network
+
+layout:
+  /usr/share/fonts:
+    bind: $SNAP/usr/share/fonts
+  /usr/bin/soffice:
+    symlink: $SNAP/usr/lib/libreoffice_app/AppRun
+  /usr/bin/ffmpeg:
+    symlink: $SNAP/usr/bin/ffmpeg
 
 parts:
   build-app:
     plugin: dump
+    source: https://github.com/App-Lab-Hub/formato
+    source-type: git
+    source-tag: '1.0.0'
     build-snaps:
-      - node/20/stable
+      - node/22/stable
       - rustup/latest/stable
     build-packages:
+      - cmake
+      - g++
+      - gcc
+      - clang
+      - libclang-dev
+      - llvm                 
+      - libunistring-dev
+      - libdav1d-dev         
       - libwebkit2gtk-4.1-dev
       - build-essential
       - curl
@@ -40,16 +73,63 @@ parts:
       - libayatana-appindicator3-dev
       - librsvg2-dev
       - dpkg
+      - pkg-config
     stage-packages:
+      #       - tar
+      #      - zip
+      #      - gzip
       - libwebkit2gtk-4.1-0
       - libayatana-appindicator3-1
-    source: https://github.com/App-Lab-Hub/formato.git
-    source-type: git
-    source-tag: '1.0.0'
+      - libunistring5
+      - libstdc++6
+      - libasound2
+      - libdav1d7
+      - ffmpeg              
+      - librsvg2-common
+      - libpulse0
+      - libglib2.0-0
+      - libblas3 
+      - liblapack3
     override-build: |
       set -eu
+      export CC=/usr/bin/gcc
+      export CXX=/usr/bin/g++
+      export LIBCLANG_PATH=$(llvm-config --libdir)
+      export npm_config_cache="$CRAFT_PART_SRC/.npm-cache"
+
+      OLD_LD_LIBRARY_PATH="${LD_LIBRARY_PATH:-}"
+      export LD_LIBRARY_PATH=""
       rustup default stable
-      npm install
-      npm run tauri build -- --bundles deb
-      dpkg -x src-tauri/target/release/bundle/deb/*.deb $SNAPCRAFT_PART_INSTALL/
-      sed -i -e "s|Icon=formato|Icon=/usr/share/icons/hicolor/32x32/apps/formato.png|g" $SNAPCRAFT_PART_INSTALL/usr/share/applications/formato.desktop
+      export LD_LIBRARY_PATH="$OLD_LD_LIBRARY_PATH"
+
+      npm ci --registry=https://npmmirror.com --no-audit --loglevel verbose || \
+      npm install --registry=https://npmmirror.com --no-audit --loglevel verbose
+      
+      export LD_LIBRARY_PATH=""
+      npm run tauri build -- --bundles deb --debug -v
+      export LD_LIBRARY_PATH="$OLD_LD_LIBRARY_PATH"
+      
+      dpkg -x src-tauri/target/debug/bundle/deb/*.deb $CRAFT_PART_INSTALL/
+      sed -i -e "s|Icon=formato|Icon=/usr/share/icons/hicolor/32x32/apps/formato.png|g" $CRAFT_PART_INSTALL/usr/share/applications/Formato.desktop
+
+  libreoffice-runtime:
+    plugin: dump
+    source: https://appimages.libreitalia.org/LibreOffice-26.8.standard-x86_64.AppImage
+    source-type: file
+    stage-packages:
+      - libnss3
+      - libcups2
+    override-prime: |
+      craftctl default
+      echo "=== Распаковка AppImage ==="
+      mkdir -p usr/bin
+      mkdir -p usr/lib
+      
+      APPIMAGE_FILE=$(find $CRAFT_PART_SRC -name "*.AppImage" | head -n 1)
+      chmod +x "$APPIMAGE_FILE"
+      "$APPIMAGE_FILE" --appimage-extract
+      
+      rm -rf usr/lib/libreoffice_app
+      mv squashfs-root usr/lib/libreoffice_app
+      chmod +x usr/lib/libreoffice_app/AppRun
+      rm -f source
