@@ -75,9 +75,9 @@ parts:
       - dpkg
       - pkg-config
     stage-packages:
-      #       - tar
-      #      - zip
-      #      - gzip
+      - tar
+      - zip
+      - gzip
       - libwebkit2gtk-4.1-0
       - libayatana-appindicator3-1
       - libunistring5
