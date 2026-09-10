@@ -1,70 +1,129 @@
 // src-tauri/src/archive.rs
+use std::fs::File;
 use std::path::PathBuf;
 use tauri::async_runtime;
-use tokio::fs;
-use zippylib::{create_tar_gz_archive, create_tar_xz_archive, create_zip_archive};
 
-/// Возвращает безопасную временную директорию внутри Snap.
-/// Используется как fallback, если не удалось создать temp рядом с output.
+use flate2::write::GzEncoder;
+use flate2::Compression;
+use tar::{Builder as TarBuilder, Header};
+use xz2::write::XzEncoder;
+use zip::write::SimpleFileOptions;
+use zip::ZipWriter;
+
+// ============================================================
+// ПРЯМЫЕ ФУНКЦИИ СОЗДАНИЯ АРХИВОВ (без zippylib и rename)
+// ============================================================
+
+/// Создаёт ZIP напрямую, без временных файлов и `rename`.
+fn create_zip_direct(files: &[(PathBuf, String)], output: &PathBuf) -> Result<(), String> {
+    println!("📦 Creating ZIP directly...");
+
+    let file = File::create(output).map_err(|e| format!("Failed to create zip: {}", e))?;
+    let mut zip = ZipWriter::new(file);
+
+    let options = SimpleFileOptions::default()
+        .compression_method(zip::CompressionMethod::Deflated)
+        .unix_permissions(0o755);
+
+    for (source_path, name_in_archive) in files {
+        println!("  Adding: {:?} -> {}", source_path, name_in_archive);
+
+        if !source_path.exists() {
+            return Err(format!("Source file not found: {:?}", source_path));
+        }
+
+        let mut f = File::open(source_path).map_err(|e| format!("Failed to open: {}", e))?;
+        zip.start_file(name_in_archive, options)
+            .map_err(|e| format!("Failed to start file in zip: {}", e))?;
+        std::io::copy(&mut f, &mut zip)
+            .map_err(|e| format!("Failed to copy into zip: {}", e))?;
+    }
+
+    zip.finish().map_err(|e| format!("Failed to finish zip: {}", e))?;
+    println!("✅ ZIP created: {:?}", output);
+    Ok(())
+}
+
+/// Создаёт TAR.GZ напрямую.
+fn create_tar_gz_direct(files: &[(PathBuf, String)], output: &PathBuf) -> Result<(), String> {
+    println!("📦 Creating TAR.GZ directly...");
+
+    let file = File::create(output).map_err(|e| format!("Failed to create tar.gz: {}", e))?;
+    let enc = GzEncoder::new(file, Compression::default());
+    let mut tar = TarBuilder::new(enc);
+
+    for (source_path, name_in_archive) in files {
+        println!("  Adding: {:?} -> {}", source_path, name_in_archive);
+
+        if !source_path.exists() {
+            return Err(format!("Source file not found: {:?}", source_path));
+        }
+
+        let mut f = File::open(source_path).map_err(|e| format!("Failed to open: {}", e))?;
+        let metadata = f.metadata().map_err(|e| format!("Failed to get metadata: {}", e))?;
+
+        let mut header = Header::new_gnu();
+        header.set_size(metadata.len());
+        header.set_mode(0o644);
+        header.set_cksum();
+
+        tar.append_data(&mut header, name_in_archive, &mut f)
+            .map_err(|e| format!("Failed to append to tar.gz: {}", e))?;
+    }
+
+    tar.finish().map_err(|e| format!("Failed to finish tar.gz: {}", e))?;
+    println!("✅ TAR.GZ created: {:?}", output);
+    Ok(())
+}
+
+/// Создаёт TAR.XZ напрямую.
+fn create_tar_xz_direct(files: &[(PathBuf, String)], output: &PathBuf) -> Result<(), String> {
+    println!("📦 Creating TAR.XZ directly...");
+
+    let file = File::create(output).map_err(|e| format!("Failed to create tar.xz: {}", e))?;
+    let enc = XzEncoder::new(file, 6);
+    let mut tar = TarBuilder::new(enc);
+
+    for (source_path, name_in_archive) in files {
+        println!("  Adding: {:?} -> {}", source_path, name_in_archive);
+
+        if !source_path.exists() {
+            return Err(format!("Source file not found: {:?}", source_path));
+        }
+
+        let mut f = File::open(source_path).map_err(|e| format!("Failed to open: {}", e))?;
+        let metadata = f.metadata().map_err(|e| format!("Failed to get metadata: {}", e))?;
+
+        let mut header = Header::new_gnu();
+        header.set_size(metadata.len());
+        header.set_mode(0o644);
+        header.set_cksum();
+
+        tar.append_data(&mut header, name_in_archive, &mut f)
+            .map_err(|e| format!("Failed to append to tar.xz: {}", e))?;
+    }
+
+    tar.finish().map_err(|e| format!("Failed to finish tar.xz: {}", e))?;
+    println!("✅ TAR.XZ created: {:?}", output);
+    Ok(())
+}
+
+/// Создаёт безопасную временную директорию внутри Snap.
+/// Оставлено на случай, если понадобится для других задач.
+#[allow(dead_code)]
 fn get_snap_safe_temp_dir() -> PathBuf {
-    println!("🔍 [DEBUG] get_snap_safe_temp_dir() called");
-    println!("🔍 [DEBUG] SNAP: {:?}", std::env::var("SNAP"));
-    println!("🔍 [DEBUG] SNAP_USER_DATA: {:?}", std::env::var("SNAP_USER_DATA"));
-    println!("🔍 [DEBUG] Current dir: {:?}", std::env::current_dir());
-
     if let Ok(snap_user_data) = std::env::var("SNAP_USER_DATA") {
         let path = PathBuf::from(snap_user_data).join("tmp");
-        println!("🔍 [DEBUG] Using SNAP_USER_DATA path: {:?}", path);
-
         if std::fs::create_dir_all(&path).is_ok() {
-            let test_file = path.join(".test_write");
-            match std::fs::write(&test_file, b"test") {
-                Ok(_) => {
-                    let _ = std::fs::remove_file(&test_file);
-                    println!("✅ [INFO] Temp directory writable: {:?}", path);
-                    return path;
-                }
-                Err(e) => {
-                    eprintln!("❌ [ERROR] Cannot write to temp dir: {}", e);
-                }
-            }
-        } else {
-            eprintln!("❌ [ERROR] Failed to create SNAP_USER_DATA/tmp");
+            return path;
         }
     }
-
-    let fallback = std::env::temp_dir();
-    println!("🔍 [DEBUG] Using fallback temp dir: {:?}", fallback);
-    fallback
+    std::env::temp_dir()
 }
 
-/// Создаёт временную директорию для архивации.
-/// 🔥 ГЛАВНОЕ: пытаемся создать её рядом с итоговым файлом,
-/// чтобы `rename` внутри zippylib сработал (одна файловая система).
-fn create_temp_dir_for_output(output: &PathBuf, prefix: &str) -> Result<tempfile::TempDir, String> {
-    // 1. Пытаемся создать рядом с output
-    if let Some(parent) = output.parent() {
-        match tempfile::Builder::new()
-            .prefix(prefix)
-            .tempdir_in(parent)
-        {
-            Ok(dir) => {
-                println!("✅ Temp dir created next to output: {:?}", dir.path());
-                return Ok(dir);
-            }
-            Err(e) => {
-                eprintln!("⚠️ Cannot create temp dir next to output ({}). Falling back...", e);
-            }
-        }
-    }
-
-    // 2. Fallback — внутри SNAP_USER_DATA/tmp
-    let base_temp = get_snap_safe_temp_dir();
-    tempfile::Builder::new()
-        .prefix(prefix)
-        .tempdir_in(&base_temp)
-        .map_err(|e| format!("❌ Cannot create temp dir: {}", e))
-}
+// ============================================================
+// TAURI COMMANDS
+// ============================================================
 
 #[tauri::command]
 pub async fn archive_file(
@@ -82,199 +141,43 @@ pub async fn archive_file(
     let source_full = PathBuf::from(&source_path);
     let output = PathBuf::from(&output_path);
 
-    // Проверяем исходный файл
     if !source_full.exists() {
-        let err = format!("❌ Source file not found: {:?}", source_full);
-        eprintln!("{}", err);
-        return Err(err);
+        return Err(format!("❌ Source file not found: {:?}", source_full));
     }
-    println!("✅ Source file exists");
 
     if let Ok(metadata) = std::fs::metadata(&source_full) {
         println!("📊 Source size: {} bytes", metadata.len());
     }
 
-    // 🔥 Создаём temp рядом с output (одна ФС → rename сработает)
-    let temp_dir = create_temp_dir_for_output(&output, "tauri_archive_")?;
-    println!("🔍 [DEBUG] temp_path_ctx: {:?}", temp_dir.path());
-
     let format_clone = format.clone();
+    let source_for_closure = source_full.clone();
     let output_for_closure = output.clone();
+    let name_for_closure = name_in_archive.clone();
 
-    // ============ ZIP ============
-    if format_clone == "zip" {
-        println!("📦 Creating ZIP archive...");
+    // 🔥 Работаем напрямую, без zippylib и временных файлов
+    async_runtime::spawn_blocking(move || {
+        let files = vec![(source_for_closure, name_for_closure)];
 
-        let result = async_runtime::spawn_blocking(move || {
-            println!("🔍 [DEBUG] ZIP blocking task started");
-            println!("🔍 [DEBUG] Source: {:?}", source_full);
-            println!("🔍 [DEBUG] Output: {:?}", output_for_closure);
-
-            match create_zip_archive(&[source_full], output_for_closure.clone()) {
-                Ok(_) => {
-                    println!("✅ ZIP created successfully");
-                    Ok(())
-                }
-                Err(e) => {
-                    let err = format!("❌ Zip error: {}", e);
-                    eprintln!("{}", err);
-                    Err(err)
-                }
-            }
-        })
-        .await
-        .map_err(|e| {
-            let err = format!("❌ Background task failed: {}", e);
-            eprintln!("{}", err);
-            err
-        })?;
-
-        return result;
-    }
-
-    // ============ TAR.GZ / TAR.XZ ============
-    println!("📦 Creating {} archive...", format_clone);
-
-    // Копируем файл во временную директорию под нужным именем
-    let local_path = temp_dir.path().join(&name_in_archive);
-    println!("🔍 [DEBUG] Copying to: {:?}", local_path);
-
-    match fs::copy(&source_full, &local_path).await {
-        Ok(bytes) => {
-            println!("✅ File copied: {} bytes", bytes);
+        match format_clone.as_str() {
+            "zip" => create_zip_direct(&files, &output_for_closure),
+            "tar.gz" => create_tar_gz_direct(&files, &output_for_closure),
+            "tar.xz" => create_tar_xz_direct(&files, &output_for_closure),
+            _ => Err(format!("❌ Unsupported format: {}", format_clone)),
         }
-        Err(e) => {
-            eprintln!("❌ Failed to copy file: {}", e);
-            println!("🔍 [DEBUG] Trying symlink fallback...");
-
-            #[cfg(target_os = "linux")]
-            match std::os::unix::fs::symlink(&source_full, &local_path) {
-                Ok(_) => println!("✅ Symlink created"),
-                Err(e) => {
-                    let err = format!("❌ Symlink failed: {}", e);
-                    eprintln!("{}", err);
-                    return Err(err);
-                }
-            }
-            #[cfg(not(target_os = "linux"))]
-            {
-                return Err(format!("❌ Copy failed: {}", e));
-            }
-        }
-    }
-
-    if !local_path.exists() {
-        let err = format!("❌ File not found in temp: {:?}", local_path);
-        eprintln!("{}", err);
-        return Err(err);
-    }
-    println!("✅ File verified in temp");
-
-    let temp_path_ctx = temp_dir.path().to_path_buf();
-
-    let result = async_runtime::spawn_blocking(move || {
-        println!("🔍 [DEBUG] TAR blocking task started");
-        println!("🔍 [DEBUG] Current dir: {:?}", std::env::current_dir());
-
-        let relative_name = PathBuf::from(&name_in_archive);
-
-        // Пробуем с относительным путём
-        println!("🔍 [DEBUG] Trying relative path...");
-        let old_dir = std::env::current_dir().ok();
-        let _ = std::env::set_current_dir(&temp_path_ctx);
-        println!("🔍 [DEBUG] Changed dir to: {:?}", std::env::current_dir());
-
-        let result = match format_clone.as_str() {
-            "tar.gz" => {
-                println!("🔍 [DEBUG] Creating tar.gz...");
-                let res = create_tar_gz_archive(&[relative_name], output_for_closure.clone())
-                    .map_err(|e| format!("Tar.gz error: {}", e));
-
-                if let Err(e) = &res {
-                    eprintln!("❌ Tar.gz with relative path failed: {}", e);
-                    println!("🔍 [DEBUG] Trying absolute path...");
-
-                    let abs_path = temp_path_ctx.join(&name_in_archive);
-                    if abs_path.exists() {
-                        println!("🔍 [DEBUG] Using absolute path: {:?}", abs_path);
-                        create_tar_gz_archive(&[abs_path], output_for_closure.clone())
-                            .map_err(|e| format!("Tar.gz error (absolute): {}", e))
-                    } else {
-                        res
-                    }
-                } else {
-                    res
-                }
-            }
-            "tar.xz" => {
-                println!("🔍 [DEBUG] Creating tar.xz...");
-                let res = create_tar_xz_archive(&[relative_name], output_for_closure.clone())
-                    .map_err(|e| format!("Tar.xz error: {}", e));
-
-                if let Err(e) = &res {
-                    eprintln!("❌ Tar.xz with relative path failed: {}", e);
-                    println!("🔍 [DEBUG] Trying absolute path...");
-
-                    let abs_path = temp_path_ctx.join(&name_in_archive);
-                    if abs_path.exists() {
-                        println!("🔍 [DEBUG] Using absolute path: {:?}", abs_path);
-                        create_tar_xz_archive(&[abs_path], output_for_closure.clone())
-                            .map_err(|e| format!("Tar.xz error (absolute): {}", e))
-                    } else {
-                        res
-                    }
-                } else {
-                    res
-                }
-            }
-            _ => {
-                let err = format!("❌ Unsupported format: {}", format_clone);
-                eprintln!("{}", err);
-                Err(err)
-            }
-        };
-
-        // Возвращаем рабочую директорию
-        if let Some(old) = old_dir {
-            let _ = std::env::set_current_dir(old);
-            println!("🔍 [DEBUG] Restored dir to: {:?}", std::env::current_dir());
-        }
-
-        // Проверяем результат
-        if result.is_ok() {
-            println!("✅ TAR created successfully");
-            if let Ok(metadata) = std::fs::metadata(&output_for_closure) {
-                println!("📊 Archive size: {} bytes", metadata.len());
-                if metadata.len() == 0 {
-                    eprintln!("⚠️ WARNING: Archive is empty!");
-                }
-            }
-        } else if let Err(e) = &result {
-            eprintln!("❌ TAR creation failed: {}", e);
-        }
-
-        result
     })
     .await
-    .map_err(|e| {
-        let err = format!("❌ Background task failed: {}", e);
-        eprintln!("{}", err);
-        err
-    })?;
+    .map_err(|e| format!("❌ Background task failed: {}", e))??;
 
-    // Финальная проверка
     if output.exists() {
         if let Ok(metadata) = std::fs::metadata(&output) {
             println!("✅ Final archive size: {} bytes", metadata.len());
         }
     } else {
-        let err = format!("❌ Archive not found: {:?}", output);
-        eprintln!("{}", err);
-        return Err(err);
+        return Err(format!("❌ Archive not found: {:?}", output));
     }
 
-    println!("✅ [END] archive_file() completed successfully");
-    result
+    println!("✅ [END] archive_file() completed");
+    Ok(())
 }
 
 #[tauri::command]
@@ -290,7 +193,6 @@ pub async fn archive_multiple_files(
 
     let output = PathBuf::from(&output_path);
 
-    // Собираем пути и имена
     let mut files_with_names: Vec<(PathBuf, String)> = Vec::new();
     for (i, item) in files.iter().enumerate() {
         let path = item
@@ -305,112 +207,20 @@ pub async fn archive_multiple_files(
         files_with_names.push((PathBuf::from(path), name.to_string()));
     }
 
-    // 🔥 Создаём temp рядом с output
-    let temp_dir = create_temp_dir_for_output(&output, "tauri_multiarchive_")?;
-    println!("✅ Temp dir created: {:?}", temp_dir.path());
-
     let format_clone = format.clone();
-    let temp_path_ctx = temp_dir.path().to_path_buf();
     let output_for_closure = output.clone();
 
-    // ============ ZIP ============
-    if format_clone == "zip" {
-        println!("📦 Creating multi ZIP archive...");
-        let original_paths: Vec<PathBuf> = files_with_names
-            .into_iter()
-            .map(|(p, _)| p)
-            .collect();
-
-        let result = async_runtime::spawn_blocking(move || {
-            println!("🔍 [DEBUG] ZIP blocking task started");
-            create_zip_archive(&original_paths, output_for_closure)
-                .map_err(|e| format!("Zip error: {}", e))
-        })
-        .await
-        .map_err(|e| {
-            let err = format!("❌ Background task failed: {}", e);
-            eprintln!("{}", err);
-            err
-        })?;
-
-        if result.is_ok() {
-            println!("✅ Multi ZIP created successfully");
+    // 🔥 Работаем напрямую
+    async_runtime::spawn_blocking(move || {
+        match format_clone.as_str() {
+            "zip" => create_zip_direct(&files_with_names, &output_for_closure),
+            "tar.gz" => create_tar_gz_direct(&files_with_names, &output_for_closure),
+            "tar.xz" => create_tar_xz_direct(&files_with_names, &output_for_closure),
+            _ => Err(format!("❌ Unsupported format: {}", format_clone)),
         }
-        return result;
-    }
-
-    // ============ TAR.GZ / TAR.XZ ============
-    println!("📦 Creating multi {} archive...", format_clone);
-
-    let mut relative_names = Vec::new();
-
-    for (source_path, new_name) in files_with_names {
-        let local_path = temp_dir.path().join(&new_name);
-        println!("🔍 [DEBUG] Copying {:?} -> {:?}", source_path, local_path);
-
-        match fs::copy(&source_path, &local_path).await {
-            Ok(bytes) => {
-                println!("✅ Copied {} bytes", bytes);
-                relative_names.push(PathBuf::from(new_name));
-            }
-            Err(e) => {
-                eprintln!("❌ Failed to copy: {}", e);
-                return Err(format!("Failed to copy file: {}", e));
-            }
-        }
-    }
-
-    let output_for_closure = output.clone();
-
-    let result = async_runtime::spawn_blocking(move || {
-        println!("🔍 [DEBUG] Multi TAR blocking task started");
-        println!("🔍 [DEBUG] Files to archive: {:?}", relative_names);
-        println!("🔍 [DEBUG] Current dir: {:?}", std::env::current_dir());
-
-        let old_dir = std::env::current_dir().ok();
-        let _ = std::env::set_current_dir(&temp_path_ctx);
-        println!("🔍 [DEBUG] Changed dir to: {:?}", std::env::current_dir());
-
-        let result = match format_clone.as_str() {
-            "tar.gz" => {
-                println!("🔍 [DEBUG] Creating multi tar.gz...");
-                create_tar_gz_archive(&relative_names, output_for_closure.clone())
-                    .map_err(|e| format!("Tar.gz error: {}", e))
-            }
-            "tar.xz" => {
-                println!("🔍 [DEBUG] Creating multi tar.xz...");
-                create_tar_xz_archive(&relative_names, output_for_closure.clone())
-                    .map_err(|e| format!("Tar.xz error: {}", e))
-            }
-            _ => {
-                let err = format!("❌ Unsupported format: {}", format_clone);
-                eprintln!("{}", err);
-                Err(err)
-            }
-        };
-
-        if let Some(old) = old_dir {
-            let _ = std::env::set_current_dir(old);
-            println!("🔍 [DEBUG] Restored dir to: {:?}", std::env::current_dir());
-        }
-
-        if result.is_ok() {
-            println!("✅ Multi TAR created successfully");
-            if let Ok(metadata) = std::fs::metadata(output_for_closure.clone()) {
-                println!("📊 Archive size: {} bytes", metadata.len());
-            }
-        } else if let Err(e) = &result {
-            eprintln!("❌ Multi TAR creation failed: {}", e);
-        }
-
-        result
     })
     .await
-    .map_err(|e| {
-        let err = format!("❌ Background task failed: {}", e);
-        eprintln!("{}", err);
-        err
-    })?;
+    .map_err(|e| format!("❌ Background task failed: {}", e))??;
 
     if output.exists() {
         if let Ok(metadata) = std::fs::metadata(&output) {
@@ -419,8 +229,9 @@ pub async fn archive_multiple_files(
     }
 
     println!("✅ [END] archive_multiple_files() completed");
-    result
+    Ok(())
 }
+
 
 
 #[cfg(test)]

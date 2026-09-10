@@ -2568,6 +2568,7 @@ dependencies = [
  "serde_ini",
  "serde_json",
  "serde_yaml",
+ "tar",
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
@@ -2581,6 +2582,7 @@ dependencies = [
  "uuid",
  "xml2json-rs",
  "xxhash-rust",
+ "xz2",
  "zip 8.6.0",
  "zippylib",
 ]
