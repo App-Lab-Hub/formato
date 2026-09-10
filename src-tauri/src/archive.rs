@@ -1,5 +1,5 @@
 // src-tauri/src/archive.rs
-use std::path::{Path, PathBuf};
+use std::path::{PathBuf};
 use tauri::async_runtime;
 use tokio::fs;
 use zippylib::{create_tar_gz_archive, create_tar_xz_archive, create_zip_archive};
@@ -64,7 +64,7 @@ pub async fn archive_file(
     let output = PathBuf::from(&output_path);
     
     println!("🔍 [DEBUG] source_full: {:?}", source_full);
-    println!("🔍 [DEBUG] output: {:?}", output);
+    println!("🔍 [DEBUG] output: {:?}", output.clone());
     
     // Проверяем исходный файл
     if !source_full.exists() {
@@ -113,16 +113,16 @@ pub async fn archive_file(
     let format_clone = format.clone();
     let temp_path_ctx = temp_dir.path().to_path_buf();
     println!("🔍 [DEBUG] temp_path_ctx: {:?}", temp_path_ctx);
-    
+    let output_for_closure = output.clone();
     if format_clone == "zip" {
         println!("📦 Creating ZIP archive...");
         
         let result = async_runtime::spawn_blocking(move || {
             println!("🔍 [DEBUG] ZIP blocking task started");
             println!("🔍 [DEBUG] Source: {:?}", source_full);
-            println!("🔍 [DEBUG] Output: {:?}", output);
+            println!("🔍 [DEBUG] Output: {:?}", output_for_closure.clone());
             
-            match create_zip_archive(&[source_full], output) {
+            match create_zip_archive(&[source_full], output_for_closure.clone()) {
                 Ok(_) => {
                     println!("✅ ZIP created successfully");
                     Ok(())
@@ -184,7 +184,7 @@ pub async fn archive_file(
         return Err(err);
     }
     println!("✅ File verified in temp");
-    
+    let output_for_closure = output.clone();
     let result = async_runtime::spawn_blocking(move || {
         println!("🔍 [DEBUG] TAR blocking task started");
         println!("🔍 [DEBUG] Current dir: {:?}", std::env::current_dir());
@@ -200,7 +200,7 @@ pub async fn archive_file(
         let result = match format_clone.as_str() {
             "tar.gz" => {
                 println!("🔍 [DEBUG] Creating tar.gz...");
-                let res = create_tar_gz_archive(&[relative_name], output.clone())
+                let res = create_tar_gz_archive(&[relative_name], output_for_closure.clone())
                     .map_err(|e| format!("Tar.gz error: {}", e));
                 
                 if let Err(e) = &res {
@@ -210,7 +210,7 @@ pub async fn archive_file(
                     let abs_path = temp_path_ctx.join(&name_in_archive);
                     if abs_path.exists() {
                         println!("🔍 [DEBUG] Using absolute path: {:?}", abs_path);
-                        create_tar_gz_archive(&[abs_path], output)
+                        create_tar_gz_archive(&[abs_path], output_for_closure.clone())
                             .map_err(|e| format!("Tar.gz error (absolute): {}", e))
                     } else {
                         res
@@ -221,7 +221,7 @@ pub async fn archive_file(
             }
             "tar.xz" => {
                 println!("🔍 [DEBUG] Creating tar.xz...");
-                let res = create_tar_xz_archive(&[relative_name], output.clone())
+                let res = create_tar_xz_archive(&[relative_name], output_for_closure.clone())
                     .map_err(|e| format!("Tar.xz error: {}", e));
                 
                 if let Err(e) = &res {
@@ -231,7 +231,7 @@ pub async fn archive_file(
                     let abs_path = temp_path_ctx.join(&name_in_archive);
                     if abs_path.exists() {
                         println!("🔍 [DEBUG] Using absolute path: {:?}", abs_path);
-                        create_tar_xz_archive(&[abs_path], output)
+                        create_tar_xz_archive(&[abs_path], output_for_closure.clone())
                             .map_err(|e| format!("Tar.xz error (absolute): {}", e))
                     } else {
                         res
@@ -254,9 +254,9 @@ pub async fn archive_file(
         }
         
         // Проверяем результат
-        if let Ok(_) = &result {
+        if result.is_ok() {
             println!("✅ TAR created successfully");
-            if let Ok(metadata) = std::fs::metadata(&output) {
+            if let Ok(metadata) = std::fs::metadata(&output_for_closure) {
                 println!("📊 Archive size: {} bytes", metadata.len());
                 if metadata.len() == 0 {
                     eprintln!("⚠️ WARNING: Archive is empty!");
@@ -276,7 +276,7 @@ pub async fn archive_file(
     })?;
     
     // Финальная проверка
-    if output.exists() {
+    if output.clone().exists() {
         if let Ok(metadata) = std::fs::metadata(&output) {
             println!("✅ Final archive size: {} bytes", metadata.len());
         }
@@ -347,7 +347,7 @@ pub async fn archive_multiple_files(
             err
         })?;
         
-        if let Ok(_) = &result {
+        if result.is_ok() {
             println!("✅ Multi ZIP created successfully");
         }
         return result;
@@ -372,7 +372,7 @@ pub async fn archive_multiple_files(
             }
         }
     }
-    
+    let output_for_closure = output.clone();
     let result = async_runtime::spawn_blocking(move || {
         println!("🔍 [DEBUG] Multi TAR blocking task started");
         println!("🔍 [DEBUG] Files to archive: {:?}", relative_names);
@@ -385,12 +385,12 @@ pub async fn archive_multiple_files(
         let result = match format_clone.as_str() {
             "tar.gz" => {
                 println!("🔍 [DEBUG] Creating multi tar.gz...");
-                create_tar_gz_archive(&relative_names, output)
+                create_tar_gz_archive(&relative_names, output_for_closure.clone())
                     .map_err(|e| format!("Tar.gz error: {}", e))
             }
             "tar.xz" => {
                 println!("🔍 [DEBUG] Creating multi tar.xz...");
-                create_tar_xz_archive(&relative_names, output)
+                create_tar_xz_archive(&relative_names, output_for_closure.clone())
                     .map_err(|e| format!("Tar.xz error: {}", e))
             }
             _ => {
@@ -405,9 +405,9 @@ pub async fn archive_multiple_files(
             println!("🔍 [DEBUG] Restored dir to: {:?}", std::env::current_dir());
         }
         
-        if let Ok(_) = &result {
+        if result.is_ok() {
             println!("✅ Multi TAR created successfully");
-            if let Ok(metadata) = std::fs::metadata(&output) {
+            if let Ok(metadata) = std::fs::metadata(output_for_closure.clone()) {
                 println!("📊 Archive size: {} bytes", metadata.len());
             }
         } else if let Err(e) = &result {
@@ -423,7 +423,7 @@ pub async fn archive_multiple_files(
         err
     })?;
     
-    if output.exists() {
+    if output.clone().exists() {
         if let Ok(metadata) = std::fs::metadata(&output) {
             println!("✅ Final archive size: {} bytes", metadata.len());
         }
