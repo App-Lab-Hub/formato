@@ -14,17 +14,23 @@ apps:
   formato:
     command: usr/bin/formato
     desktop: usr/share/applications/Formato.desktop
-    extensions: [gnome, gpu]  # GNOME для тем/иконок, GPU для ускорения
+    extensions: [gnome, gpu]
     environment:
       SAL_USE_VCLPLUGIN: headless
       APPIMAGE_EXTRACT_AND_RUN: "1"
       PATH: $SNAP/usr/bin:$PATH
+      # 🔥 Указываем свой GDK_PIXBUF_MODULE_FILE
+      GDK_PIXBUF_MODULE_FILE: $SNAP/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders.cache
       LD_LIBRARY_PATH: $SNAP/usr/lib/libreoffice_app/opt/libreoffice26.8/program:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio:$SNAP/usr/lib/x86_64-linux-gnu/oss4-libsalsa:$SNAP/usr/lib/x86_64-linux-gnu/blas:$SNAP/usr/lib/x86_64-linux-gnu/lapack:$SNAP/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
     plugs:
       - home
       - network
+      - network-status
       - opengl
       - audio-playback
+      - hardware-observe
+      - system-observe
+      - mount-observe
 
   soffice:
     command: usr/lib/libreoffice_app/AppRun
@@ -50,7 +56,6 @@ parts:
     plugin: dump
     source: https://github.com/App-Lab-Hub/formato
     source-type: git
-    source-tag: '1.0.0'
     build-snaps:
       - node/22/stable
       - rustup/latest/stable
@@ -60,9 +65,9 @@ parts:
       - gcc
       - clang
       - libclang-dev
-      - llvm                 
+      - llvm
       - libunistring-dev
-      - libdav1d-dev         
+      - libdav1d-dev
       - libwebkit2gtk-4.1-dev
       - build-essential
       - curl
@@ -78,17 +83,22 @@ parts:
       - tar
       - zip
       - gzip
+      # 🔥 Добавляем для SVG и xapp
+      - librsvg2-2
+      - librsvg2-common
+      - libgdk-pixbuf2.0-0
+      - libxapp-gtk3-module
       - libwebkit2gtk-4.1-0
       - libayatana-appindicator3-1
       - libunistring5
       - libstdc++6
       - libasound2
       - libdav1d7
-      - ffmpeg              
+      - ffmpeg
       - librsvg2-common
       - libpulse0
       - libglib2.0-0
-      - libblas3 
+      - libblas3
       - liblapack3
     override-build: |
       set -eu
@@ -104,11 +114,11 @@ parts:
 
       npm ci --registry=https://npmmirror.com --no-audit --loglevel verbose || \
       npm install --registry=https://npmmirror.com --no-audit --loglevel verbose
-      
+
       export LD_LIBRARY_PATH=""
-      npm run tauri build -- --bundles deb 
+      npm run tauri build -- --bundles deb
       export LD_LIBRARY_PATH="$OLD_LD_LIBRARY_PATH"
-      
+
       dpkg -x src-tauri/target/release/bundle/deb/*.deb $CRAFT_PART_INSTALL/
       sed -i -e "s|Icon=formato|Icon=/usr/share/icons/hicolor/32x32/apps/formato.png|g" $CRAFT_PART_INSTALL/usr/share/applications/Formato.desktop
 
@@ -124,11 +134,11 @@ parts:
       echo "=== Распаковка AppImage ==="
       mkdir -p usr/bin
       mkdir -p usr/lib
-      
+
       APPIMAGE_FILE=$(find $CRAFT_PART_SRC -name "*.AppImage" | head -n 1)
       chmod +x "$APPIMAGE_FILE"
       "$APPIMAGE_FILE" --appimage-extract
-      
+
       rm -rf usr/lib/libreoffice_app
       mv squashfs-root usr/lib/libreoffice_app
       chmod +x usr/lib/libreoffice_app/AppRun
