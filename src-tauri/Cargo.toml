@@ -43,7 +43,6 @@ sea-orm = { version = "2.0.0-rc", features = ["sqlx-sqlite", "runtime-tokio-rust
 chrono = "0.4.45"
 xxhash-rust = { version = "0.8.15", features = ["xxh3"] }
 memmap2 = "0.9.11"
-zippylib = "0.1.0"
 docx-rs = "0.4.20"
 rust_xlsxwriter = "0.96.0"
 rtf-parser = "0.4.3"

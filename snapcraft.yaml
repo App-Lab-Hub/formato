@@ -1,36 +1,35 @@
 name: formato
 version: '1.0.0'
+title: Formato
 summary: Universal data converter for 60+ formats
 description: |
-  Formato is a powerful, open-source universal data converter designed for speed and privacy.
-  Supports over 60 formats via Rust + Tauri v2 + FFmpeg + LibreOffice AppImage.
-  All data is processed locally on your device — no uploads, no limits.
+  Universal data converter for 60+ formats — JSON, YAML, XML, CSV, images, audio, video.
+  Features speech synthesis (TTS), speech recognition (STT), and a beautiful modern UI.
+  Built with Rust + Svelte + Tauri. 100% local, no uploads, no limits.
+license: MIT
+contact: https://github.com/App-Lab-Hub/formato/issues
+website: https://github.com/App-Lab-Hub/formato
+source-code: https://github.com/App-Lab-Hub/formato
+issues: https://github.com/App-Lab-Hub/formato/issues
 
 grade: stable
 confinement: strict
 base: core24
+compression: xz
 
 apps:
   formato:
     command: usr/bin/formato
     desktop: usr/share/applications/Formato.desktop
-    extensions: [gnome, gpu]
+    extensions: [gnome]
     environment:
       SAL_USE_VCLPLUGIN: headless
       APPIMAGE_EXTRACT_AND_RUN: "1"
       PATH: $SNAP/usr/bin:$PATH
-      # 🔥 Указываем свой GDK_PIXBUF_MODULE_FILE
-      GDK_PIXBUF_MODULE_FILE: $SNAP/usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/2.10.0/loaders.cache
       LD_LIBRARY_PATH: $SNAP/usr/lib/libreoffice_app/opt/libreoffice26.8/program:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio:$SNAP/usr/lib/x86_64-linux-gnu/oss4-libsalsa:$SNAP/usr/lib/x86_64-linux-gnu/blas:$SNAP/usr/lib/x86_64-linux-gnu/lapack:$SNAP/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
+      PIPER_ESPEAKNG_DATA_DIRECTORY: $SNAP/usr/lib/x86_64-linux-gnu
     plugs:
-      - home
       - network
-      - network-status
-      - opengl
-      - audio-playback
-      - hardware-observe
-      - system-observe
-      - mount-observe
 
   soffice:
     command: usr/lib/libreoffice_app/AppRun
@@ -38,24 +37,23 @@ apps:
       SAL_USE_VCLPLUGIN: headless
       APPIMAGE_EXTRACT_AND_RUN: "1"
       LD_LIBRARY_PATH: $SNAP/usr/lib/libreoffice_app/opt/libreoffice26.8/program:$SNAP/usr/lib/x86_64-linux-gnu/pulseaudio:$SNAP/usr/lib/x86_64-linux-gnu/oss4-libsalsa:$SNAP/usr/lib/x86_64-linux-gnu/blas:$SNAP/usr/lib/x86_64-linux-gnu/lapack:$SNAP/usr/lib/x86_64-linux-gnu:$LD_LIBRARY_PATH
-    plugs:
-      - home
-      - audio-playback
-      - network
 
 layout:
-  /usr/share/fonts:
-    bind: $SNAP/usr/share/fonts
   /usr/bin/soffice:
     symlink: $SNAP/usr/lib/libreoffice_app/AppRun
   /usr/bin/ffmpeg:
     symlink: $SNAP/usr/bin/ffmpeg
+
+lint:
+  ignore:
+    - library
 
 parts:
   build-app:
     plugin: dump
     source: https://github.com/App-Lab-Hub/formato
     source-type: git
+    source-tag: '1.0.0'
     build-snaps:
       - node/22/stable
       - rustup/latest/stable
@@ -80,26 +78,11 @@ parts:
       - dpkg
       - pkg-config
     stage-packages:
-      - tar
-      - zip
-      - gzip
-      # 🔥 Добавляем для SVG и xapp
-      - librsvg2-2
-      - librsvg2-common
-      - libgdk-pixbuf2.0-0
-      - libxapp-gtk3-module
       - libwebkit2gtk-4.1-0
-      - libayatana-appindicator3-1
-      - libunistring5
       - libstdc++6
-      - libasound2
       - libdav1d7
       - ffmpeg
-      - librsvg2-common
-      - libpulse0
-      - libglib2.0-0
-      - libblas3
-      - liblapack3
+      - espeak-ng-data
     override-build: |
       set -eu
       export CC=/usr/bin/gcc
@@ -126,12 +109,9 @@ parts:
     plugin: dump
     source: https://appimages.libreitalia.org/LibreOffice-26.8.standard-x86_64.AppImage
     source-type: file
-    stage-packages:
-      - libnss3
-      - libcups2
     override-prime: |
       craftctl default
-      echo "=== Распаковка AppImage ==="
+
       mkdir -p usr/bin
       mkdir -p usr/lib
 
@@ -142,4 +122,61 @@ parts:
       rm -rf usr/lib/libreoffice_app
       mv squashfs-root usr/lib/libreoffice_app
       chmod +x usr/lib/libreoffice_app/AppRun
+
+      LO=$CRAFT_PRIME/usr/lib/libreoffice_app/opt/libreoffice26.8
+
+      # 🔥 ПАПКУ program НЕ ТРОГАЕМ ВООБЩЕ!
+
+      # 🔥 Удаляем лицензии и presets
+      rm -f $LO/CREDITS.fodt
+      rm -f $LO/LICENSE
+      rm -f $LO/LICENSE.html
+      rm -f $LO/NOTICE
+      rm -rf $LO/presets
+
+      # 🔥 Удаляем help и readmes
+      rm -rf $LO/help
+      rm -rf $LO/readmes
+
+      # 🔥 Удаляем БЕЗОПАСНЫЕ папки из share
+      rm -rf $LO/share/autocorr
+      rm -rf $LO/share/autotext
+      rm -rf $LO/share/basic
+      rm -rf $LO/share/classification
+      rm -rf $LO/share/fingerprint
+      rm -rf $LO/share/glade
+      rm -rf $LO/share/labels
+      rm -rf $LO/share/palette
+      rm -rf $LO/share/psprint
+      rm -rf $LO/share/Scripts
+      rm -rf $LO/share/theme_definitions
+      rm -rf $LO/share/themes
+      rm -rf $LO/share/tipoftheday
+      rm -rf $LO/share/toolbarmode
+      rm -rf $LO/share/wizards
+      rm -rf $LO/share/wordbook
+      rm -rf $LO/share/xdg
+      rm -rf $LO/share/gallery
+      rm -rf $LO/share/fonts
+      rm -rf $LO/share/template
+
+      # 🔥 ОСТАВЛЯЕМ: config, extensions (dict-*), filter, registry, xslt, dtd,
+      # liblangtag, libreofficekit, numbertext, skia, svx, xpdfimport, calc, firebird
+
       rm -f source
+
+  cleanup:
+    after:
+      - build-app
+      - libreoffice-runtime
+    plugin: nil
+    build-snaps:
+      - core24
+      - gnome-46-2404
+    override-prime: |
+      set -eux
+      for snap in "core24" "gnome-46-2404"; do
+        cd "/snap/$snap/current" && find . -type f,l -exec rm -f "$CRAFT_PRIME/{}" \;
+      done
+
+
