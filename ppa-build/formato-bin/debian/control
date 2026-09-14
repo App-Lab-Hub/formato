@@ -8,7 +8,10 @@ Standards-Version: 4.6.2
 Package: formato-bin
 Architecture: amd64
 Depends: ${misc:Depends}, libc6,
-         cairo, desktop-file-utils, gdk-pixbuf2, glib2, gtk3, hicolor-icon-theme, libsoup3, pango, webkit2gtk-4.1, ffmpeg, libreoffice-fresh
+         libcairo2, desktop-file-utils, libgdk-pixbuf-2.0-0, libglib2.0-0,
+         libgtk-3-0, hicolor-icon-theme, libsoup-3.0-0, libpango-1.0-0,
+         libwebkit2gtk-4.1-0, ffmpeg,
+         libreoffice-writer, libreoffice-calc
 Description: Universal data converter for 60+ formats
  Universal data converter for 60+ formats — JSON, YAML, XML, CSV,
  images, audio, video. Features speech synthesis (TTS), speech

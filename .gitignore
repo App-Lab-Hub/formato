@@ -130,8 +130,6 @@ aur-build/pkgbuilds-fork
 
 
 
-
-
 # PPA build artifacts (артефакты сборки)
 ppa-build/*.dsc
 ppa-build/*.tar.xz
@@ -154,3 +152,5 @@ ppa-build/formato-bin/Formato_*.deb
 
 # debhelper temporary files
 ppa-build/formato-bin/debian/.debhelper/
+
+
