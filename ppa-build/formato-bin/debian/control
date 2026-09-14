@@ -1,0 +1,15 @@
+Source: formato-bin
+Section: utils
+Priority: optional
+Maintainer: sazynek <alesandr2021@gmail.com>
+Build-Depends: debhelper-compat (= 13)
+Standards-Version: 4.6.2
+
+Package: formato-bin
+Architecture: amd64
+Depends: ${misc:Depends}, libc6,
+         cairo, desktop-file-utils, gdk-pixbuf2, glib2, gtk3, hicolor-icon-theme, libsoup3, pango, webkit2gtk-4.1, ffmpeg, libreoffice-fresh
+Description: Universal data converter for 60+ formats
+ Universal data converter for 60+ formats — JSON, YAML, XML, CSV,
+ images, audio, video. Features speech synthesis (TTS), speech
+ recognition (STT), and a beautiful modern UI.
