@@ -1,0 +1,25 @@
+pkgbase = formato-bin
+	pkgdesc = Universal data converter for 60+ formats
+	pkgver = 1.0.0
+	pkgrel = 1
+	url = https://github.com/App-Lab-Hub/formato
+	install = formato-bin.install
+	arch = x86_64
+	license = MIT
+	depends = cairo
+	depends = desktop-file-utils
+	depends = gdk-pixbuf2
+	depends = glib2
+	depends = gtk3
+	depends = hicolor-icon-theme
+	depends = libsoup3
+	depends = pango
+	depends = webkit2gtk-4.1
+	depends = ffmpeg
+	depends = libreoffice-fresh
+	options = !strip
+	options = !debug
+	source_x86_64 = https://github.com/App-Lab-Hub/formato/releases/download/1.0.0/Formato_1.0.0_amd64.deb
+	sha256sums_x86_64 = 42acfddaaad65d3b7a530e2bd2536354010fb6aa179005af5e82a6a2768712c2
+
+pkgname = formato-bin

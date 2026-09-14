@@ -1,0 +1,17 @@
+# Maintainer: App-Lab-Hub <https://github.com/App-Lab-Hub/formato>
+pkgname=formato-bin
+pkgver=1.0.0
+pkgrel=1
+pkgdesc="Universal data converter for 60+ formats"
+arch=('x86_64')
+url="https://github.com/App-Lab-Hub/formato"
+license=('MIT')
+depends=('cairo' 'desktop-file-utils' 'gdk-pixbuf2' 'glib2' 'gtk3' 'hicolor-icon-theme' 'libsoup3' 'pango' 'webkit2gtk-4.1' 'ffmpeg' 'libreoffice-fresh')
+options=('!strip' '!debug')
+install=${pkgname}.install
+source_x86_64=("${url}/releases/download/${pkgver}/Formato_${pkgver}_amd64.deb")
+sha256sums_x86_64=('42acfddaaad65d3b7a530e2bd2536354010fb6aa179005af5e82a6a2768712c2')
+
+package() {  
+  tar -xvf data.tar.gz -C "${pkgdir}"
+}

@@ -114,3 +114,15 @@ data/screenshots/*.png
 .local/
 .cache/
 repo/
+
+
+
+# AUR build artifacts
+aur-build/src/
+aur-build/pkg/
+aur-build/*.pkg.tar.zst
+aur-build/*.deb
+aur-build/formato-bin-*.pkg.tar.zst
+aur-build/pkgbuilds-fork
+
+
