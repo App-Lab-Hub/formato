@@ -1,0 +1,3 @@
+# Теги для source-пакета: имя пакета в начале строки не пишется
+source-is-missing [bin/formato]
+package-depends-on-hardcoded-libc

@@ -128,8 +128,6 @@ aur-build/pkgbuilds-fork
 
 
 
-
-
 # PPA build artifacts (артефакты сборки)
 ppa-build/*.dsc
 ppa-build/*.tar.xz
@@ -138,19 +136,21 @@ ppa-build/*.buildinfo
 ppa-build/*.build
 ppa-build/*.deb
 ppa-build/*.ddeb
+ppa-build/*.ppa.upload
+
+# Распакованный .deb (дублирует formato/bin и formato/resources)
+ppa-build/extracted/
 
 # Временные папки внутри debian/
-ppa-build/formato-bin/debian/extracted/
-ppa-build/formato-bin/debian/formato-bin/
-ppa-build/formato-bin/debian/tmp/
-ppa-build/formato-bin/debian/debhelper-build-stamp
-ppa-build/formato-bin/debian/files
-ppa-build/formato-bin/debian/*.substvars
+ppa-build/formato/debian/extracted/
+ppa-build/formato/debian/formato/
+ppa-build/formato/debian/tmp/
+ppa-build/formato/debian/debhelper-build-stamp
+ppa-build/formato/debian/files
+ppa-build/formato/debian/files.new
+ppa-build/formato/debian/*.substvars
+ppa-build/formato/debian/.debhelper/
 
 # Скачанный .deb
-ppa-build/formato-bin/Formato_*.deb
-
-# debhelper temporary files
-ppa-build/formato-bin/debian/.debhelper/
-
+ppa-build/formato/Formato_*.deb
 

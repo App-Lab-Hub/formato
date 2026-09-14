@@ -1,0 +1,2 @@
+# Бинарные теги lintian для пакета formato-bin
+embedded-library libyaml [usr/bin/formato]

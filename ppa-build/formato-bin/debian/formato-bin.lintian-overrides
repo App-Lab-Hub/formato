@@ -1,3 +1,0 @@
-formato-bin: embedded-library libyaml [usr/bin/formato]
-
-formato-bin: package-depends-on-hardcoded-libc

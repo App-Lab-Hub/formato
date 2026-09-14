@@ -1,0 +1,26 @@
+#!/usr/bin/make -f
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	echo "=== [BUILD] Бинарник уже в исходниках ==="
+
+override_dh_auto_install:
+	install -Dm755 bin/formato $(CURDIR)/debian/formato/usr/bin/formato
+	install -d $(CURDIR)/debian/formato/usr/share
+	cp -a resources/* $(CURDIR)/debian/formato/usr/share/
+	install -Dm644 debian/formato.1 $(CURDIR)/debian/formato/usr/share/man/man1/formato.1
+	find $(CURDIR)/debian/formato -type f
+
+override_dh_strip:
+	dh_strip --no-automatic-dbgsym
+
+override_dh_dwz:
+	# нет debug info
+
+override_dh_makeshlibs:
+	# Rust-бинарник не даёт shared libraries
+
+override_dh_shlibdeps:
+	# Rust статически линкует всё
