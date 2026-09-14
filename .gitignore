@@ -154,3 +154,6 @@ ppa-build/formato/debian/.debhelper/
 # Скачанный .deb
 ppa-build/formato/Formato_*.deb
 
+# Большой бинарник
+ppa-build/formato/bin/formato
+
