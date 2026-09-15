@@ -157,3 +157,6 @@ ppa-build/formato/Formato_*.deb
 # Большой бинарник
 ppa-build/formato/bin/formato
 
+
+src-tauri/piper
+
