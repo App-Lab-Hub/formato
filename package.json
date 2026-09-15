@@ -77,7 +77,6 @@
     "@fontsource-variable/montserrat": "^5.3.0",
     "@inlang/plugin-m-function-matcher": "^2.2.12",
     "@inlang/plugin-message-format": "^4.4.3",
-    "@lix-js/sdk-linux-x64": "^0.0.1",
     "@melt-ui/svelte": "^0.86.6",
     "@motionone/dom": "^10.18.0",
     "@splidejs/splide": "^4.1.4",
@@ -123,5 +122,24 @@
     "typescript": "~5.6.2",
     "vite": "^6.0.3",
     "vitest": "^4.1.10"
-  }
+  },
+  "bundledDependencies": [
+    "@fontsource-variable/montserrat",
+    "@inlang/plugin-m-function-matcher",
+    "@inlang/plugin-message-format",
+    "@melt-ui/svelte",
+    "@motionone/dom",
+    "@splidejs/splide",
+    "@splidejs/svelte-splide",
+    "@tailwindcss/vite",
+    "@tauri-apps/api",
+    "@tauri-apps/plugin-dialog",
+    "@tauri-apps/plugin-fs",
+    "@tauri-apps/plugin-opener",
+    "lucide-svelte",
+    "overlayscrollbars",
+    "svelte-icons",
+    "tailwindcss",
+    "toastify-js"
+  ]
 }

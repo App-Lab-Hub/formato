@@ -159,4 +159,6 @@ ppa-build/formato/bin/formato
 
 
 src-tauri/piper
+src-tauri/vendor/
+rpmbuild/
 
